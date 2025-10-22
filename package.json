@@ -1,0 +1,55 @@
+{
+  "name": "b0nes",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Zero-dependency component library and SSR/SSG framework",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./components": "./src/components/index.js",
+    "./atoms": "./src/components/atoms/index.js",
+    "./molecules": "./src/components/molecules/index.js",
+    "./organisms": "./src/components/organisms/index.js",
+    "./framework": "./src/framework/index.js",
+    "./compose": "./src/framework/compose.js",
+    "./router": "./src/framework/router.js",
+    "./utils": "./src/components/utils/index.js"
+  },
+  "scripts": {
+    "dev": "node src/framework/index.js",
+    "dev:watch": "node --watch src/framework/index.js",
+    "build": "node src/framework/utils/build/index.js public",
+    "test": "node src/components/utils/tester.js",
+    "generate": "node src/components/utils/generator/index.js"
+  },
+  "keywords": [
+    "components",
+    "ssr",
+    "ssg",
+    "atomic-design",
+    "framework",
+    "zero-dependency",
+    "server-side-rendering",
+    "static-site-generator",
+    "web-components",
+    "html",
+    "no-build",
+    "vanilla-js"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "author": {
+    "name": "Ignacio Garcia Villanueva",
+    "email": "iggy.dev@pm.me"
+  },
+    "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iggydotdev/b0nes.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iggydotdev/b0nes/issues"
+  },
+  "homepage": "https://github.com/iggydotdev/b0nes#readme",
+  "license": "MIT"
+}

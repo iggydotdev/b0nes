@@ -1,0 +1,1 @@
+export {picture} from './picture.js';
