@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/b0nes-framework.svg)](https://www.npmjs.com/package/b0nes-framework)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen)](https://nodejs.org/)
 
 
 b0nes is a lightweight, composition-first component library and SSR/SSG framework built with pure JavaScript and no dependencies.
