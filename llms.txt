@@ -1,0 +1,365 @@
+# b0nes Framework
+
+> A zero-dependency SSG/SSR framework built with pure JavaScript
+> GitHub: https://github.com/iggydotdev/b0nes
+> npm: https://www.npmjs.com/package/b0nes
+
+## Core Philosophy
+
+b0nes is a static site generator with component composition. NOT a React replacement.
+- Zero npm dependencies
+- Pure JavaScript + JSDoc for type safety
+- Components return HTML strings (no Virtual DOM)
+- Perfect for blogs, marketing sites, documentation, landing pages
+- Server-side only (no client-side interactivity in v0.1.0)
+
+## Installation
+
+```bash
+git clone https://github.com/iggydotdev/b0nes.git
+cd b0nes
+# No npm install needed!
+```
+
+## Quick Start
+
+```bash
+# Dev server
+node src/framework/index.js
+# or: npm run dev
+
+# Build static site
+node src/framework/utils/build/index.js public
+# or: npm run build
+
+# Run tests
+node src/components/utils/tester.js
+# or: npm run test
+```
+
+## Component Architecture
+
+### Atomic Design Hierarchy
+- **Atoms**: Basic elements (button, text, link, input, etc.)
+- **Molecules**: Combinations (card with header/media/content)
+- **Organisms**: Page sections (header, footer, hero, cta)
+
+### Component API Pattern
+
+ALL components follow this pattern:
+
+```javascript
+import { processSlotTrusted } from '../../utils/processSlot.js';
+import { normalizeClasses } from '../../utils/normalizeClasses.js';
+import { validateProps, validatePropTypes } from '../../utils/componentError.js';
+
+export const componentName = ({
+    attrs = '',      // Raw HTML attributes string
+    className = '',  // CSS classes
+    slot,           // Content (string or array)
+    // ... component-specific props
+}) => {
+    // 1. Validate required props
+    validateProps({ slot }, ['slot'], { 
+        componentName: 'componentName', 
+        componentType: 'atom' 
+    });
+    
+    // 2. Process attributes and classes
+    attrs = attrs ? ` ${attrs}` : '';
+    const classes = normalizeClasses(['base-class', className]);
+    
+    // 3. Process slot content
+    const slotContent = processSlotTrusted(slot);
+    
+    // 4. Return HTML string
+    return `<element class="${classes}"${attrs}>${slotContent}</element>`;
+};
+```
+
+## Available Components
+
+### Atoms
+- **button**: `{ type, slot, className, attrs }`
+- **link**: `{ url, slot, className, attrs }`
+- **text**: `{ is, slot, className, attrs }` - is = HTML tag (p, h1, span, etc.)
+- **image**: `{ src, alt, className, attrs }`
+- **input**: `{ type, className, attrs }`
+- **textarea**: `{ className, attrs }`
+- **box**: `{ is, slot, className, attrs }` - flexible container
+- **accordion**: `{ titleSlot, detailsSlot, className, attrs }`
+- **divider**: `{ className, attrs }` - hr element
+- **video**: `{ src, slot, className, attrs }`
+- **picture**: `{ slot, className, attrs }` - responsive images
+- **source**: `{ type, src, srcset, className, attrs }` - for picture/video
+
+### Molecules
+- **card**: `{ slot, headerSlot, mediaSlot, linkSlot, contentSlot, className, attrs }`
+
+### Organisms
+- **header**: `{ slot, className, attrs }`
+- **footer**: `{ slot, className, attrs }`
+- **hero**: `{ slot, className, attrs }`
+- **cta**: `{ slot, className, attrs }`
+
+## Component Usage Examples
+
+### Direct Usage (standalone)
+```javascript
+import { button } from './components/atoms/button/button.js';
+
+const html = button({ 
+    type: 'submit', 
+    slot: 'Click Me', 
+    className: 'primary' 
+});
+// Returns: '<button type="submit" class="btn primary">Click Me</button>'
+```
+
+### Composition Usage (in pages)
+```javascript
+// src/framework/pages/home.js
+export const components = [
+    {
+        type: 'organism',
+        name: 'hero',
+        props: {
+            slot: [
+                {
+                    type: 'atom',
+                    name: 'text',
+                    props: { is: 'h1', slot: 'Welcome' }
+                },
+                {
+                    type: 'atom',
+                    name: 'button',
+                    props: { slot: 'Get Started' }
+                }
+            ]
+        }
+    }
+];
+```
+
+## Routing
+
+### Static Routes
+```javascript
+// src/framework/routes.js
+export const routes = [
+    {
+        name: 'Home',
+        pattern: new URLPattern({ pathname: '/' }),
+        meta: { title: 'Home' },
+        components: homeComponents
+    }
+];
+```
+
+### Dynamic Routes
+```javascript
+{
+    pattern: new URLPattern({ pathname: '/blog/:postid' }),
+    meta: { title: 'Blog Post' },
+    components: blogPostComponents, // Function: (data) => [components]
+    externalData: async () => {
+        // Fetch data for this route
+        return await fetchBlogPost();
+    }
+}
+```
+
+## Key Functions
+
+### compose(components)
+Converts component tree to HTML strings.
+
+```javascript
+import { compose } from './framework/compose.js';
+
+const html = compose([
+    { type: 'atom', name: 'text', props: { is: 'p', slot: 'Hello' } }
+]);
+```
+
+### renderPage(content, meta)
+Wraps content in full HTML document.
+
+```javascript
+import { renderPage } from './framework/renderPage.js';
+
+const html = renderPage(content, { title: 'My Page' });
+```
+
+### router(url, routes)
+Matches URL to route definition.
+
+```javascript
+import { router } from './framework/router.js';
+
+const route = router(new URL('http://localhost/'), routes);
+```
+
+## Component Generator
+
+```bash
+# Generate new atom
+node src/components/utils/generator/index.js atom badge
+
+# Generate new molecule
+node src/components/utils/generator/index.js molecule card-list
+
+# Generate new organism
+node src/components/utils/generator/index.js organism sidebar
+```
+
+Creates:
+```
+src/components/atoms/badge/
+├── index.js
+├── badge.js
+└── badge.test.js
+```
+
+## Testing
+
+Tests use simple assertion pattern:
+
+```javascript
+// component.test.js
+export const test = () => {
+    const actual = component({ slot: 'Test' });
+    const expected = '<div class="component">Test</div>';
+    return actual === expected ? true : console.error({actual, expected}) || false;
+};
+```
+
+Run: `node src/components/utils/tester.js`
+
+## Important Constraints
+
+### NO Client-Side JavaScript
+b0nes generates static HTML. No interactivity in v0.1.0.
+
+### NO CSS Opinions
+b0nes provides structure, not styling. Users bring their own CSS.
+
+### NO XSS Concerns (for now)
+All content is developer-written code, not user input.
+- `processSlotTrusted()` - trusts component HTML
+- `escapeHtml()` / `escapeAttr()` - available if needed for user data
+
+### NO Dependencies
+The entire framework runs on Node.js built-ins only.
+
+## Common Patterns
+
+### Nested Components
+```javascript
+{
+    type: 'organism',
+    name: 'card',
+    props: {
+        slot: [
+            { type: 'atom', name: 'text', props: { is: 'h2', slot: 'Title' }},
+            { type: 'atom', name: 'text', props: { is: 'p', slot: 'Content' }}
+        ]
+    }
+}
+```
+
+### Conditional Rendering
+```javascript
+const components = [
+    showHeader && { type: 'organism', name: 'header', props: {...} },
+    { type: 'organism', name: 'hero', props: {...} }
+].filter(Boolean);
+```
+
+### Custom Styling
+```javascript
+button({
+    slot: 'Styled',
+    className: 'btn-primary large',
+    attrs: 'style="background: blue"'
+})
+```
+
+## Building & Deployment
+
+### SSG Build
+```bash
+npm run build
+# Outputs to public/
+```
+
+### Deployment
+Serve the `public/` directory:
+- Netlify: Drag & drop
+- Vercel: `vercel --prod`
+- GitHub Pages: Push to gh-pages branch
+- Any static host
+
+## Troubleshooting
+
+### "Component not found in library"
+- Component must be registered in `atoms/index.js`, `molecules/index.js`, or `organisms/index.js`
+- Check component name matches exactly
+
+### Tests failing
+- String comparison is exact (whitespace matters)
+- Check expected output format carefully
+
+### Build fails
+- Check `route.components` is array (or function returning array for dynamic routes)
+- Verify all required props are provided
+- Check for undefined `role` variable in header/footer (v0.1.0 bug - check attrs string instead)
+
+## Code Style
+
+- Use JSDoc for documentation
+- Follow atomic design principles
+- Keep components pure (no side effects)
+- Validate props at component start
+- Use `processSlotTrusted()` for component content
+- Use `normalizeClasses()` for class handling
+- Return template literals for HTML
+
+## What b0nes Is NOT
+
+❌ Not a React replacement
+❌ Not for SPAs with heavy interactivity
+❌ Not for real-time applications
+❌ Not a CSS framework
+❌ Not a client-side framework
+
+## What b0nes IS
+
+✅ Static site generator with components
+✅ SSR/SSG framework
+✅ Zero-dependency solution
+✅ For content-heavy sites
+✅ For marketing/landing pages
+✅ For blogs and documentation
+
+## Version Info
+
+Current: v0.1.0 (Initial Release)
+Node: >=24.0.0
+License: MIT
+
+## Links
+
+- GitHub: https://github.com/iggydotdev/b0nes
+- Issues: https://github.com/iggydotdev/b0nes/issues
+- npm: https://www.npmjs.com/package/b0nes
+
+---
+
+**When helping users with b0nes:**
+1. Remember it's SSG-focused, not client-side (at least not at the moment)
+2. Components return strings, not JSX
+3. No dependencies = suggest pure JS solutions
+4. Encourage atomic design patterns
+5. Point to component generator for new components
+6. Remind about NO CSS opinions (users style it)
