@@ -19,6 +19,9 @@ This is the **b0nes Framework**, a zero-dependency component library and SSR/SSG
 - Configured development workflow with hot reload
 - Set up deployment configuration for production
 - Added Node.js specific entries to .gitignore
+- **NEW:** Added client-side interactivity system (b0nes.js runtime)
+- **NEW:** Created interactive components: tabs, modal, dropdown
+- **NEW:** Added demo page at `/demo` showcasing interactive components
 
 ## Project Architecture
 
@@ -27,16 +30,18 @@ This is the **b0nes Framework**, a zero-dependency component library and SSR/SSG
 b0nes/
 ├── src/
 │   ├── components/           # Component Library
-│   │   ├── atoms/           # Basic elements (button, link, text, etc)
-│   │   ├── molecules/       # Combinations (card, form-group, etc)
+│   │   ├── atoms/           # Basic elements (button, link, text, dropdown, etc)
+│   │   ├── molecules/       # Combinations (card, tabs, modal, etc)
 │   │   ├── organisms/       # Sections (header, footer, hero, etc)
 │   │   └── utils/           # Component utilities and generators
 │   └── framework/           # Framework Core
+│       ├── client/          # Client-side interactivity
+│       │   └── b0nes.js     # Runtime with component behaviors
 │       ├── compose.js       # Component composition engine
 │       ├── renderPage.js    # HTML template renderer
 │       ├── router.js        # URL routing
 │       ├── routes.js        # Route definitions
-│       ├── pages/           # Page templates
+│       ├── pages/           # Page templates (home, demo, blog)
 │       └── utils/build/     # Static site generation
 ├── package.json             # Project configuration (no dependencies!)
 └── README.md               # Comprehensive documentation
@@ -47,6 +52,94 @@ b0nes/
 2. **Routes** map URLs to pages in `src/framework/routes.js`
 3. **Components** are composed recursively using the `compose()` function
 4. **Server** renders HTML on-demand for SSR or generates static files for SSG
+5. **Client-side runtime** (optional) adds interactivity via `b0nes.js`
+
+## Client-Side Interactivity
+
+The framework now includes a **zero-dependency client-side runtime** that adds interactivity to server-rendered components using a jQuery-style window singleton pattern.
+
+### The b0nes.js Runtime
+
+The runtime provides a global `window.b0nes` object with:
+- **Component registry**: Register behaviors for interactive components
+- **Auto-initialization**: Automatically discovers and enhances components on page load
+- **Event delegation**: Efficient event handling
+- **Progressive enhancement**: Works without JavaScript, better with it
+
+### Interactive Components
+
+**Tabs** - Tabbed interface with keyboard navigation
+```javascript
+{
+    type: 'molecule',
+    name: 'tabs',
+    props: {
+        tabs: [
+            { label: 'Tab 1', content: '<p>Content 1</p>' },
+            { label: 'Tab 2', content: '<p>Content 2</p>' }
+        ]
+    }
+}
+```
+
+**Modal** - Overlay dialog with focus management
+```javascript
+// Modal component
+{
+    type: 'molecule',
+    name: 'modal',
+    props: {
+        id: 'my-modal',
+        title: 'Title',
+        slot: '<p>Content</p>'
+    }
+}
+
+// Trigger button
+{
+    type: 'molecule',
+    name: 'modalTrigger',
+    props: {
+        target: 'my-modal',
+        slot: 'Open Modal'
+    }
+}
+```
+
+**Dropdown** - Click-to-toggle menu with outside-click detection
+```javascript
+{
+    type: 'atom',
+    name: 'dropdown',
+    props: {
+        trigger: 'Menu',
+        slot: '<a href="#">Item 1</a><a href="#">Item 2</a>'
+    }
+}
+```
+
+### Demo Page
+
+Visit `/demo` to see all interactive components in action with examples and usage patterns.
+
+### How It Works
+
+1. **Server renders** components with `data-b0nes` attributes
+2. **Client loads** the `/b0nes.js` script (auto-included by default)
+3. **Runtime discovers** components via `querySelectorAll('[data-b0nes]')`
+4. **Behaviors attach** event listeners and add interactivity
+5. **Progressive enhancement**: If JS fails, HTML still works
+
+### Opting Out
+
+To disable client-side interactivity for a specific page:
+```javascript
+// In routes.js
+meta: { 
+    title: 'My Page',
+    interactive: false  // Don't load b0nes.js
+}
+```
 
 ## Development
 

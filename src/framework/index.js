@@ -1,12 +1,29 @@
 import http from 'node:http';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { router } from './router.js';
 import { routes } from './routes.js';
 import { compose } from './compose.js';
 import { renderPage } from './renderPage.js';
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
+    
+    // Serve b0nes.js client-side runtime
+    if (url.pathname === '/b0nes.js') {
+        try {
+            const filePath = fileURLToPath(new URL('./client/b0nes.js', import.meta.url));
+            const content = await readFile(filePath, 'utf-8');
+            res.writeHead(200, { 'Content-Type': 'application/javascript' });
+            res.end(content);
+            return;
+        } catch (error) {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('Error loading b0nes.js');
+            return;
+        }
+    }
+    
     const route = router(url, routes);
     if (route) {
         const content = compose(route.components);
