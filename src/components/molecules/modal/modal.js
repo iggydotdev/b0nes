@@ -1,0 +1,65 @@
+import { processSlot } from '../../utils/processSlot.js';
+
+/**
+ * Modal component - Overlay dialog
+ * Requires b0nes.js for client-side interactivity
+ * 
+ * @param {Object} props
+ * @param {string} props.id - Unique modal ID
+ * @param {string} [props.title] - Modal title
+ * @param {string|Array} [props.slot] - Modal content
+ * @param {string} [props.className] - Additional CSS classes
+ * @param {string} [props.attrs] - Additional HTML attributes
+ * @returns {string} HTML string
+ * 
+ * @example
+ * modal({
+ *   id: 'my-modal',
+ *   title: 'Welcome',
+ *   slot: '<p>Modal content here</p>'
+ * })
+ */
+export const modal = ({ id, title, slot, className, attrs }) => {
+    if (!id) {
+        console.warn('[b0nes] Modal requires an id prop');
+        return '';
+    }
+
+    attrs = attrs ? ` ${attrs}` : '';
+    className = className ? ` ${className}` : '';
+    const content = processSlot(slot) ?? '';
+    const titleHtml = title ? `<h2 class="modal-title">${title}</h2>` : '';
+
+    return `<div class="modal${className}" data-b0nes="modal" id="${id}" aria-hidden="true" role="dialog" aria-modal="true"${attrs}>
+    <div class="modal-overlay" data-modal-close></div>
+    <div class="modal-content">
+        <button class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
+        ${titleHtml}
+        <div class="modal-body">
+            ${content}
+        </div>
+    </div>
+</div>`;
+};
+
+/**
+ * Modal trigger button - Opens a modal when clicked
+ * @param {Object} props
+ * @param {string} props.target - ID of modal to open
+ * @param {string|Array} [props.slot] - Button content
+ * @param {string} [props.className] - Additional CSS classes
+ * @param {string} [props.attrs] - Additional HTML attributes
+ * @returns {string} HTML string
+ */
+export const modalTrigger = ({ target, slot, className, attrs }) => {
+    if (!target) {
+        console.warn('[b0nes] modalTrigger requires a target prop');
+        return '';
+    }
+
+    attrs = attrs ? ` ${attrs}` : '';
+    className = className ? ` ${className}` : '';
+    const content = processSlot(slot) ?? 'Open Modal';
+
+    return `<button class="modal-trigger${className}" data-modal-open="${target}"${attrs}>${content}</button>`;
+};
