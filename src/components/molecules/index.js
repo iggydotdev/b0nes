@@ -1,17 +1,18 @@
 import { card } from './card/index.js';
 import { tabs } from './tabs/index.js';
-import { modal, modalTrigger } from './modal/index.js';
+import { modal } from './modal/index.js';
+import { dropdown } from './dropdown/index.js';
 
 export const molecules = {
     card,
     tabs,
     modal,
-    modalTrigger,
+    dropdown
 };
 
 export {
     card,
     tabs,
     modal,
-    modalTrigger,
+    dropdown
 };

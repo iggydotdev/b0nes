@@ -179,7 +179,7 @@ export const components = [
                     }
                 },
                 {
-                    type: 'atom',
+                    type: 'molecule',
                     name: 'dropdown',
                     props: {
                         trigger: 'Actions ▾',

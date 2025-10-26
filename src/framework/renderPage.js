@@ -6,7 +6,7 @@ export const document = () => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flesh Server</title>
     <style>
-        /* Basic Interactive Components Styling */
+        /* Temporary: Basic Interactive Components Styling */
         .tabs { margin: 1rem 0; }
         .tab-buttons { display: flex; gap: 0.5rem; border-bottom: 2px solid #e0e0e0; }
         .tab-button { 
@@ -110,8 +110,9 @@ export const renderPage = (content, meta = {}) => {
     
     // Include b0nes.js for client-side interactivity if enabled
     const includeScript = meta.interactive !== false; // Opt-out, defaults to true
-    const scriptTag = includeScript ? '\n    <script src="/b0nes.js"></script>' : '';
-    
+    const scriptTag = includeScript 
+    ? `\n    <script src="/b0nes.js?v=${process.env.npm_package_version}"></script>` 
+    : '';
     const doc = document()
         .replace('</head>', `${metaTags}${scriptTag}\n</head>`)
         .replace('<div id="app"/>', `<div id="app">\n        ${content}\n    </div>`);
