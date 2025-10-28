@@ -1,4 +1,4 @@
-import { textarea } from './index.js';
+import textarea from './index.js';
 
 export const test = () => {
     const actual = textarea({ attrs: 'placeholder="Enter text" id="text-area"', className: 'custom-textarea' });

@@ -1,4 +1,4 @@
-import { card } from './index.js';
+import card from './index.js';
 
 const customCard = () => {
     const actual = card({attrs: 'id="my-card"', className: 'custom-card', slot: '<p>This is a custom card content.</p>'});

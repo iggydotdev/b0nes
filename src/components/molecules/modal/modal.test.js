@@ -1,8 +1,9 @@
-import { modal, modalTrigger } from './modal.js';
+import { button } from '../../atoms/index.js';
+import modal from './index.js';
 
 export const test = () => {
     const actualModal = modal({ id: 'test-modal', title: 'Test', slot: 'Content' });
-    const actualTrigger = modalTrigger({ target: 'test-modal', slot: 'Open' });
+    const actualTrigger = button({ attrs: 'data-modal-open="test-modal"', slot: 'Open' });
     
     const hasModalDataAttr = actualModal.includes('data-b0nes="modal"');
     const hasModalId = actualModal.includes('id="test-modal"');

@@ -1,5 +1,5 @@
-import { cta } from './index.js';
-import { text, link }from '../../atoms/index.js';
+import cta from './index.js';
+import { text, link } from '../../atoms/index.js';
 
 export const test = () => {
     const actual = cta({

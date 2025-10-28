@@ -1,4 +1,4 @@
-import { source } from './index.js';
+import source from './index.js';
 
 const testVideoSource = () => {
     const actual = source({ type: 'video', srcset: 'video.mp4', attrs: 'controls id="video-source"', className: 'custom-video' });

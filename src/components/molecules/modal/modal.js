@@ -41,25 +41,3 @@ export const modal = ({ id, title, slot, className, attrs }) => {
     </div>
 </div>`;
 };
-
-/**
- * Modal trigger button - Opens a modal when clicked
- * @param {Object} props
- * @param {string} props.target - ID of modal to open
- * @param {string|Array} [props.slot] - Button content
- * @param {string} [props.className] - Additional CSS classes
- * @param {string} [props.attrs] - Additional HTML attributes
- * @returns {string} HTML string
- */
-export const modalTrigger = ({ target, slot, className, attrs }) => {
-    if (!target) {
-        console.warn('[b0nes] modalTrigger requires a target prop');
-        return '';
-    }
-
-    attrs = attrs ? ` ${attrs}` : '';
-    className = className ? ` ${className}` : '';
-    const content = processSlot(slot) ?? 'Open Modal';
-
-    return `<button class="modal-trigger${className}" data-modal-open="${target}"${attrs}>${content}</button>`;
-};

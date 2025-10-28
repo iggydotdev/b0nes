@@ -1,4 +1,4 @@
-import { dropdown } from './dropdown.js';
+import dropdown from './index.js';
 
 export const test = () => {
     const actual = dropdown({ trigger: 'Click me', slot: '<a href="#">Item</a>' });

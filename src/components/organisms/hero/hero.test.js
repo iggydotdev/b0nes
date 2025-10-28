@@ -1,4 +1,4 @@
-import { hero } from './index.js';
+import hero from './index.js';
 import { text } from '../../atoms/index.js';
 
 export const test = () => {

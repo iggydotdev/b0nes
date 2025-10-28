@@ -2,7 +2,7 @@ import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
 import { escapeAttr } from '../../utils/escapeAttr.js';
-import box from '../../atoms/index.js';
+import { box } from '../../atoms/index.js';
 
 /**
  * Hero component - A prominent banner/hero section for page intros

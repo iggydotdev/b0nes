@@ -1,11 +1,9 @@
 import {modal as modalRender} from './modal.js';
-import {modalTrigger} from './modal.js';
 import {modalClient} from './modal.client.js'; 
 
 export const modal = {
     render: modalRender,
-    trigger: modalTrigger,
-    ...modalClient
+    client: modalClient
 };
 
-export default modal.trigger;
+export default modal.render;

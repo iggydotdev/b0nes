@@ -97,10 +97,10 @@ The runtime provides a global `window.b0nes` object with:
 
 // Trigger button
 {
-    type: 'molecule',
-    name: 'modalTrigger',
+    type: 'atom',
+    name: 'button',
     props: {
-        target: 'my-modal',
+        attrs: 'data-modal-open="my-modal"',
         slot: 'Open Modal'
     }
 }

@@ -1,4 +1,4 @@
-import { footer } from './index.js';
+import footer from './index.js';
 
 export const test = () => {
     const actual = footer({ attrs: 'data-test="footer"', className: 'custom-footer', slot: '<p class="footer-text">This is the footer</p>' });

@@ -9,8 +9,12 @@
 
     // Import component registry (this is where the magic happens!)
     // In production, this would be bundled
- 
+    
+    //Store for data during runtime
+    
+    // How many components are active for the same b0nes dataset? 
     const instanceCleanup = new WeakMap();
+    // Registry of all components
     const componentLibrary = { ...atoms, ...molecules, ...organisms };
 
     window.b0nes = {

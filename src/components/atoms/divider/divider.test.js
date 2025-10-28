@@ -1,4 +1,4 @@
-import { divider } from './index.js';
+import divider from './index.js';
 
 export const test = () => {
     const actual = divider({});

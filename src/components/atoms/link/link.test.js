@@ -1,4 +1,4 @@
-import { link } from './index.js';
+import link from './index.js';
 
 export const test = () => {
     const actual = link({url: 'https://example.com', slot: 'Example', className: 'custom-link', attrs: 'target="_blank" rel="noopener noreferrer"'});

@@ -1,4 +1,4 @@
-import { componentName } from './index.js';
+import componentName from './index.js';
 
 export const test = () => {
     const actual = componentName({ /* props go here */  });

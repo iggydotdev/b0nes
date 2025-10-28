@@ -1,4 +1,4 @@
-import { accordion } from './index.js';
+import accordion from './index.js';
 
 export const test = () => {
     const actual = accordion({titleSlot: 'Accordion Title', detailsSlot: 'Accordion Details', className: 'custom-accordion', attrs: 'id="my-accordion"'});

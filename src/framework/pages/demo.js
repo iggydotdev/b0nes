@@ -70,6 +70,30 @@ export const components = [
                             {
                                 label: 'Overview',
                                 content: '<p>This is the <strong>Overview</strong> tab. Tabs provide an easy way to organize content into separate views.</p>'
+
+                                /// 
+                                /*
+
+                                content: {
+                                    type: 'atom',
+                                    name: 'text',
+                                    props: {
+                                        is: 'p',
+                                        slot: [
+                                            'This is the ',
+                                            {
+                                                type: 'atom',
+                                                name: 'text',
+                                                props: {
+                                                    is: 'strong',
+                                                    slot: ['Overview']
+                                                }
+                                            },
+                                            ' tab. Tabs provide an easy way to organize content into separate views.'
+                                        ]
+                                    }
+                                },
+                                */
                             },
                             {
                                 label: 'Features',

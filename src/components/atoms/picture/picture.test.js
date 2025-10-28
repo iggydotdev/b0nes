@@ -1,5 +1,5 @@
-import { source } from '../source/source.js';
-import { picture } from './index.js';
+import source from '../source/index.js';
+import picture from './index.js';
 
 export const test = () => {
     const actual = picture({ attrs: 'id="picture-element"', className: 'custom-picture', slot: [source({ type: 'image', src: 'image.jpg', attrs: 'id="image-source"', className: 'custom-image' }), '...slot content goes here...'] });

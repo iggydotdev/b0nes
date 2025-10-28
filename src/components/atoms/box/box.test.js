@@ -1,4 +1,4 @@
-import { box } from './index.js';
+import box from './index.js';
 
 export const test = () => {
     const actual = box({slot: 'Content', className: 'customClass'});

@@ -4,4 +4,4 @@ export const box = {
     render: boxRender
 };
 
-export default box.render;
+export default boxRender;

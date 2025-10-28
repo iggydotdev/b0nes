@@ -1,4 +1,4 @@
-import { image } from './index.js';
+import image from './index.js';
 
 export const test = () => { 
     const actual = image({src: 'https://picsum.photos/200/300',  attrs: 'id="example-image"',alt:"Example Image", className: 'custom-image'});

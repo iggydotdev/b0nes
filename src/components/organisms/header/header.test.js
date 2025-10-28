@@ -1,4 +1,4 @@
-import { header } from './index.js';
+import header from './index.js';
 
 export const test = () => {
     const actual = header({ attrs: 'data-test="header"', className: 'custom-header', slot: '<h1 class="header-title">This is the header</h1>' });

@@ -1,4 +1,4 @@
-import { text } from './index.js';
+import text from './index.js';
 
 export const test = () => {
     const actual = text({is: 'p', slot: 'Hello, World!', className: 'custom-text', attrs: 'id="greeting"'});

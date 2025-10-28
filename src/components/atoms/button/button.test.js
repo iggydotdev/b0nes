@@ -1,4 +1,4 @@
-import { button } from './index.js';
+import button from './index.js';
 
 /**
  * Test suite for button component

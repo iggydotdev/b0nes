@@ -1,5 +1,5 @@
-import { video } from './index.js';
-import { source } from '../source/index.js';
+import video from './index.js';
+import source from '../source/index.js';
 
 export const test = () => {
     const actual = video({ attrs: 'controls id="video-player"', className: 'custom-video', slot: [source({ type: 'video', srcset: 'video.mp4', attrs: 'controls id="video-source"', className: 'custom-video' })] });
