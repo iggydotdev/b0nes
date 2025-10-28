@@ -133,10 +133,10 @@ export const components = [
                     }
                 },
                 {
-                    type: 'molecule',
-                    name: 'modalTrigger',
+                    type: 'atom',
+                    name: 'button',
                     props: {
-                        target: 'demo-modal',
+                        attrs: 'data-modal-open="demo-modal"',
                         slot: 'Open Modal',
                         className: 'btn-primary'
                     }
@@ -254,7 +254,7 @@ export const components = [
                 name: 'text',
                 props: {
                     is: 'p',
-                    slot: '© 2025 b0nes Framework. Built with zero dependencies.'
+                    slot: ['© 2025 b0nes Framework. Built with zero dependencies. ']
                 }
             }
         }

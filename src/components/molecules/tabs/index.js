@@ -1,9 +1,9 @@
 import { tabs as tabsRender } from './tabs.js';
-import { tabs as tabClient } from './tabs.client.js';
+import { client } from './molecules.tabs.client.js';
 
 export const tabs = {
     render: tabsRender,
-    client: tabClient
+    client: client
 };
 
 export default tabs.render;

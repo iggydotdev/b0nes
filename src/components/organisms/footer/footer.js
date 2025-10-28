@@ -145,13 +145,14 @@ export const footer = ({
     }
     
     // Info: Suggest using role="contentinfo" for main site footer
-    const slotString = Array.isArray(slot) ? slot.join('') : slot;
-    if ((slotString.includes('©') || slotString.includes('copyright'))) {
-        console.info(
-            `[b0nes Info] Main site footer with copyright/site info should have role="contentinfo" ` +
-            `for better accessibility.`
-        );
-    }
+    // TODO: Check this 
+    // const slotString = Array.isArray(slot) ? slot.join('') : slot;
+    // if ((slotString.includes('©') || slotString.includes('copyright'))) {
+    //     console.info(
+    //         `[b0nes Info] Main site footer with copyright/site info should have role="contentinfo" ` +
+    //         `for better accessibility.`
+    //     );
+    // }
     
     // Process attributes
     attrs = attrs ? ` ${attrs}` : '';

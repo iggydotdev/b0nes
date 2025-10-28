@@ -110,12 +110,12 @@ export const renderPage = (content, meta = {}) => {
     
     // Include b0nes.js for client-side interactivity if enabled
     const includeScript = meta.interactive !== false; // Opt-out, defaults to true
-    const scriptTag = includeScript 
+    const b0nesScriptTag = includeScript 
     ? `\n    <script src="/b0nes.js?v=${process.env.npm_package_version}"></script>` 
     : '';
     const doc = document()
-        .replace('</head>', `${metaTags}${scriptTag}\n</head>`)
-        .replace('<div id="app"/>', `<div id="app">\n        ${content}\n    </div>`);
+        .replace('</head>', `${metaTags}</head>`)
+        .replace('<div id="app"/>', `<div id="app">\n        ${content}\n    ${b0nesScriptTag}\n</div>`);
     
     return doc;
 };

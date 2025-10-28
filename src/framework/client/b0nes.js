@@ -1,22 +1,14 @@
-   import { atoms } from '/components/atoms/index.js';
-    import { molecules } from '/components/molecules/index.js';
-    import { organisms } from '/components/organisms/index.js';
+
 /**
  * b0nes Client Runtime - Simplified with unified exports
  */
-(function() {
+(async function() {
     'use strict';
 
-    // Import component registry (this is where the magic happens!)
-    // In production, this would be bundled
-    
     //Store for data during runtime
-    
     // How many components are active for the same b0nes dataset? 
     const instanceCleanup = new WeakMap();
-    // Registry of all components
-    const componentLibrary = { ...atoms, ...molecules, ...organisms };
-
+    const componentLibrary = {};
     window.b0nes = {
         activeInstances: new Set(),
         instanceCleanup,
@@ -30,34 +22,46 @@
             let count = 0;
 
             elements.forEach(el => {
-                const type = el.dataset.b0nes;
+                const dataset = el.dataset.b0nes.split(':');
+                const [type, name] = dataset;
                 
+                if (dataset.length !== 2) {
+                    console.warn(`[b0nes] Invalid data-b0nes format: ${el.dataset.b0nes}`);
+                    return;
+                }
                 // Skip if already initialized
                 if (el.dataset.b0nesInit === 'true') return;
                 
                 // Get component from registry
-                const component = componentLibrary[type];
+                if (componentLibrary[type] !== undefined && componentLibrary[type][name] !== undefined) {
+                    const component = componentLibrary[type][name];
                 
-                if (!component) {
-                    console.warn(`[b0nes] Component not found: ${type}`);
-                    return;
-                }
-                
-                // Check if component has client behavior
-                if (!component.client) {
-                    // Component is server-only, skip
-                    return;
-                }
-                
-                try {
-                    // Initialize client behavior
+                    // Check if component has client behavior
+                    if (!component.client) {
+                        // Component is server-only, skip
+                        return;
+                    }
                     component.client(el);
                     el.dataset.b0nesInit = 'true';
                     this.activeInstances.add(el);
                     count++;
-                } catch (error) {
-                    console.error(`[b0nes] Error initializing ${type}:`, error);
+                } else {
+                     try {
+                        // Initialize client behavior
+                        const module = import(`../../components/${type}/${name}/${type}.${name}.client.js`);
+                        module.then(component => {
+                            component.client(el);
+                            el.dataset.b0nesInit = 'true';
+                            this.activeInstances.add(el);
+                            count++;
+                        })
+                    } catch (error) {
+                        console.error(`[b0nes] Error initializing ${type}:`, error);
+                    }
+                    console.warn(`[b0nes] Component not found: ${type}/${name}`);
+                    return;
                 }
+
             });
 
             return count;
@@ -90,10 +94,12 @@
         }
     };
 
+    const initialize = () => window.b0nes.init();
+
     // Auto-init
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => window.b0nes.init());
+        document.addEventListener('DOMContentLoaded', initialize);
     } else {
-        window.b0nes.init();
+        initialize();
     }
 })();

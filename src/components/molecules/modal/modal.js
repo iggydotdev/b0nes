@@ -30,7 +30,7 @@ export const modal = ({ id, title, slot, className, attrs }) => {
     const content = processSlot(slot) ?? '';
     const titleHtml = title ? `<h2 class="modal-title">${title}</h2>` : '';
 
-    return `<div class="modal${className}" data-b0nes="modal" id="${id}" aria-hidden="true" role="dialog" aria-modal="true"${attrs}>
+    return `<div class="modal${className}" data-b0nes="molecules:modal" id="${id}" aria-hidden="true" role="dialog" aria-modal="true"${attrs}>
     <div class="modal-overlay" data-modal-close></div>
     <div class="modal-content">
         <button class="modal-close" data-modal-close aria-label="Close modal">&times;</button>

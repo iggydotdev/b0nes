@@ -23,7 +23,27 @@ const server = http.createServer(async (req, res) => {
             return;
         }
     }
+    // Serve components/index.js
+    const segments = req.url.includes('client.js')?req.url.split('client.js')[0]:req.url.split('/').filter(Boolean);
     
+    console.log(segments);
+    if (url.pathname.includes('client.js')) {
+        const x = segments.split('/').filter(Boolean);
+        console.log(x)
+        const [type, name] = x[x.length-1].split('.');
+        console.log(type, name);
+        try {
+            const filePath = fileURLToPath(new URL(`../components/${type}/${name}/${type}.${name}.client.js`, import.meta.url));
+            const content = await readFile(filePath, 'utf-8');
+            res.writeHead(200, { 'Content-Type': 'application/javascript' });
+            res.end(content);
+            return;
+        } catch (error) {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.end('Components index not found');
+            return;
+        }
+    }
     const route = router(url, routes);
     if (route) {
         const content = compose(route.components);

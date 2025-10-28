@@ -1,4 +1,4 @@
-export const tabs = () => {
+export const client = (el) => {
     'use strict';
 
 // ===== Built-in Component Behaviors =====
@@ -6,7 +6,7 @@ export const tabs = () => {
     /**
      * Tabs behavior - Interactive tabbed interface
      */
-    window.b0nes.register('tabs', function(el) {
+    window.b0nes.register('tabs', function() {
         const buttons = el.querySelectorAll('.tab-button');
         const panels = el.querySelectorAll('.tab-panel');
 

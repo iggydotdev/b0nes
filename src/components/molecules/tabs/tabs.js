@@ -52,7 +52,7 @@ export const tabs = ({ tabs = [], className, attrs }) => {
         >${content}</div>`;
     }).join('');
 
-    return `<div class="tabs${className}" data-b0nes="tabs" role="tablist"${attrs}>
+    return `<div class="tabs${className}" data-b0nes="molecules:tabs" role="tablist"${attrs}>
     <div class="tab-buttons">
         ${tabButtons}
     </div>
