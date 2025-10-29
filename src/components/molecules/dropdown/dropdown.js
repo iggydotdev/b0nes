@@ -28,7 +28,8 @@ export const dropdown = ({ trigger, slot, className, attrs }) => {
     const triggerContent = processSlot(trigger) ?? 'Dropdown';
     const menuContent = processSlot(slot) ?? '';
 
-    return `<div class="dropdown${className}" data-b0nes="molecules:dropdown"${attrs}>
+    // IMPORTANT: Add data-b0nes-type="molecule" to help runtime find the component
+    return `<div class="dropdown${className}" data-b0nes="molecules:dropdown" data-b0nes-type="molecule"${attrs}>
     <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
         ${triggerContent}
     </button>

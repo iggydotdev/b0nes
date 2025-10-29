@@ -8,10 +8,20 @@
     //Store for data during runtime
     // How many components are active for the same b0nes dataset? 
     const instanceCleanup = new WeakMap();
-    const componentLibrary = {};
+    const behaviorModules = new Map(); // Cache loaded modules
+    
     window.b0nes = {
         activeInstances: new Set(),
         instanceCleanup,
+        behaviors: {},
+        
+        /**
+         * Register a behavior (can be called from modules)
+         */
+        register(name, behavior) {
+            this.behaviors[name] = behavior;
+            console.log(`[b0nes] Registered: ${name}`);
+        },
 
         /**
          * Initialize components - NO lazy loading needed!
@@ -22,6 +32,7 @@
             let count = 0;
 
             elements.forEach(el => {
+                // split to gather type and name
                 const dataset = el.dataset.b0nes.split(':');
                 const [type, name] = dataset;
                 
@@ -32,16 +43,10 @@
                 // Skip if already initialized
                 if (el.dataset.b0nesInit === 'true') return;
                 
-                // Get component from registry
-                if (componentLibrary[type] !== undefined && componentLibrary[type][name] !== undefined) {
-                    const component = componentLibrary[type][name];
-                
-                    // Check if component has client behavior
-                    if (!component.client) {
-                        // Component is server-only, skip
-                        return;
-                    }
-                    component.client(el);
+                // Get component from registry if already in
+                if (this.behaviors[name] !== undefined) {
+                    // Client behavior is always present if the component has a data-b0nes attribute
+                    this.behaviors[name](el);
                     el.dataset.b0nesInit = 'true';
                     this.activeInstances.add(el);
                     count++;
@@ -50,7 +55,9 @@
                         // Initialize client behavior
                         const module = import(`../../components/${type}/${name}/${type}.${name}.client.js`);
                         module.then(component => {
-                            component.client(el);
+                            this.register(name, component.client);
+                            console.log(`[b0nes] Loaded component: ${type}/${name}`);
+                            this.behaviors[name](el);
                             el.dataset.b0nesInit = 'true';
                             this.activeInstances.add(el);
                             count++;
@@ -76,6 +83,7 @@
                 cleanup();
                 instanceCleanup.delete(el);
                 this.activeInstances.delete(el);
+                this.behaviors.delete(el.dataset.b0nes);
                 delete el.dataset.b0nesInit;
                 return true;
             }

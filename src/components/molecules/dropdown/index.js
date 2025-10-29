@@ -1,9 +1,9 @@
 import {dropdown as dropdownRender} from './dropdown.js';
-//import {dropdown as dpdownClient} from './dropdown.client.js';
+import {client as dropdownClient} from './molecules.dropdown.client.js';
 
 export const dropdown = {
     render: dropdownRender,
-  //client: dropdownClient
+    client: dropdownClient
 };
 
 export default dropdown.render;

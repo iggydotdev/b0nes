@@ -207,7 +207,31 @@ export const components = [
                     name: 'dropdown',
                     props: {
                         trigger: 'Actions ▾',
-                        slot: '<a href="#edit">Edit</a><a href="#duplicate">Duplicate</a><a href="#delete" style="color: red;">Delete</a>'
+                        slot: [{
+                            type: 'atom',
+                            name: 'link',
+                            props: {
+                                url: '#edit',
+                                slot: 'Edit',
+                            }
+                        },
+                        {
+                            type: 'atom',
+                            name: 'link',
+                            props: {
+                                url: '#duplicate',
+                                slot: 'Duplicate',
+                            }
+                        },
+                        {
+                            type: 'atom',
+                            name: 'link',
+                            props: {
+                                url: '#delete',
+                                slot: 'Delete',
+                            }
+                        },]
+                            
                     }
                 }
             ]
@@ -249,14 +273,14 @@ export const components = [
         type: 'organism',
         name: 'footer',
         props: {
-            slot: {
+            slot: [{
                 type: 'atom',
                 name: 'text',
                 props: {
                     is: 'p',
                     slot: ['© 2025 b0nes Framework. Built with zero dependencies. ']
                 }
-            }
+            }]
         }
     }
 ];

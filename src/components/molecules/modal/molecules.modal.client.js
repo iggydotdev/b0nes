@@ -1,8 +1,7 @@
 /**
 * Modal behavior - Overlay dialog
 */
-export const client = (el) =>  
-    window.b0nes.register('modal', function() {
+export const client = (el) => {
         const modalId = el.id;
         const closeModal = () => {
             el.setAttribute('aria-hidden', 'true');
@@ -37,5 +36,5 @@ export const client = (el) =>
             }
         });
         el.style.display = 'none';
-    });
+    };
 ;
