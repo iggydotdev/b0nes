@@ -7,7 +7,7 @@ export const test = () => {
     ];
     
     const actual = tabs({ tabs: testTabs });
-    const hasDataAttribute = actual.includes('data-b0nes="tabs"');
+    const hasDataAttribute = actual.includes('data-b0nes="molecules:tabs"');
     const hasTabButtons = actual.includes('Tab 1') && actual.includes('Tab 2');
     const hasTabPanels = actual.includes('Content 1') && actual.includes('Content 2');
     const hasActiveClass = actual.includes('active');
