@@ -1,4 +1,6 @@
-import { URLPattern } from 'node:url';
+
+// Import URLPattern (automatically uses native or polyfill)
+import { URLPattern } from './utils/urlPattern.js';
 import {components as homeComponents} from './pages/home.js';
 import {components as blogPostComponents} from './pages/blogPost.js';
 import {components as demoComponents} from './pages/demo.js';

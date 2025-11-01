@@ -13,14 +13,16 @@
     "./framework": "./src/framework/index.js",
     "./compose": "./src/framework/compose.js",
     "./router": "./src/framework/router.js",
-    "./utils": "./src/components/utils/index.js"
+    "./utils": "./src/components/utils/index.js",
+    "./urlpattern": "./src/framework/utils/urlpattern.js"
   },
   "scripts": {
     "dev": "node src/framework/index.js",
     "dev:watch": "node --watch src/framework/index.js",
     "build": "node src/framework/utils/build/index.js public",
     "test": "node src/components/utils/tester.js",
-    "generate": "node src/components/utils/generator/index.js"
+    "generate": "node src/components/utils/generator/index.js",
+
   },
   "keywords": [
     "components",
@@ -37,7 +39,7 @@
     "vanilla-js"
   ],
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=20.0.0"
   },
   "author": {
     "name": "Ignacio Garcia Villanueva",
