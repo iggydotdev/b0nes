@@ -1,0 +1,19 @@
+{
+  "name": "badge",
+  "version": "1.0.0",
+  "type": "atom",
+  "description": "Simple badge/tag component for displaying short labels or status indicators",
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "files": {
+    "component": "badge.js",
+    "test": "badge.test.js"
+  },
+  "tags": [
+    "badge",
+    "label",
+    "tag",
+    "status",
+    "indicator"
+  ]
+}
