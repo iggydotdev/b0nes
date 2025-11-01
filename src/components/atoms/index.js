@@ -21,7 +21,7 @@ export const atoms = {
     picture,
     text,
     textarea,
-    video,
+    video
 };
 
 export {
@@ -35,5 +35,5 @@ export {
     picture,
     text,
     textarea,
-    video,
+    video
 };
