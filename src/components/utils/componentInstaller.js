@@ -119,7 +119,7 @@ const resolveUrl = (baseUrl, relativeUrl) => {
   }
   
   const base = new URL(baseUrl);
-  return new URL(relativeUrl, base.origin + path.dirname(base.pathname) + '/').href;
+  return new URL(relativeUrl, base.origin + base.pathname + '/').href;
 };
 
 /**
