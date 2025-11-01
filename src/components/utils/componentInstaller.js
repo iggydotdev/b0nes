@@ -459,7 +459,7 @@ Examples:
   # Install from URL
   npm run install-component https://example.com/components/my-card
 
-  # Install with URL reference
+  # Install with URL reference (not yet... coming soon???)
   npm run install-component https://example.com/card --reference
 
   # Preview installation
@@ -490,7 +490,7 @@ Component Manifest Format:
   const options = {
     force: args.includes('--force'),
     dryRun: args.includes('--dry-run'),
-    reference: args.includes('--reference')
+    reference: false //args.includes('--reference')
   };
   
   const result = await installComponent(url, options);
