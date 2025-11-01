@@ -65,7 +65,7 @@ node src/framework/index.js    # Start building immediately
 ## Quick Start in 5 Minutes ⚡
 
 ### Prerequisites
-- Node.js v24+ installed
+- Node.js v20+ installed
 - A terminal
 - That's it!
 
@@ -270,6 +270,107 @@ npm run generate molecule my-card
 
 # Create an organism
 npm run generate organism my-header
+```
+
+### Component Installer
+
+1. Install Components from URLs
+
+```bash
+npm run install-component https://example.com/components/my-card
+```
+
+2. Two Installation Modes
+
+Copy Mode (Default):
+
+- Downloads files to your project
+- Works offline
+- Can modify locally
+- No external dependencies
+
+Reference Mode:
+```bash
+npm run install-component https://example.com/card --reference
+```
+
+- Loads from URL at runtime
+- Always latest version
+- Smaller project size
+- Requires internet
+
+3. Component Manifest System
+
+Authors create a simple manifest:
+```json
+{
+  "name": "my-card",
+  "version": "1.0.0",
+  "type": "molecule",
+  "files": {
+    "component": "./my-card.js",
+    "test": "./my-card.test.js",
+    "client": "./molecule.my-card.client.js"
+  }
+}
+```
+
+4. Automatic Registry Updates
+The installer automatically:
+
+- ✅ Downloads component files
+- ✅ Updates component index
+- ✅ Checks dependencies
+- ✅ Validates manifest
+- ✅ Runs tests
+
+🎯 Real-World Workflow
+As Component Author
+
+- Create component following b0nes patterns
+- Add manifest (b0nes.manifest.json)
+- Host on GitHub (or anywhere)
+- Share URL with community
+
+```
+https://raw.githubusercontent.com/username/repo/main/components/card
+```
+
+As Component User
+
+Install component:
+
+```bash
+npm run install-component https://github.com/username/repo/main/components/card
+```
+
+Use immediately:
+
+```javascript
+{
+  type: 'molecule',
+  name: 'card',  // Now available!
+  props: { /* ... */ }
+}
+```
+
+A Standard format for sharing would follow this:
+
+```json 
+{
+  "name": "component-name",
+  "version": "1.0.0",
+  "type": "atom|molecule|organism",
+  "files": {
+    "component": "./file.js",
+    "test": "./file.test.js",
+    "client": "./client.js"
+  },
+  "dependencies": [],
+  "tags": [],
+  "repository": "...",
+  "demo": "..."
+}
 ```
 
 ---
