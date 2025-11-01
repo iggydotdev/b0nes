@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "atom",
   "description": "Simple badge/tag component for displaying short labels or status indicators",
-  "author": "Your Name <your.email@example.com>",
+  "author": "Your Name",
   "license": "MIT",
   "files": {
     "component": "badge.js",
