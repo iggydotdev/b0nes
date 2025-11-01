@@ -1,3 +1,4 @@
+import { badge } from './badge.js'
 export const test = () => {
     const actual = badge({ label: 'New', className: 'badge-class', attrs: 'data-badge="true"' });
     
