@@ -1,11 +1,18 @@
-export const badge = ({ label, className, attrs }) => {
-    if (!label) {
-        console.warn('[b0nes] Badge requires a label prop');
+import { normalizeClasses } from '../../utils/normalizeClasses.js';
+import { processSlotTrusted } from '../../utils/processSlot.js';
+
+export const badge = ({ slot, className, attrs }) => {
+    if (!slot) {
+        console.warn('[b0nes] Badge requires a slot prop');
         return '';
     }
-
+  // Process attributes
     attrs = attrs ? ` ${attrs}` : '';
-    className = className ? ` ${className}` : '';
+    
+    // Normalize and escape classes
+    const classes = normalizeClasses(['badge', className]);
 
-    return `<span class="badge${className}"${attrs}>${label}</span>`;
+    // Process slot content (trust component-rendered HTML)
+    slot = processSlotTrusted(slot);
+    return `<span class="${classes}"${attrs}>${slot}</span>`;
 };
