@@ -1,6 +1,6 @@
 import { badge } from './badge.js'
 export const test = () => {
-    const actual = badge({ label: 'New', className: 'badge-class', attrs: 'data-badge="true"' });
+    const actual = badge({ slot: ['New'], className: 'badge-class', attrs: 'data-badge="true"' });
     
     const hasLabel = actual.includes('New');
     const hasClass = actual.includes('badge-class');
