@@ -3,7 +3,7 @@
 > A zero-dependency SSG/SSR framework with built-in state management and component composition
 > GitHub: https://github.com/iggydotdev/b0nes
 > npm: https://www.npmjs.com/package/b0nes
-> Version: 0.2.0
+> Version: 0.1.6
 
 ## Core Philosophy
 
