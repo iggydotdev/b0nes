@@ -731,8 +731,8 @@ connectStoreToFSM(formStore, formFSM);
 
 ## Version Info
 
-Current: v0.2.0
-Node: >=24.0.0
+Current: v0.1.6
+Node: >=20.0.0
 License: MIT
 
 ## Links
