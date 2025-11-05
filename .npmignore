@@ -10,7 +10,4 @@ public/
 src/apps/
 apps/
 
-# Test
-**/*.test.js
-
 
