@@ -289,7 +289,7 @@ function generateTemplate(projectPath, templateName) {
  */
 function generateRoutes(projectPath, templateName) {
   const routes = {
-    basic: `import { URLPattern } from 'b0nes/urlpattern';
+    basic: `import { URLPattern } from 'b0nes/urlPattern';
 import { components as homeComponents } from './pages/home.js';
 
 export const routes = [
@@ -301,7 +301,7 @@ export const routes = [
   }
 ];`,
     
-    blog: `import { URLPattern } from 'b0nes/urlpattern';
+    blog: `import { URLPattern } from 'b0nes/urlPattern';
 import { components as homeComponents } from './pages/home.js';
 import { components as blogComponents } from './pages/blog.js';
 import { components as postComponents } from './pages/post.js';
@@ -327,7 +327,7 @@ export const routes = [
   }
 ];`,
 
-    docs: `import { URLPattern } from 'b0nes/urlpattern';
+    docs: `import { URLPattern } from 'b0nes/urlPattern';
 import { components as homeComponents } from './pages/home.js';
 import { components as docsComponents } from './pages/docs.js';
 
@@ -346,7 +346,7 @@ export const routes = [
   }
 ];`,
 
-    portfolio: `import { URLPattern } from 'b0nes/urlpattern';
+    portfolio: `import { URLPattern } from 'b0nes/urlPattern';
 import { components as homeComponents } from './pages/home.js';
 import { components as portfolioComponents } from './pages/portfolio.js';
 import { components as aboutComponents } from './pages/about.js';
@@ -372,7 +372,7 @@ export const routes = [
   }
 ];`,
 
-    saas: `import { URLPattern } from 'b0nes/urlpattern';
+    saas: `import { URLPattern } from 'b0nes/urlPattern';
 import { components as homeComponents } from './pages/home.js';
 import { components as pricingComponents } from './pages/pricing.js';
 import { components as featuresComponents } from './pages/features.js';

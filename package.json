@@ -14,7 +14,7 @@
     "./compose": "./src/framework/compose.js",
     "./router": "./src/framework/router.js",
     "./utils": "./src/components/utils/index.js",
-    "./urlpattern": "./src/framework/utils/urlpattern.js"
+    "./urlPattern": "./src/framework/utils/urlPattern.js"
   },
   "bin": {
     "b0nes": "./create/index.js"
