@@ -16,13 +16,17 @@
     "./utils": "./src/components/utils/index.js",
     "./urlpattern": "./src/framework/utils/urlpattern.js"
   },
+  "bin": {
+    "b0nes": "./create/index.js"
+  },
   "scripts": {
     "dev": "node src/framework/index.js",
     "dev:watch": "node --watch src/framework/index.js",
     "build": "node src/framework/utils/build/index.js public",
     "test": "node src/components/utils/tester.js",
     "generate": "node src/components/utils/generator/index.js",
-    "install-component": "node src/components/utils/componentInstaller.js"
+    "install-component": "node src/components/utils/componentInstaller.js",
+    "create": "node create/index.js"
   },
   "keywords": [
     "components",

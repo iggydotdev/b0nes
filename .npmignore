@@ -1,0 +1,16 @@
+#configs and other random stuff
+.replit
+replit.md
+.vscode/
+.DS_Store
+.github/
+
+# Build & other outputs
+public/
+src/apps/
+apps/
+
+# Test
+**/*.test.js
+
+

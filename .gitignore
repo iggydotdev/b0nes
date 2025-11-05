@@ -1,6 +1,12 @@
+#Build outputs
 public/
 node_modules/
 .env
+
+# Envs
+.env
+src/apps/.env
+apps/**/.env
 
 # Node.js
 npm-debug.log*
