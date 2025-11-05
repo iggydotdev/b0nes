@@ -3,7 +3,7 @@
 > A zero-dependency SSG/SSR framework with built-in state management and component composition
 > GitHub: https://github.com/iggydotdev/b0nes
 > npm: https://www.npmjs.com/package/b0nes
-> Version: 0.1.6
+> Version: 0.1.7
 
 ## Core Philosophy
 
@@ -731,7 +731,7 @@ connectStoreToFSM(formStore, formFSM);
 
 ## Version Info
 
-Current: v0.1.6
+Current: v0.1.7
 Node: >=20.0.0
 License: MIT
 
