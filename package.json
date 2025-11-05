@@ -1,6 +1,6 @@
 {
   "name": "b0nes",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "type": "module",
   "description": "Zero-dependency component library and SSR/SSG framework",
   "main": "src/index.js",
