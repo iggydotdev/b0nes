@@ -21,12 +21,13 @@
   },
   "scripts": {
     "dev": "node src/framework/index.js",
-    "dev:watch": "node --watch src/framework/index.js",
+    "dev:watch": "node --watch src/framework/server.js",
     "build": "node src/framework/utils/build/index.js public",
     "test": "node src/components/utils/tester.js",
     "generate": "node src/components/utils/generator/index.js",
     "install-component": "node src/components/utils/componentInstaller.js",
-    "create": "node create/index.js"
+    "create": "node create/index.js",
+    "prepublishOnly": "npm run test"
   },
   "keywords": [
     "components",

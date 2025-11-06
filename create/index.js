@@ -211,7 +211,8 @@ function generatePackageJson(projectName) {
     type: 'module',
     description: `A b0nes project`,
     scripts: {
-      dev: 'node --watch src/framework/index.js',
+      dev: 'node src/framework/server.js',
+      'dev:watch': 'node --watch src/framework/server.js',
       build: 'node src/framework/utils/build/index.js',
       preview: 'npx serve public',
       test: 'node src/components/utils/tester.js',
