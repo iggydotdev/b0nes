@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * b0nes
- * CLI tool to bootstrap new b0nes projects
+ * b0nes CLI - Project scaffolding tool
+ * Creates new b0nes projects with zero dependencies
  * 
  * Usage:
  *   npx b0nes my-app
@@ -18,32 +18,29 @@ import readline from 'node:readline';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Get the source directory (where b0nes package is installed)
+const getSourceDir = () => {
+  // When running via npx, we're in node_modules/b0nes/create/
+  // Source code is in node_modules/b0nes/src/
+  return path.resolve(__dirname, '../src');
+};
+
 // Template registry
 const TEMPLATES = {
   basic: {
     name: 'Basic Site',
     description: 'Simple landing page with header, hero, and footer',
-    files: ['home']
+    pages: ['home']
   },
   blog: {
     name: 'Blog',
-    description: 'Blog with posts, categories, and RSS',
-    files: ['home', 'blog', 'post']
+    description: 'Blog with posts, categories, and dynamic routes',
+    pages: ['home', 'blog', 'post']
   },
   docs: {
     name: 'Documentation',
-    description: 'Documentation site with sidebar navigation',
-    files: ['home', 'docs']
-  },
-  portfolio: {
-    name: 'Portfolio',
-    description: 'Portfolio site with projects and about page',
-    files: ['home', 'portfolio', 'about']
-  },
-  saas: {
-    name: 'SaaS Landing',
-    description: 'SaaS landing page with pricing and features',
-    files: ['home', 'pricing', 'features']
+    description: 'Documentation site with navigation',
+    pages: ['home', 'docs']
   }
 };
 
@@ -79,10 +76,9 @@ function parseArgs() {
 
   const projectName = args[0];
   const templateFlag = args.indexOf('--template') !== -1 ? args[args.indexOf('--template') + 1] : null;
-  const skipInstall = args.includes('--skip-install');
   const skipGit = args.includes('--skip-git');
 
-  return { projectName, templateFlag, skipInstall, skipGit };
+  return { projectName, templateFlag, skipGit };
 }
 
 /**
@@ -90,16 +86,13 @@ function parseArgs() {
  */
 function showHelp() {
   console.log(`
-${colors.bright}${colors.cyan}b0nes${colors.reset}
-
-Bootstrap a new b0nes project in seconds.
+${colors.bright}${colors.cyan}b0nes${colors.reset} - Zero-dependency web framework
 
 ${colors.bright}Usage:${colors.reset}
   npx b0nes <project-name> [options]
 
 ${colors.bright}Options:${colors.reset}
-  --template <name>    Use a specific template (basic, blog, docs, portfolio, saas)
-  --skip-install       Skip npm install
+  --template <name>    Use a specific template (basic, blog, docs)
   --skip-git          Skip git initialization
   -h, --help          Show this help message
 
@@ -160,7 +153,7 @@ async function selectTemplate() {
  * Create project directory
  */
 function createProjectDir(projectName) {
-  const projectPath = path.join(process.cwd(),'apps', projectName);
+  const projectPath = path.join(process.cwd(), projectName);
 
   if (fs.existsSync(projectPath)) {
     log.error(`Directory "${projectName}" already exists`);
@@ -169,6 +162,43 @@ function createProjectDir(projectName) {
 
   fs.mkdirSync(projectPath, { recursive: true });
   return projectPath;
+}
+
+/**
+ * Copy b0nes source files to project
+ */
+function copyFrameworkFiles(projectPath) {
+  log.info('Copying b0nes framework...');
+
+  const sourceDir = getSourceDir();
+  const targetDir = path.join(projectPath, 'src');
+
+  // Copy entire src directory
+  copyRecursive(sourceDir, targetDir);
+
+  log.success('Framework files copied');
+}
+
+/**
+ * Recursively copy directory
+ */
+function copyRecursive(src, dest) {
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
+
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      copyRecursive(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
 }
 
 /**
@@ -182,7 +212,7 @@ function generatePackageJson(projectName) {
     description: `A b0nes project`,
     scripts: {
       dev: 'node --watch src/framework/index.js',
-      build: 'node src/framework/utils/build/index.js public',
+      build: 'node src/framework/utils/build/index.js',
       preview: 'npx serve public',
       test: 'node src/components/utils/tester.js',
       generate: 'node src/components/utils/generator/index.js'
@@ -197,111 +227,46 @@ function generatePackageJson(projectName) {
 }
 
 /**
- * Copy b0nes framework files
+ * Generate template files for specific template
  */
-function copyFrameworkFiles(projectPath) {
-  log.info('Copying b0nes framework...');
-
-  // In real implementation, these would come from the published package
-  // For now, we'll generate the structure
-  const dirs = [
-    'src/components/atoms',
-    'src/components/molecules',
-    'src/components/organisms',
-    'src/components/utils',
-    'src/framework/client',
-    'src/framework/pages',
-    'src/framework/utils/build'
-  ];
-
-  dirs.forEach(dir => {
-    fs.mkdirSync(path.join(projectPath, dir), { recursive: true });
-  });
-
-  // Copy core files (in reality, from node_modules/b0nes)
-  // For this example, we'll create minimal versions
-  createMinimalFramework(projectPath);
-
-  log.success('Framework files copied');
-}
-
-/**
- * Create minimal framework structure
- */
-function createMinimalFramework(projectPath) {
-  // This would normally copy from the b0nes package
-  // For now, create placeholder files that import from b0nes
-
-  // src/components/index.js
-  fs.writeFileSync(
-    path.join(projectPath, 'src/components/index.js'),
-    `// Re-export from b0nes package
-export * from 'b0nes/components';
-`
-  );
-
-  // src/framework/compose.js
-  fs.writeFileSync(
-    path.join(projectPath, 'src/framework/compose.js'),
-    `export { compose } from 'b0nes/compose';
-`
-  );
-
-  // src/framework/router.js
-  fs.writeFileSync(
-    path.join(projectPath, 'src/framework/router.js'),
-    `export { router } from 'b0nes/router';
-`
-  );
-
-  // src/framework/renderPage.js
-  fs.writeFileSync(
-    path.join(projectPath, 'src/framework/renderPage.js'),
-    `export { renderPage, document } from 'b0nes/framework';
-`
-  );
-}
-
-/**
- * Generate template files
- */
-function generateTemplate(projectPath, templateName) {
-  log.info(`Generating ${templateName} template...`);
+function generateTemplateFiles(projectPath, templateName) {
+  log.info(`Generating ${templateName} template files...`);
 
   const template = TEMPLATES[templateName];
-
+  
   // Generate routes.js
   generateRoutes(projectPath, templateName);
 
-  // Generate pages
-  template.files.forEach(pageName => {
+  // Generate page files
+  template.pages.forEach(pageName => {
     generatePage(projectPath, pageName, templateName);
   });
-
-  // Generate index.js (dev server)
-  generateDevServer(projectPath);
 
   log.success('Template files generated');
 }
 
 /**
- * Generate routes.js
+ * Generate routes.js based on template
  */
 function generateRoutes(projectPath, templateName) {
-  const routes = {
-    basic: `import { URLPattern } from 'b0nes/urlPattern';
+  const routesContent = {
+    basic: `import { URLPattern } from './utils/urlPattern.js';
 import { components as homeComponents } from './pages/home.js';
 
 export const routes = [
   {
     name: 'Home',
     pattern: new URLPattern({ pathname: '/' }),
-    meta: { title: 'Home' },
+    url: '/',
+    meta: { 
+      title: 'Home',
+      description: 'Welcome to my site'
+    },
     components: homeComponents
   }
 ];`,
     
-    blog: `import { URLPattern } from 'b0nes/urlPattern';
+    blog: `import { URLPattern } from './utils/urlPattern.js';
 import { components as homeComponents } from './pages/home.js';
 import { components as blogComponents } from './pages/blog.js';
 import { components as postComponents } from './pages/post.js';
@@ -310,24 +275,43 @@ export const routes = [
   {
     name: 'Home',
     pattern: new URLPattern({ pathname: '/' }),
-    meta: { title: 'Home' },
+    url: '/',
+    meta: { 
+      title: 'Home',
+      description: 'Welcome to my blog'
+    },
     components: homeComponents
   },
   {
     name: 'Blog',
     pattern: new URLPattern({ pathname: '/blog' }),
-    meta: { title: 'Blog' },
+    url: '/blog',
+    meta: { 
+      title: 'Blog',
+      description: 'Read our latest posts'
+    },
     components: blogComponents
   },
   {
     name: 'Blog Post',
     pattern: new URLPattern({ pathname: '/blog/:slug' }),
-    meta: { title: 'Blog Post' },
-    components: postComponents
+    meta: { 
+      title: 'Blog Post',
+      description: 'Read this post'
+    },
+    components: postComponents,
+    externalData: async (params) => {
+      // Replace with your data source
+      return {
+        slug: params.slug,
+        title: 'Sample Post',
+        content: 'Post content here...'
+      };
+    }
   }
 ];`,
 
-    docs: `import { URLPattern } from 'b0nes/urlPattern';
+    docs: `import { URLPattern } from './utils/urlPattern.js';
 import { components as homeComponents } from './pages/home.js';
 import { components as docsComponents } from './pages/docs.js';
 
@@ -335,73 +319,35 @@ export const routes = [
   {
     name: 'Home',
     pattern: new URLPattern({ pathname: '/' }),
-    meta: { title: 'Documentation' },
+    url: '/',
+    meta: { 
+      title: 'Documentation',
+      description: 'Project documentation'
+    },
     components: homeComponents
   },
   {
     name: 'Docs',
     pattern: new URLPattern({ pathname: '/docs/:page' }),
-    meta: { title: 'Docs' },
-    components: docsComponents
-  }
-];`,
-
-    portfolio: `import { URLPattern } from 'b0nes/urlPattern';
-import { components as homeComponents } from './pages/home.js';
-import { components as portfolioComponents } from './pages/portfolio.js';
-import { components as aboutComponents } from './pages/about.js';
-
-export const routes = [
-  {
-    name: 'Home',
-    pattern: new URLPattern({ pathname: '/' }),
-    meta: { title: 'Portfolio' },
-    components: homeComponents
-  },
-  {
-    name: 'Portfolio',
-    pattern: new URLPattern({ pathname: '/portfolio' }),
-    meta: { title: 'My Work' },
-    components: portfolioComponents
-  },
-  {
-    name: 'About',
-    pattern: new URLPattern({ pathname: '/about' }),
-    meta: { title: 'About Me' },
-    components: aboutComponents
-  }
-];`,
-
-    saas: `import { URLPattern } from 'b0nes/urlPattern';
-import { components as homeComponents } from './pages/home.js';
-import { components as pricingComponents } from './pages/pricing.js';
-import { components as featuresComponents } from './pages/features.js';
-
-export const routes = [
-  {
-    name: 'Home',
-    pattern: new URLPattern({ pathname: '/' }),
-    meta: { title: 'Home' },
-    components: homeComponents
-  },
-  {
-    name: 'Pricing',
-    pattern: new URLPattern({ pathname: '/pricing' }),
-    meta: { title: 'Pricing' },
-    components: pricingComponents
-  },
-  {
-    name: 'Features',
-    pattern: new URLPattern({ pathname: '/features' }),
-    meta: { title: 'Features' },
-    components: featuresComponents
+    meta: { 
+      title: 'Docs',
+      description: 'Documentation page'
+    },
+    components: docsComponents,
+    externalData: async (params) => {
+      return {
+        page: params.page,
+        title: 'Documentation',
+        content: 'Documentation content...'
+      };
+    }
   }
 ];`
   };
 
   fs.writeFileSync(
     path.join(projectPath, 'src/framework/routes.js'),
-    routes[templateName] || routes.basic
+    routesContent[templateName] || routesContent.basic
   );
 }
 
@@ -410,7 +356,7 @@ export const routes = [
  */
 function generatePage(projectPath, pageName, templateName) {
   const pages = {
-    home: `// Home page components
+    home: `// Home page
 export const components = [
   {
     type: 'organism',
@@ -481,6 +427,7 @@ export const components = [
     name: 'box',
     props: {
       is: 'main',
+      className: 'blog-listing',
       slot: [
         {
           type: 'atom',
@@ -493,7 +440,11 @@ export const components = [
           props: {
             headerSlot: 'First Post',
             contentSlot: 'This is your first blog post!',
-            linkSlot: { type: 'atom', name: 'link', props: { url: '/blog/first-post', slot: 'Read More' } }
+            linkSlot: { 
+              type: 'atom', 
+              name: 'link', 
+              props: { url: '/blog/first-post', slot: 'Read More' } 
+            }
           }
         }
       ]
@@ -501,7 +452,7 @@ export const components = [
   }
 ];`,
 
-    post: `// Blog post page
+    post: `// Blog post page (dynamic)
 export const components = (data) => [
   {
     type: 'organism',
@@ -518,16 +469,51 @@ export const components = (data) => [
     name: 'box',
     props: {
       is: 'article',
+      className: 'blog-post',
       slot: [
         {
           type: 'atom',
           name: 'text',
-          props: { is: 'h1', slot: data?.slug || 'Blog Post' }
+          props: { is: 'h1', slot: data?.title || 'Blog Post' }
         },
         {
           type: 'atom',
           name: 'text',
-          props: { is: 'p', slot: 'Your blog post content goes here.' }
+          props: { is: 'p', slot: data?.content || 'Post content goes here.' }
+        }
+      ]
+    }
+  }
+];`,
+
+    docs: `// Documentation page (dynamic)
+export const components = (data) => [
+  {
+    type: 'organism',
+    name: 'header',
+    props: {
+      slot: [
+        { type: 'atom', name: 'link', props: { url: '/', slot: 'Home' } },
+        { type: 'atom', name: 'link', props: { url: '/docs/getting-started', slot: 'Docs' } }
+      ]
+    }
+  },
+  {
+    type: 'atom',
+    name: 'box',
+    props: {
+      is: 'main',
+      className: 'docs-content',
+      slot: [
+        {
+          type: 'atom',
+          name: 'text',
+          props: { is: 'h1', slot: data?.title || 'Documentation' }
+        },
+        {
+          type: 'atom',
+          name: 'text',
+          props: { is: 'div', slot: data?.content || 'Documentation content...' }
         }
       ]
     }
@@ -536,70 +522,13 @@ export const components = (data) => [
   };
 
   const pagesDir = path.join(projectPath, 'src/framework/pages');
+  if (!fs.existsSync(pagesDir)) {
+    fs.mkdirSync(pagesDir, { recursive: true });
+  }
+
   fs.writeFileSync(
     path.join(pagesDir, `${pageName}.js`),
     pages[pageName] || pages.home
-  );
-}
-
-/**
- * Generate dev server
- */
-function generateDevServer(projectPath) {
-  const serverCode = `import http from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
-import { router } from './router.js';
-import { routes } from './routes.js';
-import { compose } from './compose.js';
-import { renderPage } from './renderPage.js';
-
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, \`http://\${req.headers.host}\`);
-  
-  // Serve b0nes.js runtime
-  if (url.pathname === '/b0nes.js') {
-    try {
-      const filePath = fileURLToPath(new URL('./client/b0nes.js', import.meta.url));
-      const content = await readFile(filePath, 'utf-8');
-      res.writeHead(200, { 'Content-Type': 'application/javascript' });
-      res.end(content);
-      return;
-    } catch (error) {
-      res.writeHead(500);
-      res.end('Error loading b0nes.js');
-      return;
-    }
-  }
-
-  // Route matching
-  const route = router(url, routes);
-  
-  if (route) {
-    const content = compose(route.components);
-    const html = renderPage(content, route.meta);
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(html);
-    return;
-  }
-
-  // 404
-  res.writeHead(404, { 'Content-Type': 'text/html' });
-  res.end(renderPage(
-    '<h1>404 - Page Not Found</h1>',
-    { title: '404' }
-  ));
-});
-
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(\`🦴 b0nes server running at http://localhost:\${PORT}\`);
-});
-`;
-
-  fs.writeFileSync(
-    path.join(projectPath, 'src/framework/index.js'),
-    serverCode
   );
 }
 
@@ -609,19 +538,25 @@ server.listen(PORT, '0.0.0.0', () => {
 function generateReadme(projectPath, projectName, templateName) {
   const readme = `# ${projectName}
 
-A b0nes project created with \`b0nes\`.
+Created with [b0nes](https://github.com/iggydotdev/b0nes) - zero-dependency web framework.
 
 ## Getting Started
 
 \`\`\`bash
-# Start development server
+# Start development server with hot reload
 npm run dev
 
-# Build for production
+# Build static site
 npm run build
 
 # Preview production build
 npm run preview
+
+# Run tests
+npm run test
+
+# Generate new component
+npm run generate atom my-component
 \`\`\`
 
 ## Project Structure
@@ -629,18 +564,26 @@ npm run preview
 \`\`\`
 ${projectName}/
 ├── src/
-│   ├── components/      # Re-exports from b0nes package
+│   ├── components/          # Component library (atoms, molecules, organisms)
+│   │   ├── atoms/
+│   │   ├── molecules/
+│   │   └── organisms/
 │   └── framework/
-│       ├── pages/       # Your page components
-│       ├── routes.js    # Route definitions
-│       └── index.js     # Dev server
-├── public/              # Production build output
+│       ├── client/          # Client-side runtime (store, FSM, b0nes.js)
+│       ├── pages/           # Your page components
+│       ├── utils/           # Framework utilities
+│       ├── compose.js       # Component composition
+│       ├── router.js        # URL routing
+│       ├── routes.js        # Route definitions
+│       ├── renderPage.js    # HTML generation
+│       └── server.js        # Dev server
+├── public/                  # Production build output (after npm run build)
 └── package.json
 \`\`\`
 
 ## Adding Pages
 
-Create a new page in \`src/framework/pages/\`:
+1. Create a page in \`src/framework/pages/\`:
 
 \`\`\`javascript
 // src/framework/pages/about.js
@@ -654,7 +597,7 @@ export const components = [
 ];
 \`\`\`
 
-Add route in \`src/framework/routes.js\`:
+2. Add route in \`src/framework/routes.js\`:
 
 \`\`\`javascript
 {
@@ -665,15 +608,32 @@ Add route in \`src/framework/routes.js\`:
 }
 \`\`\`
 
+## Styling
+
+Add CSS files and reference them in \`src/framework/renderPage.js\`:
+
+\`\`\`javascript
+export const renderPage = (content, meta = {}) => {
+  // Add your stylesheet link
+  const stylesheets = [
+    '/styles/main.css',
+    // Add more stylesheets here
+  ];
+  
+  // ...
+};
+\`\`\`
+
+## Template: ${TEMPLATES[templateName].name}
+
+${TEMPLATES[templateName].description}
+
 ## Documentation
 
 - [b0nes Framework](https://github.com/iggydotdev/b0nes)
 - [Component Library](https://github.com/iggydotdev/b0nes#components)
 - [Routing Guide](https://github.com/iggydotdev/b0nes#routing)
-
-## Template: ${TEMPLATES[templateName].name}
-
-${TEMPLATES[templateName].description}
+- [State Management](https://github.com/iggydotdev/b0nes#state-management)
 
 Built with ❤️ using b0nes (zero dependencies!)
 `;
@@ -685,11 +645,11 @@ Built with ❤️ using b0nes (zero dependencies!)
  * Generate .gitignore
  */
 function generateGitignore(projectPath) {
-  const gitignore = `# Dependencies
-node_modules/
-
-# Build output
+  const gitignore = `# Build output
 public/
+
+# Dependencies
+node_modules/
 
 # Environment
 .env
@@ -712,24 +672,6 @@ yarn-error.log*
 `;
 
   fs.writeFileSync(path.join(projectPath, '.gitignore'), gitignore);
-}
-
-/**
- * Install dependencies
- */
-function installDependencies(projectPath) {
-  log.info('Installing dependencies...');
-  
-  try {
-    execSync('npm install b0nes', {
-      cwd: projectPath,
-      stdio: 'inherit'
-    });
-    log.success('Dependencies installed');
-  } catch (error) {
-    log.error('Failed to install dependencies');
-    log.warn('Run `npm install` manually');
-  }
 }
 
 /**
@@ -767,10 +709,10 @@ ${colors.bright}Next steps:${colors.reset}
 
 ${colors.bright}Available commands:${colors.reset}
 
-  ${colors.cyan}npm run dev${colors.reset}       Start development server
-  ${colors.cyan}npm run build${colors.reset}     Build for production
+  ${colors.cyan}npm run dev${colors.reset}       Start development server with hot reload
+  ${colors.cyan}npm run build${colors.reset}     Build static site for production
   ${colors.cyan}npm run preview${colors.reset}   Preview production build
-  ${colors.cyan}npm run test${colors.reset}      Run tests
+  ${colors.cyan}npm run test${colors.reset}      Run component tests
   ${colors.cyan}npm run generate${colors.reset}  Generate new component
 
 ${colors.bright}Learn more:${colors.reset}
@@ -786,7 +728,7 @@ Happy building! 🦴
 async function main() {
   log.title('🦴 b0nes');
 
-  const { projectName, templateFlag, skipInstall, skipGit } = parseArgs();
+  const { projectName, templateFlag, skipGit } = parseArgs();
 
   // Validate project name
   if (!/^[a-z0-9-]+$/.test(projectName)) {
@@ -814,14 +756,9 @@ async function main() {
   );
 
   copyFrameworkFiles(projectPath);
-  generateTemplate(projectPath, templateName);
+  generateTemplateFiles(projectPath, templateName);
   generateReadme(projectPath, projectName, templateName);
   generateGitignore(projectPath);
-
-  // Install dependencies
-  if (!skipInstall) {
-    installDependencies(projectPath);
-  }
 
   // Initialize git
   if (!skipGit) {

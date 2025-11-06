@@ -59,6 +59,10 @@ node src/framework/index.js    # Start building immediately
 - 🧪 **Auto-Testing** - Built-in test discovery and runner
 - 🎨 **CSS-Agnostic** - Use Tailwind, vanilla CSS, or any framework you want
 - 🔌 **Interactive Components** - Tabs, modals, dropdowns with zero dependencies
+- ✨ **Project Scaffolding** - npx b0nes my-site (instant setup)
+- 🎨 **Flexible Styling** - Use any CSS framework or none at all
+- 📦 **Complete Source** - All framework code copied to your project
+- 🔧 **Full Control** - Modify any part of the framework
 
 ---
 
@@ -935,6 +939,100 @@ Modern CSS variables with zero build step:
 
 ```
 
+Styling (Updated)
+Adding Stylesheets
+b0nes provides multiple ways to add CSS to your pages:
+```javascript
+// Global stylesheets (all pages)
+// Edit src/framework/renderPage.js
+const DEFAULT_STYLESHEETS = [
+    '/styles/main.css',
+];
+
+// Per-page stylesheets (specific routes)
+// Edit src/framework/routes.js
+meta: {
+    stylesheets: ['/styles/page-specific.css']
+}
+
+// Inline styles (components)
+attrs: 'style="background: #f0f0f0;"'
+``
+CSS Framework Integration
+Use any CSS framework via CDN or local files:
+```javascript
+import { stylesheetPresets } from './renderPage.js';
+
+// Tailwind CSS
+stylesheetPresets.tailwind()
+
+// Water.css (classless)
+stylesheetPresets.water('dark')
+
+// Pico CSS
+stylesheetPresets.pico()
+
+// Open Props
+stylesheetPresets.openProps()
+
+// Combine multiple
+stylesheetPresets.combine(
+    stylesheetPresets.water('auto'),
+    '/styles/custom.css'
+)
+```
+
+Recommended Approaches
+
+Option 1: Tailwind CSS
+
+```bash
+npm install -D tailwindcss
+npx tailwindcss init
+```
+
+```javascript
+// Use Tailwind classes in components
+button({
+    slot: 'Click Me',
+    className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded'
+})
+```
+
+Option 2: Vanilla CSS
+```css
+/* public/styles.css */
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+```
+Option 3: CSS Modules
+```javascript
+// For component-scoped styles
+import styles from './button.module.css';
+
+button({
+    slot: 'Click Me',
+    className: styles.button
+})
+```
+
+Option 4: Classless CSS (Water.css, Pico)
+
+```javascript
+// No classes needed - styles apply automatically
+meta: {
+    stylesheets: stylesheetPresets.water('auto')
+}
+```
 ---
 
 ## Real-World Examples
