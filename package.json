@@ -17,7 +17,7 @@
     "./urlPattern": "./src/framework/utils/urlPattern.js"
   },
   "bin": {
-    "b0nes": "./create/index.js"
+    "b0nes": "create/index.js"
   },
   "scripts": {
     "dev": "node src/framework/index.js",
@@ -50,7 +50,7 @@
     "name": "Ignacio Garcia Villanueva",
     "email": "iggy.dev@pm.me"
   },
-    "repository": {
+  "repository": {
     "type": "git",
     "url": "git+https://github.com/iggydotdev/b0nes.git"
   },
