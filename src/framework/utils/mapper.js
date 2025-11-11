@@ -1,5 +1,5 @@
 // src/utils/mapper.js
-import { getComponentFn, getComponentType } from './componentResolver.js';
+import { getComponentFn, getComponentType } from './registry.js';
 
 /**
  * JS function call → b0nes config object
