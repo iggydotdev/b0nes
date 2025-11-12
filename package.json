@@ -20,7 +20,7 @@
     "b0nes": "create/index.js"
   },
   "scripts": {
-    "dev": "node src/framework/index.js",
+    "dev": "node src/framework/server.js",
     "dev:watch": "node --watch src/framework/server.js",
     "build": "node src/framework/utils/build/index.js public",
     "test": "node src/components/utils/tester.js",
