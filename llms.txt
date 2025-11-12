@@ -3,7 +3,7 @@
 > A zero-dependency SSG/SSR framework with built-in state management and component composition
 > GitHub: https://github.com/iggydotdev/b0nes
 > npm: https://www.npmjs.com/package/b0nes
-> Version: 0.1.8
+> Version: 0.2.0
 
 ## Core Philosophy
 
@@ -11,11 +11,11 @@ b0nes is a complete web development toolkit with zero npm dependencies. It provi
 - Server-side rendering (SSR) and static site generation (SSG)
 - Component composition (atoms → molecules → organisms)
 - Built-in state management (Store)
-- Built-in state machines (FSM)
+- Built-in state machines (FSM) with SPA routing
 - Client-side progressive enhancement
 - Pure JavaScript + JSDoc for type safety
 
-Perfect for: blogs, marketing sites, documentation, landing pages, e-commerce product pages, SaaS applications
+Perfect for: blogs, marketing sites, documentation, landing pages, e-commerce product pages, SaaS applications, SPAs
 
 ## Installation
 
@@ -39,6 +39,9 @@ npm run test
 
 # Generate new component
 npm run generate [atom|molecule|organism] [name]
+
+# Install community component
+npm run install-component [url]
 ```
 
 ## Component Architecture
@@ -50,8 +53,9 @@ npm run generate [atom|molecule|organism] [name]
 
 ### Available Components
 
-#### Atoms (14 components)
+#### Atoms (15 components)
 - **accordion**: `{ titleSlot, detailsSlot, className, attrs }`
+- **badge**: `{ slot, className, attrs }` - status indicators/labels
 - **box**: `{ is, slot, className, attrs }` - flexible container (div/section/article/etc)
 - **button**: `{ type, slot, className, attrs }`
 - **divider**: `{ className, attrs }` - horizontal rule
@@ -156,10 +160,10 @@ export const components = [
 
 ## Routing
 
-### Static Routes
+### Static Routes (SSG/SSR)
 ```javascript
 // src/framework/routes.js
-import { URLPattern } from 'node:url';
+import { URLPattern } from './utils/urlPattern.js';
 import { components as homeComponents } from './pages/home.js';
 
 export const routes = [
@@ -172,7 +176,7 @@ export const routes = [
 ];
 ```
 
-### Dynamic Routes
+### Dynamic Routes (SSG/SSR)
 ```javascript
 {
     name: 'Blog Post',
@@ -250,7 +254,7 @@ window.b0nes = {
 **Dropdown** - Click-to-toggle menu
 ```javascript
 {
-    type: 'atom',
+    type: 'molecule',
     name: 'dropdown',
     props: {
         trigger: 'Menu',
@@ -359,30 +363,48 @@ const authFSM = createFSM({
     initial: 'logged-out',
     states: {
         'logged-out': {
-            on: { LOGIN: 'authenticating' }
+            on: { LOGIN: 'logging-in' }
         },
-        'authenticating': {
+        'logging-in': {
+            actions: {
+                onEntry: (context, data) => {
+                    console.log('Starting login...');
+                    // Return context updates if needed
+                    return { loading: true };
+                },
+                onExit: (context, data) => {
+                    console.log('Exiting login...');
+                }
+            },
             on: { 
                 SUCCESS: 'logged-in',
-                ERROR: 'logged-out'
-            },
-            actions: {
-                onEntry: (context) => {
-                    console.log('Authenticating...');
-                }
+                FAILURE: 'logged-out'
             }
         },
         'logged-in': {
             on: { LOGOUT: 'logged-out' }
         }
-    }
+    },
+    context: { user: null } // Initial context
 });
 
 // Usage
-authFSM.send('LOGIN');              // Transition to 'authenticating'
-authFSM.getState();                 // 'authenticating'
-authFSM.is('logged-in');            // false
-authFSM.can('LOGOUT');              // false (not in logged-in state)
+authFSM.send('LOGIN', { username: 'grok' }); // Transition with data
+authFSM.getState();                          // 'logging-in'
+authFSM.is('logged-in');                     // false
+authFSM.can('LOGOUT');                       // false
+authFSM.getContext();                        // { user: null, loading: true }
+authFSM.getHistory();                        // Array of transitions
+authFSM.updateContext({ user: 'grok' });     // Update without transition
+authFSM.reset();                             // Back to initial
+
+// Subscribe to changes
+const unsubscribe = authFSM.subscribe((transition) => {
+    console.log('Transition:', transition);  // { from, to, event, data, timestamp }
+});
+
+// Visualize
+console.log(authFSM.toMermaid());            // Mermaid diagram string
 ```
 
 ### FSM with Guards (Conditional Transitions)
@@ -391,26 +413,81 @@ authFSM.can('LOGOUT');              // false (not in logged-in state)
 const checkoutFSM = createFSM({
     initial: 'cart',
     states: {
-        cart: {
+        'cart': {
             on: { 
-                CHECKOUT: (context, data) => {
-                    // Guard: only proceed if cart has items
-                    return context.cartItems.length > 0 
-                        ? 'shipping' 
-                        : 'cart';
-                }
+                CHECKOUT: (context, data) => context.items.length > 0 ? 'payment' : 'cart'
             }
         },
-        shipping: {
-            on: { CONTINUE: 'payment', BACK: 'cart' }
+        'payment': {
+            on: { SUCCESS: 'complete' }
         },
-        payment: {
-            on: { SUCCESS: 'complete', ERROR: 'payment' }
-        },
-        complete: {}
+        'complete': {}
     },
-    context: { cartItems: [] }
+    context: { items: [] }
 });
+```
+
+### FSM Router - SPA Routing with State Machines
+
+```javascript
+import { createRouterFSM, connectFSMtoDOM } from './framework/client/fsm.js';
+
+const routes = [
+    {
+        name: 'start',
+        url: '/demo/fsm/start',
+        template: "<h1>FSM Demo</h1><button data-fsm-event='GOTO_STEP2'>Next</button>",
+        onEnter: (context, data) => console.log('Entered start'),
+        onExit: (context, data) => console.log('Exiting start')
+    },
+    {
+        name: 'step2',
+        url: '/demo/fsm/step2',
+        template: "<h1>Step 2</h1><button data-fsm-event='GOTO_START'>Back</button>"
+    },
+    {
+        name: 'success',
+        url: '/demo/fsm/success',
+        template: "<h1>Success!</h1>"
+    }
+];
+
+const { fsm, routes: fsmRoutes } = createRouterFSM(routes); // Creates FSM with GOTO_ events
+
+// Connect to DOM (handles render, clicks, popstate)
+const rootEl = document.querySelector('[data-bones-fsm]');
+const cleanup = connectFSMtoDOM(fsm, rootEl, routes);
+
+// Navigate programmatically
+fsm.send('GOTO_STEP2');
+
+// Cleanup when done
+cleanup();
+```
+
+### FSM Router Example - Multi-Step Form
+
+```javascript
+const routes = [
+    {
+        name: 'start',
+        url: '/form/start',
+        template: "<h1>Start</h1><button data-fsm-event='GOTO_STEP2'>Next</button>"
+    },
+    {
+        name: 'step2',
+        url: '/form/step2',
+        template: "<h1>Step 2</h1><button data-fsm-event='GOTO_START'>Back</button><button data-fsm-event='GOTO_SUCCESS'>Submit</button>"
+    },
+    {
+        name: 'success',
+        url: '/form/success',
+        template: "<h1>Success!</h1><button data-fsm-event='GOTO_START'>Reset</button>"
+    }
+];
+
+const { fsm } = createRouterFSM(routes);
+connectFSMtoDOM(fsm, document.getElementById('app'), routes);
 ```
 
 ### FSM + Store Integration
@@ -441,19 +518,20 @@ const disconnect = connectStoreToFSM(store, fsm);
 ```javascript
 import { composeFSM } from './framework/client/fsm.js';
 
-const machines = composeFSM({
+const composed = composeFSM({
     auth: authFSM,
     checkout: checkoutFSM
 });
 
-// Get all states
-machines.getAllStates(); // { auth: 'logged-in', checkout: 'cart' }
+composed.getAllStates();     // { auth: 'logged-out', checkout: 'cart' }
+composed.getAllContexts();   // Combined contexts
+composed.send('auth', 'LOGIN'); // Send to specific machine
+composed.broadcast('RESET'); // Send to all that can handle it
 
-// Send to specific machine
-machines.send('auth', 'LOGOUT');
-
-// Broadcast to all machines
-machines.broadcast('RESET');
+// Subscribe to any transition
+composed.subscribe((change) => {
+    console.log(change);     // { machine: 'auth', from, to, ... }
+});
 ```
 
 ## Key Functions
@@ -510,6 +588,41 @@ src/components/atoms/badge/
 ├── index.js
 ├── badge.js
 └── badge.test.js
+```
+
+## Component Installer
+
+Install community components from URLs:
+
+```bash
+# Install from URL
+npm run install-component https://example.com/components/my-card
+
+# Preview without installing
+npm run install-component https://example.com/card --dry-run
+
+# Force overwrite existing
+npm run install-component https://example.com/card --force
+```
+
+### Component Manifest Format
+
+```json
+{
+  "name": "my-card",
+  "version": "1.0.0",
+  "type": "molecule",
+  "description": "A custom card component",
+  "author": "Your Name <you@example.com>",
+  "license": "MIT",
+  "files": {
+    "component": "./my-card.js",
+    "test": "./my-card.test.js",
+    "client": "./molecule.my-card.client.js"
+  },
+  "dependencies": [],
+  "tags": ["card", "layout"]
+}
 ```
 
 ## Testing
@@ -628,7 +741,7 @@ This avoids:
 ### Zero Dependencies
 - Entire framework runs on Node.js built-ins only
 - No npm packages required
-- No build tools needed (except for production optimization)
+- No build tools needed (except maybe for production optimization)
 
 ## Common Patterns
 
@@ -684,6 +797,19 @@ const formStore = createStore({
 connectStoreToFSM(formStore, formFSM);
 ```
 
+### SPAs with FSM Router
+```javascript
+// Define routes
+const routes = [
+    { name: 'home', url: '/', template: '<h1>Home</h1>' },
+    { name: 'about', url: '/about', template: '<h1>About</h1>' },
+    { name: 'contact', url: '/contact', template: '<h1>Contact</h1>' }
+];
+
+const { fsm } = createRouterFSM(routes);
+connectFSMtoDOM(fsm, document.getElementById('app'), routes);
+```
+
 ## Troubleshooting
 
 ### "Component not found in library"
@@ -703,6 +829,11 @@ connectStoreToFSM(formStore, formFSM);
 - Verify component has `data-b0nes` attribute
 - Check browser console for initialization errors
 
+### FSM not rendering anything
+- FSM is just state management - you must provide a render function
+- Use `createRouterFSM` helper or implement your own onEntry actions
+- Templates must be provided in route definitions
+
 ## Code Style
 
 - Use JSDoc for documentation
@@ -719,7 +850,7 @@ connectStoreToFSM(formStore, formFSM);
 ✅ SSG/SSR framework with built-in state management
 ✅ Component composition system (atomic design)
 ✅ Progressive enhancement with client-side runtime
-✅ State machines for flow control
+✅ State machines for flow control AND SPA routing
 ✅ For content-heavy sites and web applications
 
 ## What b0nes Is NOT
@@ -731,7 +862,7 @@ connectStoreToFSM(formStore, formFSM);
 
 ## Version Info
 
-Current: v0.1.8
+Current: v0.2.0
 Node: >=20.0.0
 License: MIT
 
@@ -747,8 +878,10 @@ License: MIT
 1. It's a complete toolkit (components + routing + state + FSM)
 2. Zero dependencies = suggest pure JS solutions only
 3. Components return HTML strings, not JSX
-4. FSM for flow control, Store for data management
+4. FSM for flow control AND SPA routing, Store for data management
 5. No CSS included - users choose their own strategy
 6. Progressive enhancement pattern (works without JS, better with JS)
 7. Point to component generator for new components
 8. Encourage atomic design patterns (atoms → molecules → organisms)
+9. FSM needs render functions to actually display UI - it's not magic!
+10. FSM Router combines state machines with actual URL/template rendering
