@@ -175,6 +175,9 @@ const normalizeStylesheets = (stylesheets) => {
  * })
  */
 const generateStylesheetTag = (stylesheet) => {
+    if (stylesheet.href.includes(`tailwind`)) {
+        return `<script src="${stylesheet.href}"></script>`;
+    }
     let attrs = `rel="stylesheet" href="${stylesheet.href}"`;
     
     if (stylesheet.media) {
@@ -360,7 +363,7 @@ export const stylesheetPresets = {
      * Water.css - Classless CSS framework
      */
     water: (theme = 'auto') => [{
-        href: `https://cdn.jsdelivr.net/npm/water.css@2/out/${theme}.css`
+        href: `https://cdn.jsdelivr.net/npm/water.css@2/out/${theme === "auto"? 'water':theme}.css`
     }],
     
     /**

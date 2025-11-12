@@ -4,6 +4,10 @@ import { URLPattern } from './utils/urlPattern.js';
 import {components as homeComponents} from './pages/home.js';
 import {components as blogPostComponents} from './pages/blogPost.js';
 import {components as demoComponents} from './pages/demo.js';
+import {components as picoComponents} from './pages/pico.js';
+import {components as waterComponents} from './pages/water.js';
+import {components as tailwindComponents} from './pages/tailwind.js';
+import { stylesheetPresets } from './renderPage.js';
 
 // We need some routes for testing
 export const routes = [
@@ -14,7 +18,7 @@ export const routes = [
         meta: { title: 'Home'},
         template: 'home', // component?
         guards: [], // TODO: Implement route guards for auth/permissions
-        components: homeComponents // if template is blank, we can compose the page with components
+        components: homeComponents, // if template is blank, we can compose the page with components
     },
     {
         name: 'Demo',
@@ -46,5 +50,40 @@ export const routes = [
                throw new Error(`Error to retrieve data (${url}): ${error.message}`);
             }
         }
+    },
+     {
+        name: 'Pico',
+        pattern: new URLPattern({pathname: '/pico'}),
+        url: '/pico',
+        meta: { title: 'Pico'},
+        template: 'home', // component?
+        guards: [], // TODO: Implement route guards for auth/permissions
+        components: picoComponents, // if template is blank, we can compose the page with components
+         meta: {
+            stylesheets:  stylesheetPresets.pico()
+        }
+    },
+         {
+        name: 'Water',
+        pattern: new URLPattern({pathname: '/water'}),
+        url: '/water',
+        template: 'home', // component?
+        guards: [], // TODO: Implement route guards for auth/permissions
+        components: waterComponents, // if template is blank, we can compose the page with components
+        meta: {
+            title: 'water',
+            stylesheets:  stylesheetPresets.water()
+        }
+    },
+         {
+        name: 'Tailwind',
+        pattern: new URLPattern({pathname: '/tailwind'}),
+        url: '/tailwind',
+        meta: { title: 'Tailwind',
+            stylesheets: stylesheetPresets.tailwind()
+        },
+        template: 'home', // component?
+        guards: [], // TODO: Implement route guards for auth/permissions
+        components: tailwindComponents // if template is blank, we can compose the page with components
     },
 ]
