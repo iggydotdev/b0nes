@@ -14,7 +14,7 @@ b0nes is a complete web development toolkit with **zero dependencies**. Build mo
 ✅ Server-Side Rendering (SSR)
 ✅ Static Site Generation (SSG)
 ✅ State Management (built-in Store)
-✅ State Machines (built-in FSM)
+✅ State Machines (built-in FSM + SPA Router)
 ✅ Client-side Interactivity
 ✅ Zero npm dependencies
 ```
@@ -54,15 +54,12 @@ node src/framework/index.js    # Start building immediately
 - 📦 **Zero Dependencies** - Runs on Node.js built-ins only
 - 🚀 **SSR & SSG** - Built-in server-side rendering and static site generation
 - 🔄 **State Management** - Redux-style store without the complexity
-- 🤖 **State Machines** - XState-style FSM for flow control
+- 🤖 **State Machines** - XState-style FSM for flow control AND SPA routing
 - ✨ **Progressive Enhancement** - Works without JavaScript, better with it
 - 🧪 **Auto-Testing** - Built-in test discovery and runner
 - 🎨 **CSS-Agnostic** - Use Tailwind, vanilla CSS, or any framework you want
 - 🔌 **Interactive Components** - Tabs, modals, dropdowns with zero dependencies
-- ✨ **Project Scaffolding** - npx b0nes my-site (instant setup)
-- 🎨 **Flexible Styling** - Use any CSS framework or none at all
-- 📦 **Complete Source** - All framework code copied to your project
-- 🔧 **Full Control** - Modify any part of the framework
+- 📦 **Component Installer** - Install community components from URLs
 
 ---
 
@@ -114,7 +111,7 @@ export const badge = ({ slot, variant = 'default', className = '', attrs = '' })
     const classes = normalizeClasses(['badge', `badge-${variant}`, className]);
     const slotContent = processSlotTrusted(slot);
     
-    return `${slotContent}`;
+    return `<span class="${classes}"${attrs}>${slotContent}</span>`;
 };
 ```
 
@@ -194,8 +191,9 @@ npx serve public
 
 ### Available Components
 
-**Atoms (14 basic elements):**
+**Atoms (15 basic elements):**
 - `accordion` - Collapsible content
+- `badge` - Status indicators/labels
 - `box` - Flexible container (div, section, article, etc.)
 - `button` - Clickable button
 - `divider` - Horizontal rule
@@ -278,102 +276,36 @@ npm run generate organism my-header
 
 ### Component Installer
 
-1. Install Components from URLs
+Install community components from URLs:
 
 ```bash
+# Install from URL
 npm run install-component https://example.com/components/my-card
+
+# Preview without installing
+npm run install-component https://example.com/card --dry-run
+
+# Force overwrite existing
+npm run install-component https://example.com/card --force
 ```
 
-2. Two Installation Modes
+**Component Manifest Format:**
 
-Copy Mode (Default):
-
-- Downloads files to your project
-- Works offline
-- Can modify locally
-- No external dependencies
-
-Reference Mode:
-```bash
-npm run install-component https://example.com/card --reference
-```
-
-- Loads from URL at runtime
-- Always latest version
-- Smaller project size
-- Requires internet
-
-3. Component Manifest System
-
-Authors create a simple manifest:
 ```json
 {
   "name": "my-card",
   "version": "1.0.0",
   "type": "molecule",
+  "description": "A custom card component",
+  "author": "Your Name <you@example.com>",
+  "license": "MIT",
   "files": {
     "component": "./my-card.js",
     "test": "./my-card.test.js",
     "client": "./molecule.my-card.client.js"
-  }
-}
-```
-
-4. Automatic Registry Updates
-The installer automatically:
-
-- ✅ Downloads component files
-- ✅ Updates component index
-- ✅ Checks dependencies
-- ✅ Validates manifest
-- ✅ Runs tests
-
-🎯 Real-World Workflow
-As Component Author
-
-- Create component following b0nes patterns
-- Add manifest (b0nes.manifest.json)
-- Host on GitHub (or anywhere)
-- Share URL with community
-
-```
-https://raw.githubusercontent.com/username/repo/main/components/card
-```
-
-As Component User
-
-Install component:
-
-```bash
-npm run install-component https://github.com/username/repo/main/components/card
-```
-
-Use immediately:
-
-```javascript
-{
-  type: 'molecule',
-  name: 'card',  // Now available!
-  props: { /* ... */ }
-}
-```
-
-A Standard format for sharing would follow this:
-
-```json 
-{
-  "name": "component-name",
-  "version": "1.0.0",
-  "type": "atom|molecule|organism",
-  "files": {
-    "component": "./file.js",
-    "test": "./file.test.js",
-    "client": "./client.js"
   },
   "dependencies": [],
-  "tags": [],
-  "repository": "...",
-  "demo": "..."
+  "tags": ["card", "layout"]
 }
 ```
 
@@ -599,7 +531,7 @@ const store = createStore({
 
 ## State Machines (FSM)
 
-b0nes includes **XState-style finite state machines** for flow control:
+b0nes includes XState-style finite state machines for flow control AND SPA routing. It's functional, uses closures for private state, and is perfect for authentication, multi-step forms, UI flows, and single-page apps.
 
 ### Basic FSM
 
@@ -612,113 +544,167 @@ const authFSM = createFSM({
     initial: 'logged-out',
     states: {
         'logged-out': {
-            on: { LOGIN: 'authenticating' }
+            on: { LOGIN: 'logging-in' }
         },
-        'authenticating': {
+        'logging-in': {
+            actions: {
+                onEntry: (context, data) => {
+                    console.log('Starting login...');
+                    // Return context updates if needed
+                    return { loading: true };
+                },
+                onExit: (context, data) => {
+                    console.log('Exiting login...');
+                }
+            },
             on: { 
                 SUCCESS: 'logged-in',
-                ERROR: 'logged-out'
-            },
-            actions: {
-                onEntry: (context) => {
-                    console.log('Starting authentication...');
-                }
+                FAILURE: 'logged-out'
             }
         },
         'logged-in': {
             on: { LOGOUT: 'logged-out' }
         }
-    }
+    },
+    context: { user: null } // Initial context
 });
 
 // Usage
-authFSM.send('LOGIN');       // Transition to 'authenticating'
-authFSM.getState();          // 'authenticating'
-authFSM.is('logged-in');     // false
-authFSM.can('LOGOUT');       // false (not in correct state)
+authFSM.send('LOGIN', { username: 'grok' }); // Transition with data
+authFSM.getState();                          // 'logging-in'
+authFSM.is('logged-in');                     // false
+authFSM.can('LOGOUT');                       // false
+authFSM.getContext();                        // { user: null, loading: true }
+authFSM.getHistory();                        // Array of transitions
+authFSM.updateContext({ user: 'grok' });     // Update without transition
+authFSM.reset();                             // Back to initial
+
+// Subscribe to changes
+const unsubscribe = authFSM.subscribe((transition) => {
+    console.log('Transition:', transition);  // { from, to, event, data, timestamp }
+});
+
+// Visualize
+console.log(authFSM.toMermaid());            // Mermaid diagram string
 ```
 
-### Multi-Step Form with FSM
+### FSM with Guards (Conditional Transitions)
+
+Transitions can be functions for dynamic targets:
 
 ```javascript
 const checkoutFSM = createFSM({
     initial: 'cart',
     states: {
-        cart: {
-            on: { CHECKOUT: 'shipping' }
-        },
-        shipping: {
+        'cart': {
             on: { 
-                CONTINUE: 'payment',
-                BACK: 'cart'
+                CHECKOUT: (context, data) => context.items.length > 0 ? 'payment' : 'cart'
             }
         },
-        payment: {
-            on: { 
-                SUBMIT: 'processing',
-                BACK: 'shipping'
-            }
+        'payment': {
+            on: { SUCCESS: 'complete' }
         },
-        processing: {
-            on: { 
-                SUCCESS: 'complete',
-                ERROR: 'payment'
-            }
-        },
-        complete: {}
-    }
+        'complete': {}
+    },
+    context: { items: [] }
 });
-
-// Subscribe to state changes
-checkoutFSM.subscribe((transition) => {
-    console.log(`${transition.from} → ${transition.to}`);
-    updateUI(transition.to);
-});
-
-// User flow
-checkoutFSM.send('CHECKOUT');  // cart → shipping
-checkoutFSM.send('CONTINUE');  // shipping → payment
-checkoutFSM.send('SUBMIT');    // payment → processing
 ```
 
-### FSM + Store Integration
+### Composed FSMs (Parallel Machines)
 
-Combine state machines (flow control) with store (data management):
+Run multiple FSMs together:
 
 ```javascript
-import { connectStoreToFSM } from './framework/client/store.js';
+import { composeFSM } from './framework/client/fsm.js';
 
-const formStore = createStore({
-    state: { 
-        step1Data: {},
-        step2Data: {},
-        step3Data: {}
+const composed = composeFSM({
+    auth: authFSM,
+    checkout: checkoutFSM
+});
+
+composed.getAllStates();     // { auth: 'logged-out', checkout: 'cart' }
+composed.getAllContexts();   // Combined contexts
+composed.send('auth', 'LOGIN'); // Send to specific machine
+composed.broadcast('RESET'); // Send to all that can handle it
+
+// Subscribe to any transition
+composed.subscribe((change) => {
+    console.log(change);     // { machine: 'auth', from, to, ... }
+});
+```
+
+### FSM Router - SPAs Made Easy
+
+For routing, use createRouterFSM to generate an FSM from routes, then connectFSMtoDOM to wire it to the UI. This handles rendering templates, updating URLs, browser history, and event delegation.
+
+```javascript
+import { createRouterFSM, connectFSMtoDOM } from './framework/client/fsm.js';
+
+const routes = [
+    {
+        name: 'start',
+        url: '/demo/fsm/start',
+        template: "<h1>FSM Demo</h1><button data-fsm-event='GOTO_STEP2'>Next</button>",
+        onEnter: (context, data) => console.log('Entered start')
     },
-    actions: {
-        updateStep1: (state, data) => ({ 
-            step1Data: { ...state.step1Data, ...data } 
-        }),
-        updateStep2: (state, data) => ({ 
-            step2Data: { ...state.step2Data, ...data } 
-        })
+    {
+        name: 'step2',
+        url: '/demo/fsm/step2',
+        template: "<h1>Step 2</h1><button data-fsm-event='GOTO_START'>Back</button>"
+    },
+    {
+        name: 'success',
+        url: '/demo/fsm/success',
+        template: "<h1>Success!</h1>"
     }
-});
+];
 
-const formFSM = createFSM({
-    initial: 'step1',
-    states: {
-        step1: { on: { NEXT: 'step2' } },
-        step2: { on: { NEXT: 'step3', BACK: 'step1' } },
-        step3: { on: { SUBMIT: 'complete' } }
+const { fsm, routes: fsmRoutes } = createRouterFSM(routes); // Creates FSM with GOTO_ events
+
+// Connect to DOM (handles render, clicks, popstate)
+const rootEl = document.querySelector('[data-bones-fsm]');
+const cleanup = connectFSMtoDOM(fsm, rootEl, routes);
+
+// Navigate programmatically
+fsm.send('GOTO_STEP2');
+
+// Cleanup when done
+cleanup();
+```
+
+#### Key notes: 
+
+- Routes get auto-connected with GOTO_[NAME] events.
+- Use data-fsm-event on buttons/links for transitions.
+- onEnter/onExit become state actions.
+- Handles browser back/forward via popstate.
+- Initial state matches current URL if possible.
+
+### Multi-Step Form with FSM Router
+
+```javascript
+const routes = [
+    {
+        name: 'start',
+        url: '/form/start',
+        template: "<h1>Start</h1><button data-fsm-event='GOTO_STEP2'>Next</button>"
+    },
+    {
+        name: 'step2',
+        url: '/form/step2',
+        template: "<h1>Step 2</h1><button data-fsm-event='GOTO_START'>Back</button><button data-fsm-event='GOTO_SUCCESS'>Submit</button>"
+    },
+    {
+        name: 'success',
+        url: '/form/success',
+        template: "<h1>Success!</h1><button data-fsm-event='GOTO_START'>Reset</button>"
     }
-});
+];
 
-// Sync FSM state to store automatically
-const disconnect = connectStoreToFSM(formStore, formFSM);
+const { fsm } = createRouterFSM(routes);
+connectFSMtoDOM(fsm, document.getElementById('app'), routes);
+```
 
-// Now they work together
-formStore.dispatch('updateStep1', { name: 'John' });
-formFSM.send('NEXT');
 ```
 
 **Why FSM?**
@@ -727,16 +713,17 @@ formFSM.send('NEXT');
 - ✅ Easy to visualize and test
 - ✅ Self-documenting code
 - ✅ Prevents bugs from invalid state combinations
+- ✅ Built-in SPA routing with FSM Router
 
 ---
 
 ## Routing & Pages
 
-### Static Routes
+### Static Routes (SSG/SSR)
 
 ```javascript
 // src/framework/routes.js
-import { URLPattern } from 'node:url';
+import { URLPattern } from './utils/urlPattern.js';
 import { components as homeComponents } from './pages/home.js';
 
 export const routes = [
@@ -755,7 +742,7 @@ export const routes = [
 ];
 ```
 
-### Dynamic Routes
+### Dynamic Routes (SSG/SSR)
 
 ```javascript
 {
@@ -841,7 +828,7 @@ export const test = () => {
         className: 'primary'
     });
     
-    const expected = 'Click Me';
+    const expected = '<button type="submit" class="btn primary">Click Me</button>';
     
     return actual === expected 
         ? true 
@@ -914,125 +901,32 @@ button({
 }
 ```
 
-```javascript
-// Include in renderPage
-
-```
-
-#### Option 3: CSS Modules
+#### Option 3: CSS Framework Presets
 
 ```javascript
-// For component-scoped styles
-import styles from './button.module.css';
-
-button({
-    slot: 'Click Me',
-    className: styles.button
-})
-```
-
-#### Option 4: Open Props
-
-Modern CSS variables with zero build step:
-
-```html
-
-```
-
-Styling (Updated)
-Adding Stylesheets
-b0nes provides multiple ways to add CSS to your pages:
-```javascript
-// Global stylesheets (all pages)
-// Edit src/framework/renderPage.js
-const DEFAULT_STYLESHEETS = [
-    '/styles/main.css',
-];
-
-// Per-page stylesheets (specific routes)
-// Edit src/framework/routes.js
-meta: {
-    stylesheets: ['/styles/page-specific.css']
-}
-
-// Inline styles (components)
-attrs: 'style="background: #f0f0f0;"'
-``
-CSS Framework Integration
-Use any CSS framework via CDN or local files:
-```javascript
-import { stylesheetPresets } from './renderPage.js';
+import { stylesheetPresets } from './framework/renderPage.js';
 
 // Tailwind CSS
-stylesheetPresets.tailwind()
+meta: { stylesheets: stylesheetPresets.tailwind() }
 
 // Water.css (classless)
-stylesheetPresets.water('dark')
+meta: { stylesheets: stylesheetPresets.water('dark') }
 
 // Pico CSS
-stylesheetPresets.pico()
+meta: { stylesheets: stylesheetPresets.pico() }
 
 // Open Props
-stylesheetPresets.openProps()
+meta: { stylesheets: stylesheetPresets.openProps() }
 
 // Combine multiple
-stylesheetPresets.combine(
-    stylesheetPresets.water('auto'),
-    '/styles/custom.css'
-)
-```
-
-Recommended Approaches
-
-Option 1: Tailwind CSS
-
-```bash
-npm install -D tailwindcss
-npx tailwindcss init
-```
-
-```javascript
-// Use Tailwind classes in components
-button({
-    slot: 'Click Me',
-    className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded'
-})
-```
-
-Option 2: Vanilla CSS
-```css
-/* public/styles.css */
-.btn {
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-primary {
-    background: #3b82f6;
-    color: white;
+meta: { 
+    stylesheets: stylesheetPresets.combine(
+        stylesheetPresets.water('auto'),
+        '/styles/custom.css'
+    )
 }
 ```
-Option 3: CSS Modules
-```javascript
-// For component-scoped styles
-import styles from './button.module.css';
 
-button({
-    slot: 'Click Me',
-    className: styles.button
-})
-```
-
-Option 4: Classless CSS (Water.css, Pico)
-
-```javascript
-// No classes needed - styles apply automatically
-meta: {
-    stylesheets: stylesheetPresets.water('auto')
-}
-```
 ---
 
 ## Real-World Examples
@@ -1112,48 +1006,6 @@ export const components = [
 ];
 ```
 
-### Multi-Step Form with State
-
-```javascript
-// Form state management
-const formStore = createStore({
-    state: {
-        currentStep: 1,
-        personalInfo: { name: '', email: '' },
-        shipping: { address: '', city: '' },
-        payment: { cardNumber: '' }
-    },
-    actions: {
-        nextStep: (state) => ({ 
-            currentStep: state.currentStep + 1 
-        }),
-        prevStep: (state) => ({ 
-            currentStep: state.currentStep - 1 
-        }),
-        updatePersonalInfo: (state, data) => ({
-            personalInfo: { ...state.personalInfo, ...data }
-        }),
-        updateShipping: (state, data) => ({
-            shipping: { ...state.shipping, ...data }
-        })
-    }
-});
-
-// Form flow control
-const formFSM = createFSM({
-    initial: 'personal',
-    states: {
-        personal: { on: { NEXT: 'shipping' } },
-        shipping: { on: { NEXT: 'payment', BACK: 'personal' } },
-        payment: { on: { SUBMIT: 'complete', BACK: 'shipping' } },
-        complete: {}
-    }
-});
-
-// Sync them
-connectStoreToFSM(formStore, formFSM);
-```
-
 ---
 
 ## Project Structure
@@ -1162,7 +1014,7 @@ connectStoreToFSM(formStore, formFSM);
 b0nes/
 ├── src/
 │   ├── components/              # Component Library
-│   │   ├── atoms/              # Basic elements (14 components)
+│   │   ├── atoms/              # Basic elements (15 components)
 │   │   ├── molecules/          # Compound components (4 components)
 │   │   ├── organisms/          # Page sections (4 components)
 │   │   └── utils/              # Component utilities
@@ -1175,14 +1027,14 @@ b0nes/
 │       ├── client/             # Client-side runtime
 │       │   ├── b0nes.js       # Component initialization
 │       │   ├── store.js       # State management
-│       │   └── fsm.js         # State machines
+│       │   └── fsm.js         # State machines + SPA routing
 │       ├── pages/             # Page templates
 │       ├── utils/build/       # Build tools
 │       ├── compose.js         # Component composition
 │       ├── router.js          # URL routing
 │       ├── routes.js          # Route definitions
 │       ├── renderPage.js      # HTML generation
-│       └── index.js           # Dev server
+│       └── server.js          # Dev server
 ├── package.json
 ├── README.md
 └── LICENSE
@@ -1213,7 +1065,8 @@ import { renderPage } from './framework/renderPage.js';
 
 const html = renderPage(content, { 
     title: 'My Page',
-    interactive: true  // Include b0nes.js (default: true)
+    interactive: true,  // Include b0nes.js (default: true)
+    stylesheets: ['/styles/main.css']
 });
 ```
 
@@ -1298,6 +1151,7 @@ git subtree push --prefix public origin gh-pages
 | **Learning Curve** | 1 day | 2 weeks | 1 week | 3 days |
 | **State Management** | ✅ Built-in | ❌ BYO | ❌ BYO | ❌ BYO |
 | **State Machines** | ✅ Built-in | ❌ BYO | ❌ BYO | ❌ BYO |
+| **SPA Router** | ✅ FSM-based | ✅ Built-in | ❌ BYO | ❌ BYO |
 | **Build Tool** | ❌ Not required | ✅ Required | ✅ Required | ⚠️ Optional |
 | **Client JS** | Progressive | Required | Optional | Optional |
 | **TypeScript** | Optional | Built-in | Built-in | Optional |
@@ -1308,24 +1162,18 @@ git subtree push --prefix public origin gh-pages
 
 ### v0.3.0
 - [ ] TypeScript declaration files (.d.ts)
-- [ ] FSM visualization tools
-- [ ] Store devtools browser extension
-- [ ] More interactive components (accordion, tooltip)
-- [ ] Improved documentation with video tutorials
+- [ ] More interactive components (carousel, accordion with animation)
+- [ ] Improved documentation with maybe video tutorials
+- [ ] Component marketplace/registry
 
 ### v0.4.0
 - [ ] Plugin system
 - [ ] Middleware support for routing
 - [ ] View Transitions API integration
-- [ ] Islands architecture
 - [ ] Component playground (Storybook-like)
+- [ ] Hot module replacement (HMR)
 
-### v1.0.0
-- [ ] Production-grade error handling
-- [ ] Performance monitoring
-- [ ] CLI tool with scaffolding
-- [ ] Official starter templates
-- [ ] Comprehensive test coverage
+and more to come!
 
 ---
 
@@ -1355,6 +1203,16 @@ git subtree push --prefix public origin gh-pages
 
 **Accessibility.** Semantic HTML is naturally accessible.
 
+### Why FSM for Routing?
+
+**Predictability.** All possible states and transitions are explicit.
+
+**Debugging.** State machines are easy to visualize and test.
+
+**Safety.** We can infer valid states and events.
+
+**Flexibility.** FSM works for SPAs, multi-step forms, game states, and more.
+
 ---
 
 ## Contributing
@@ -1364,6 +1222,14 @@ Contributions are welcome! Please ensure:
 - New components follow atomic design patterns
 - JSDoc comments are included
 - Zero dependencies maintained
+- Follow existing code style
+
+**Areas we'd love help with:**
+- More interactive components (carousel, date picker, etc.)
+- FSM visualization tools
+- Performance optimizations
+- Documentation improvements
+- Example projects and tutorials
 
 ---
 
@@ -1372,8 +1238,112 @@ Contributions are welcome! Please ensure:
 - Some tests need improvement (will use node:test in future)
 - Component generator has template replacement issues (being addressed)
 - Dynamic route generation needs more robust error handling
+- FSM Router needs more examples and documentation
 
 We're aware of these and they'll be addressed in upcoming releases.
+
+---
+
+## Frequently Asked Questions
+
+### Why not just use React/Next.js?
+
+b0nes is for different use cases:
+- **Use React/Next.js** for: Complex SPAs, real-time apps, large teams
+- **Use b0nes** for: Content sites, landing pages, docs, blogs, simple SPAs
+
+### Can I use TypeScript?
+
+Yes! While b0nes is written in pure JS, you can:
+1. Use JSDoc for type hints (no compilation needed)
+2. Add your own TypeScript layer on top
+3. We're working on official .d.ts files for v0.3.0
+
+### How does FSM compare to React Router?
+
+FSM Router:
+- ✅ Explicit state transitions
+- ✅ Built-in state management
+- ✅ Works with or without URLs
+- ✅ Perfect for multi-step flows
+- ❌ More verbose for simple routing
+
+React Router:
+- ✅ Simpler for basic routing
+- ✅ Larger ecosystem
+- ❌ Implicit state transitions
+- ❌ Requires separate state management
+
+### Can I build a SPA with b0nes?
+
+**Absolutely!** Use the FSM Router:
+
+```javascript
+const routes = [
+    { name: 'home', url: '/', template: '<h1>Home</h1>' },
+    { name: 'about', url: '/about', template: '<h1>About</h1>' }
+];
+
+const { fsm } = createRouterFSM(routes);
+connectFSMtoDOM(fsm, document.getElementById('app'), routes);
+```
+
+### Is this production-ready?
+
+**For static sites: Yes!** (v0.2.0+)
+- Zero dependencies = rock solid
+- SSG output is just HTML/CSS/JS
+
+**For SPAs: Getting there!** (v0.2.0)
+- FSM Router is new but tested
+- Use for new projects, not mission-critical apps yet
+- We're working toward v1.0.0 for production SPAs
+
+### How do I handle forms?
+
+```javascript
+// Multi-step form with FSM
+const routes = [
+    { name: 'step1', url: '/step1', template: '<input id="name" /><button data-fsm-event="GOTO_STEP2">Next</button>' }
+];
+
+const { fsm } = createRouterFSM(routes);
+connectFSMtoDOM(fsm, app, routes);
+```
+
+### How do I fetch data?
+
+```javascript
+// In route definition
+{
+    name: 'Blog Post',
+    pattern: new URLPattern({ pathname: '/blog/:slug' }),
+    components: blogPostComponents,
+    externalData: async (params) => {
+        const res = await fetch(`https://api.example.com/posts/${params.slug}`);
+        return await res.json();
+    }
+}
+```
+
+### Can I use this with Tailwind?
+
+**Yes!** b0nes is CSS-agnostic:
+
+```bash
+npm install -D tailwindcss
+npx tailwindcss init
+```
+
+Or use the built-in preset:
+
+```javascript
+import { stylesheetPresets } from './framework/renderPage.js';
+
+meta: {
+    stylesheets: stylesheetPresets.tailwind()
+}
+```
 
 ---
 
@@ -1391,6 +1361,13 @@ This is an attempt to do something different. Not to replace anything, but to pr
 
 We've been overengineering solutions for too long. It's time to question our choices and ask: **"Is this really worth it?"**
 
+**b0nes is for developers who:**
+- Want to understand how their framework works
+- Value simplicity over complexity
+- Prefer explicit over implicit
+- Care about longevity and stability
+- Don't want to rewrite their app every 2 years
+
 If you think this is useful, let me know.  
 If you learn something from this, let me know.
 
@@ -1406,8 +1383,14 @@ Let's build something useful together.
 - 🌐 **GitHub**: https://github.com/iggydotdev/b0nes
 - 📦 **npm**: https://www.npmjs.com/package/b0nes
 - 🐛 **Issues**: https://github.com/iggydotdev/b0nes/issues
+- 💬 **Discussions**: https://github.com/iggydotdev/b0nes/discussions
 - 📧 **Email**: iggy.dev@pm.me
+- 🐦 **Twitter**: [@iggydotdev](https://twitter.com/iggydotdev)
 
 ---
 
 **⭐ Star this repo if you find it useful!**
+
+**🤝 Contributions welcome!** Check out our [Contributing Guide](CONTRIBUTING.md)
+
+**📢 Share your b0nes projects!** We'd love to see what you build.
