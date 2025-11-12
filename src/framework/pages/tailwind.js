@@ -17,8 +17,8 @@ export const components = [
                     type: 'atom',
                     name: 'link',
                     props: {
-                        slot: 'About',
-                        url: '/about',
+                        slot: 'Pico CSS',
+                        url: '/pico',
                         className: 'text-white hover:text-gray-200 px-3 py-2 rounded-md text-sm font-medium'
                     },
                 },
@@ -26,8 +26,8 @@ export const components = [
                     type: 'atom',
                     name: 'link',
                     props: {
-                        slot: 'Blog',
-                        url: '/blog',
+                        slot: 'Water CSS',
+                        url: '/water',
                         className: 'text-white hover:text-gray-200 px-3 py-2 rounded-md text-sm font-medium'
                     },
                 },
@@ -35,8 +35,8 @@ export const components = [
                     type: 'atom',
                     name: 'link',
                     props: {
-                        slot: 'Contact',
-                        url: '/contact',
+                        slot: 'Tailwind CSS',
+                        url: '/tailwind',
                         className: 'text-white hover:text-gray-200 px-3 py-2 rounded-md text-sm font-medium'
                     },
                 },

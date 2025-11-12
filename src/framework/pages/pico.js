@@ -4,38 +4,38 @@ export const components = [
         name: 'header',
         props: {
             slot: [
-                {
-                    type: 'atom',
-                    name: 'link',
-                    props: {
-                        slot: 'Home',
-                        url: '/'
-                    }
-                },
-                {
-                    type: 'atom',
-                    name: 'link',
-                    props: {
-                        slot: 'About',
-                        url: '/about'
+               {
+                        type: 'atom',
+                        name: 'link',
+                        props: { 
+                            slot: 'Home', 
+                            url: '/'
+                        }
                     },
-                },
-                {
-                    type: 'atom',
-                    name: 'link',
-                    props: {
-                        slot: 'Blog',
-                        url: '/blog'
+                    { 
+                        type: 'atom',
+                        name: 'link',
+                        props: { 
+                            slot: 'Pico CSS', 
+                            url: '/pico'
+                        },
                     },
-                },
-                {
-                    type: 'atom',
-                    name: 'link',
-                    props: {
-                        slot: 'Contact',
-                        url: '/contact'
+                    { 
+                        type: 'atom',
+                        name: 'link',
+                        props: { 
+                            slot: 'Water CSS', 
+                            url: '/water'
+                        },
                     },
-                },
+                    { 
+                        type: 'atom',
+                        name: 'link',
+                        props: { 
+                            slot: 'Tailwind CSS', 
+                            url: '/tailwind'
+                        },
+                    },
             ]
             // Water.css styles <nav> and <a> elements semantically, so few classes needed here.
         }

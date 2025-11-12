@@ -16,24 +16,24 @@ export const components = [
                         type: 'atom',
                         name: 'link',
                         props: { 
-                            slot: 'About', 
-                            url: '/about'
+                            slot: 'Pico CSS', 
+                            url: '/pico'
                         },
                     },
                     { 
                         type: 'atom',
                         name: 'link',
                         props: { 
-                            slot: 'Blog', 
-                            url: '/blog'
+                            slot: 'Water CSS', 
+                            url: '/water'
                         },
                     },
                     { 
                         type: 'atom',
                         name: 'link',
                         props: { 
-                            slot: 'Contact', 
-                            url: '/contact'
+                            slot: 'Tailwind CSS', 
+                            url: '/tailwind'
                         },
                     },
                 ]
