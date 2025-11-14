@@ -9,7 +9,7 @@ export const components = (data) => [
                         name: 'link',
                         props: { 
                             slot: 'Home', 
-                            url: '/'
+                            url: '/examples/home'
                         }
                     },
                     { 

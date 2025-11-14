@@ -1,3 +1,11 @@
+import { stylesheetPresets } from '../../../../framework/config/stylesheets.js';
+
+export const meta = {
+    title: 'Water.css Example',
+    description: 'An example page styled with Water.css framework.',
+    stylesheets:  stylesheetPresets.water()
+   
+}
 export const components = [
     {
         type: 'organism',
@@ -9,7 +17,7 @@ export const components = [
                         name: 'link',
                         props: { 
                             slot: 'Home', 
-                            url: '/'
+                            url: '/examples/home'
                         }
                     },
                     { 
@@ -17,7 +25,7 @@ export const components = [
                         name: 'link',
                         props: { 
                             slot: 'Pico CSS', 
-                            url: '/pico'
+                            url: '/examples/pico'
                         },
                     },
                     { 
@@ -25,7 +33,7 @@ export const components = [
                         name: 'link',
                         props: { 
                             slot: 'Water CSS', 
-                            url: '/water'
+                            url: '/examples/water'
                         },
                     },
                     { 
@@ -33,7 +41,7 @@ export const components = [
                         name: 'link',
                         props: { 
                             slot: 'Tailwind CSS', 
-                            url: '/tailwind'
+                            url: '/examples/tailwind'
                         },
                     },
             ]

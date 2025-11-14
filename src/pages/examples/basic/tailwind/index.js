@@ -1,3 +1,11 @@
+import { stylesheetPresets } from '../../../../framework/config/stylesheets.js';
+
+export const meta = {
+    title: 'Tailwind Example',
+    description: 'An example page styled with Tailwind framework.',
+    stylesheets:  stylesheetPresets.tailwind()
+   
+}
 export const components = [
     {
         type: 'organism',
@@ -9,7 +17,7 @@ export const components = [
                     name: 'link',
                     props: {
                         slot: 'Home',
-                        url: '/',
+                        url: '/examples/home',
                         className: 'text-white hover:text-gray-200 px-3 py-2 rounded-md text-sm font-medium'
                     }
                 },
@@ -18,7 +26,7 @@ export const components = [
                     name: 'link',
                     props: {
                         slot: 'Pico CSS',
-                        url: '/pico',
+                        url: '/examples/pico',
                         className: 'text-white hover:text-gray-200 px-3 py-2 rounded-md text-sm font-medium'
                     },
                 },
@@ -27,7 +35,7 @@ export const components = [
                     name: 'link',
                     props: {
                         slot: 'Water CSS',
-                        url: '/water',
+                        url: '/examples/water',
                         className: 'text-white hover:text-gray-200 px-3 py-2 rounded-md text-sm font-medium'
                     },
                 },
@@ -36,7 +44,7 @@ export const components = [
                     name: 'link',
                     props: {
                         slot: 'Tailwind CSS',
-                        url: '/tailwind',
+                        url: '/examples/tailwind',
                         className: 'text-white hover:text-gray-200 px-3 py-2 rounded-md text-sm font-medium'
                     },
                 },

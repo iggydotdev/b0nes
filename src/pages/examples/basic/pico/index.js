@@ -1,3 +1,11 @@
+import { stylesheetPresets } from '../../../../framework/config/stylesheets.js';
+
+export const meta = {
+    title: 'Pico.css Example',
+    description: 'An example page styled with pico.css framework.',
+    stylesheets:  stylesheetPresets.pico()
+   
+}
 export const components = [
     {
         type: 'organism',
@@ -9,7 +17,7 @@ export const components = [
                         name: 'link',
                         props: { 
                             slot: 'Home', 
-                            url: '/'
+                            url: '/examples/home'
                         }
                     },
                     { 
@@ -17,7 +25,7 @@ export const components = [
                         name: 'link',
                         props: { 
                             slot: 'Pico CSS', 
-                            url: '/pico'
+                            url: '/examples/pico'
                         },
                     },
                     { 
@@ -25,7 +33,7 @@ export const components = [
                         name: 'link',
                         props: { 
                             slot: 'Water CSS', 
-                            url: '/water'
+                            url: '/examples/water'
                         },
                     },
                     { 
@@ -33,7 +41,7 @@ export const components = [
                         name: 'link',
                         props: { 
                             slot: 'Tailwind CSS', 
-                            url: '/tailwind'
+                            url: '/examples/tailwind'
                         },
                     },
             ]
@@ -52,7 +60,7 @@ export const components = [
                     name: 'text',
                     props: {
                         is: 'h1',
-                        slot: 'Welcome to b0nes Framework (Water.css)',
+                        slot: 'Welcome to b0nes Framework (Pico.css)',
                     }
                 },
                 {

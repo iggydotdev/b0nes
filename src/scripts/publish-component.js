@@ -1,6 +1,4 @@
 // scripts/publish-component.js
-#!/usr/bin/env node
-
 import { resolve, basename, dirname } from 'path';
 import { readdir, readFile, writeFile, copyFile } from 'fs/promises';
 import { existsSync } from 'fs';

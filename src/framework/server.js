@@ -1,10 +1,10 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { router } from './router.js';
-import { routes } from './routes.js';
+
 import { compose } from './compose.js';
 import { renderPage } from './renderPage.js';
+import { getRoutes } from './autoRoutes.js';
 
 /**
  * b0nes Development Server
@@ -99,19 +99,50 @@ const server = http.createServer(async (req, res) => {
             return;
         }
     }
+
     
+
+
     // Route matching for pages
     try {
-        const route = router(url, routes);
-        
-        if (route) {
+    
+        let matchedRoute = null;
+        let matchResult = null;
+
+        const routes = getRoutes();
+    
+
+        for (const route of routes) {
+            console.log('[Server] Checking route:', route.pattern.pathname);
+            console.log('[Server] Against URL:', url.pathname);
+            const result = route.pattern.exec(url.pathname);
+            console.log('[Server] Trying route:', route.pattern.pathname, 'Result:', result);   
+            if (result) {
+            matchedRoute = route;
+            matchResult = result;
+            break;
+            }
+        }
+        if (!matchedRoute) {
+            // 404 handling...
+            console.warn('[Server] 404 Not Found:', url.pathname);
+            res.writeHead(404, { 'Content-Type': 'text/html' });
+            res.end(renderPage(
+                '<h1>404 - Page Not Found</h1><p>The page you are looking for does not exist.</p>',
+                { title: '404' }
+            ));
+        } else {
+
+            const page = await matchedRoute.load();
+            console.log('[Server] Serving page for route:', matchedRoute.pattern.pathname);
+            console.log('[Server] Page:', page);
             // Handle dynamic routes with externalData
-            let components = route.components;
+            let components = page.components || page.default || [];
             
             if (typeof components === 'function' && route.externalData) {
                 try {
-                    const data = await route.externalData(route.params);
-                    components = components(data);
+                    const data = await page.externalData(page.params);
+                    components = await components(matchedRoute.pathname.groups, data);
                 } catch (error) {
                     console.error('[Server] Error fetching external data:', error);
                     res.writeHead(500, { 'Content-Type': 'text/html' });
@@ -123,8 +154,7 @@ const server = http.createServer(async (req, res) => {
                 }
             }
             
-            const content = compose(components);
-            const html = renderPage(content, route.meta);
+            const html = renderPage(compose(components), page.meta || {});
             
             res.writeHead(200, { 
                 'Content-Type': 'text/html',
@@ -133,14 +163,6 @@ const server = http.createServer(async (req, res) => {
             res.end(html);
             return;
         }
-        
-        // 404 - Not Found
-        console.warn('[Server] 404 Not Found:', url.pathname);
-        res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end(renderPage(
-            '<h1>404 - Page Not Found</h1><p>The page you are looking for does not exist.</p>',
-            { title: '404' }
-        ));
         
     } catch (error) {
         console.error('[Server] Error processing request:', error);

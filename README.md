@@ -782,7 +782,7 @@ export const components = [
         name: 'header',
         props: {
             slot: [
-                { type: 'atom', name: 'link', props: { url: '/', slot: 'Home' } },
+                { type: 'atom', name: 'link', props: { url: '/examples/home', slot: 'Home' } },
                 { type: 'atom', name: 'link', props: { url: '/about', slot: 'About' } }
             ]
         }
@@ -942,7 +942,7 @@ export const components = [
         props: {
             className: 'sticky-header',
             slot: [
-                { type: 'atom', name: 'link', props: { url: '/', slot: 'Home' }},
+                { type: 'atom', name: 'link', props: { url: '/examples/home', slot: 'Home' }},
                 { type: 'atom', name: 'link', props: { url: '/pricing', slot: 'Pricing' }},
                 { type: 'atom', name: 'link', props: { url: '/docs', slot: 'Docs' }}
             ]
@@ -1280,7 +1280,7 @@ React Router:
 
 ```javascript
 const routes = [
-    { name: 'home', url: '/', template: '<h1>Home</h1>' },
+    { name: 'home', url: '/examples/home', template: '<h1>Home</h1>' },
     { name: 'about', url: '/about', template: '<h1>About</h1>' }
 ];
 

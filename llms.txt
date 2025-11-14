@@ -801,7 +801,7 @@ connectStoreToFSM(formStore, formFSM);
 ```javascript
 // Define routes
 const routes = [
-    { name: 'home', url: '/', template: '<h1>Home</h1>' },
+    { name: 'home', url: '/examples/home', template: '<h1>Home</h1>' },
     { name: 'about', url: '/about', template: '<h1>About</h1>' },
     { name: 'contact', url: '/contact', template: '<h1>Contact</h1>' }
 ];

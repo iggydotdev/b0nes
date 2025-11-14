@@ -2,14 +2,16 @@
  * Demo page showcasing interactive components
  * Demonstrates tabs, modal, and dropdown components
  */
-
+export const meta = {
+    interactivity: true
+}
 export const components = [
     {
         type: 'organism',
         name: 'header',
         props: {
             slot: [
-                { type: 'atom', name: 'link', props: { url: '/', slot: 'Home' } },
+                { type: 'atom', name: 'link', props: { url: '/examples/home', slot: 'Home' } },
                 { type: 'atom', name: 'link', props: { url: '/demo', slot: 'Demo' } },
                 { type: 'atom', name: 'link', props: { url: '/blog/test', slot: 'Blog' } }
             ]

@@ -1,4 +1,4 @@
-export const components = [
+export const components = (data) => [
         {
             type: 'organism',
             name: 'header',
@@ -9,31 +9,31 @@ export const components = [
                         name: 'link',
                         props: { 
                             slot: 'Home', 
-                            url: '/'
+                            url: '/examples/home'
                         }
                     },
                     { 
                         type: 'atom',
                         name: 'link',
                         props: { 
-                            slot: 'Pico CSS', 
-                            url: '/pico'
+                            slot: 'About', 
+                            url: '/about'
                         },
                     },
                     { 
                         type: 'atom',
                         name: 'link',
                         props: { 
-                            slot: 'Water CSS', 
-                            url: '/water'
+                            slot: 'Blog', 
+                            url: '/blog'
                         },
                     },
                     { 
                         type: 'atom',
                         name: 'link',
                         props: { 
-                            slot: 'Tailwind CSS', 
-                            url: '/tailwind'
+                            slot: 'Contact', 
+                            url: '/contact'
                         },
                     },
                 ]
@@ -82,38 +82,13 @@ export const components = [
             }
         }, 
         {
-        type: 'organism',
-        name: 'cta',
-        props: {
-            slot: [
-                {
-                    type: 'atom',
-                    name: 'text',
-                    props: {
-                        is: 'h2',
-                        slot: 'Ready to Dive In?',
-                    }
-                },
-                {
-                    type: 'atom',
-                    name: 'text',
-                    props: {
-                        is: 'p',
-                        slot: 'Join us today and start building amazing web experiences!',
-                    }
-                },            
-                
-                {
-                    type: 'atom',
-                    name: 'link',
-                    props: {
-                        url: '/sign-up',
-                        slot: 'Sign Up Now',
-                    }
-                },
-            ]
-        }
-        }, 
+            type: 'atom',
+            name: 'text',
+            props: {
+                is: 'h2',
+                slot: `Ready to Dive In? Blog post ${data.answer}`,
+            }
+        },
         {
             type: 'organism',
             name: 'footer',
