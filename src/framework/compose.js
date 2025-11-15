@@ -1,18 +1,16 @@
-import {atoms} from '../components/atoms/index.js';
-import {molecules} from '../components/molecules/index.js';
-import {organisms} from '../components/organisms/index.js';
+import library from '../components/library.js';
 
 // Build component libraries
 const componentLibrary = {
-    atom: atoms,
-    molecule: molecules,
-    organism: organisms
+    atom: library.atoms,
+    molecule: library.molecules,
+    organism: library.organisms
 };
 
 export const compose = (components = []) => {
     return components.map(component => {
-        const library = componentLibrary[component.type];
-        const comp = library[component.name];
+        const lib = componentLibrary[component.type];
+        const comp = lib[component.name];
         
         if (!comp) {
             throw new Error(
@@ -32,7 +30,6 @@ export const compose = (components = []) => {
         } else {
             slotContent = component.props.slot || '';
         }
-        
         // Call the render function
         const renderFn = typeof comp === 'function' ? comp : comp.render;
         return renderFn({ ...component.props, slot: slotContent });
