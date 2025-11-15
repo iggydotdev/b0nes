@@ -113,10 +113,7 @@ const server = http.createServer(async (req, res) => {
     
 
         for (const route of routes) {
-            console.log('[Server] Checking route:', route.pattern.pathname);
-            console.log('[Server] Against URL:', url.pathname);
             const result = route.pattern.exec(url.pathname);
-            console.log('[Server] Trying route:', route.pattern.pathname, 'Result:', result);   
             if (result) {
             matchedRoute = route;
             matchResult = result;
