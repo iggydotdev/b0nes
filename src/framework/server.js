@@ -101,75 +101,91 @@ const server = http.createServer(async (req, res) => {
     }
 
     
-
-
-    // Route matching for pages
-    try {
-    
-        let matchedRoute = null;
-        let matchResult = null;
-
-        const routes = getRoutes();
-    
-
-        for (const route of routes) {
-            const result = route.pattern.exec(url.pathname);
-            if (result) {
-            matchedRoute = route;
-            matchResult = result;
-            break;
-            }
-        }
-        if (!matchedRoute) {
-            // 404 handling...
-            console.warn('[Server] 404 Not Found:', url.pathname);
-            res.writeHead(404, { 'Content-Type': 'text/html' });
-            res.end(renderPage(
-                '<h1>404 - Page Not Found</h1><p>The page you are looking for does not exist.</p>',
-                { title: '404' }
-            ));
-        } else {
-
-            const page = await matchedRoute.load();
-            console.log('[Server] Serving page for route:', matchedRoute.pattern.pathname);
-            console.log('[Server] Page:', page);
-            // Handle dynamic routes with externalData
-            let components = page.components || page.default || [];
-            
-            if (typeof components === 'function' && route.externalData) {
-                try {
-                    const data = await page.externalData(page.params);
-                    components = await components(matchedRoute.pathname.groups, data);
-                } catch (error) {
-                    console.error('[Server] Error fetching external data:', error);
-                    res.writeHead(500, { 'Content-Type': 'text/html' });
-                    res.end(renderPage(
-                        '<h1>500 - Error Loading Data</h1><p>Failed to fetch data for this page.</p>',
-                        { title: '500' }
-                    ));
-                    return;
-                }
-            }
-            
-            const html = renderPage(compose(components), page.meta || {});
-            
+    if (url.pathname.startsWith('/client/') && url.pathname.endsWith('.js')) {
+        try {
+            const filePath = fileURLToPath(new URL(`./${url.pathname}`, import.meta.url));
+       
+            const content = await readFile(filePath, 'utf-8');
             res.writeHead(200, { 
-                'Content-Type': 'text/html',
-                'Cache-Control': 'no-cache'
+            'Content-Type': 'application/javascript',
+            'Cache-Control': 'no-cache'
             });
-            res.end(html);
+            res.end(content);
+            return;
+        } catch (err) {
+            console.log('Client runtime 404:', url.pathname);
+            res.writeHead(404);
+            res.end('Not found');
             return;
         }
-        
-    } catch (error) {
-        console.error('[Server] Error processing request:', error);
-        res.writeHead(500, { 'Content-Type': 'text/html' });
-        res.end(renderPage(
-            '<h1>500 - Internal Server Error</h1><p>Something went wrong processing your request.</p>',
-            { title: '500' }
-        ));
     }
-});
+        // Route matching for pages
+    try {
+        
+            let matchedRoute = null;
+            let matchResult = null;
+
+            const routes = getRoutes();
+        
+
+            for (const route of routes) {
+                const result = route.pattern.exec(url.pathname);
+                if (result) {
+                matchedRoute = route;
+                matchResult = result;
+                break;
+                }
+            }
+            if (!matchedRoute) {
+                // 404 handling...
+                console.warn('[Server] 404 Not Found:', url.pathname);
+                res.writeHead(404, { 'Content-Type': 'text/html' });
+                res.end(renderPage(
+                    '<h1>404 - Page Not Found</h1><p>The page you are looking for does not exist.</p>',
+                    { title: '404' }
+                ));
+            } else {
+
+                const page = await matchedRoute.load();
+                console.log('[Server] Serving page for route:', matchedRoute.pattern.pathname);
+                console.log('[Server] Page:', page);
+                // Handle dynamic routes with externalData
+                let components = page.components || page.default || [];
+                
+                if (typeof components === 'function' && route.externalData) {
+                    try {
+                        const data = await page.externalData(page.params);
+                        components = await components(matchedRoute.pathname.groups, data);
+                    } catch (error) {
+                        console.error('[Server] Error fetching external data:', error);
+                        res.writeHead(500, { 'Content-Type': 'text/html' });
+                        res.end(renderPage(
+                            '<h1>500 - Error Loading Data</h1><p>Failed to fetch data for this page.</p>',
+                            { title: '500' }
+                        ));
+                        return;
+                    }
+                }
+                
+                const html = renderPage(compose(components), page.meta || {});
+                
+                res.writeHead(200, { 
+                    'Content-Type': 'text/html',
+                    'Cache-Control': 'no-cache'
+                });
+                res.end(html);
+                return;
+            }
+            
+        } catch (error) {
+            console.error('[Server] Error processing request:', error);
+            res.writeHead(500, { 'Content-Type': 'text/html' });
+            res.end(renderPage(
+                '<h1>500 - Internal Server Error</h1><p>Something went wrong processing your request.</p>',
+                { title: '500' }
+            ));
+        }
+    })
 
 /**
  * Start the development server
