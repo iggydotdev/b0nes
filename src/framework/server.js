@@ -101,7 +101,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     
-    if (url.pathname.startsWith('/client/') && url.pathname.endsWith('.js')) {
+    if ((url.pathname.startsWith('/client/') || url.pathname.startsWith('/utils/'))&& url.pathname.endsWith('.js')) {
         try {
             const filePath = fileURLToPath(new URL(`./${url.pathname}`, import.meta.url));
        
@@ -119,6 +119,28 @@ const server = http.createServer(async (req, res) => {
             return;
         }
     }
+
+    if (url.pathname.includes('/templates/') && url.pathname.endsWith('.js')) {
+        try {
+            const filePath = fileURLToPath(new URL(`../components/organisms/${url.pathname}`, import.meta.url));
+            console.log(filePath)
+            const content = await readFile(filePath, 'utf-8');
+            res.writeHead(200, { 
+            'Content-Type': 'application/javascript',
+            'Cache-Control': 'no-cache'
+            });
+            res.end(content);
+            return;
+        } catch (err) {
+            console.log('Client runtime 404:', url.pathname);
+            res.writeHead(404);
+            res.end('Not found');
+            return;
+        }
+    }
+
+    
+
         // Route matching for pages
     try {
         

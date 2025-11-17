@@ -17,10 +17,10 @@ export const createComponent = (componentType, componentName) => {
     }
     
     const componentDir = path.join(__dirname, 'templates');
-    const targetDir = path.join(__dirname, `../../components/${componentType}s`, componentName);
+    const targetDir = path.join(__dirname, `../../${componentType}s`, componentName);
     console.log(`Creating component ${componentName} of type ${componentType} at ${targetDir}`);
     if (!fs.existsSync(targetDir)){
-        fs.mkdirSync(targetDir);
+        fs.mkdirSync(targetDir, {recursive: true});
     }
 
     const files = ['index.js', 'componentName.js', 'componentName.test.js'];

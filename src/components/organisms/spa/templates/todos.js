@@ -1,4 +1,5 @@
-export const components = (todos) => [{
+import { fromConfig } from "/utils/mapper.js"
+export const components = (todos) => fromConfig([{
     type: 'atom', 
     name:'box', 
     props: {
@@ -28,4 +29,4 @@ export const components = (todos) => [{
                 }
             }
         ]
-    }}]  
+    }}])

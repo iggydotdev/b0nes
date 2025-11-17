@@ -1,14 +1,16 @@
-import * as library from '../../index.js';
-import compose from '../../../framework/compose.js';
+// import { text } from '../../atoms/index.js'
+
 import {createStore} from '/client/store.js';
 import { createRouterFSM, connectFSMtoDOM } from '/client/fsm.js';
-
-
-
+import {components as homeComponents} from '/spa/templates/home.js';
+import {components as aboutComponents} from '/spa/templates/about.js';
+import {components as todoComponents} from '/spa/templates/todo.js';
+import {components as todosComponents} from '/spa/templates/todos.js';
 
 
 export const client = (el) => {
     // Global store
+    console.log(el)
     window.store = createStore({
     state: { 
         user: 'Grok', 
@@ -31,68 +33,25 @@ export const client = (el) => {
     {
         name: 'home',
         url: '/',
-        template: library.components.atoms.box({
-            slot:[
-                library.components.atoms.text({is:'h1',slot:['Home']}),
-                library.components.atoms.text({is:'h1',slot:['Welcome !']}),
-                library.components.atoms.button({attrs:'data-fsm-event="GOTO_TODOS"', slot:['Go to Todos']})
-            ]})
+        template: homeComponents
         },
         {
             name: 'todos',
             url: '/todos',
-            template: 
-            library.components.atoms.box({
-                slot:[
-                    library.components.atoms.text({is:'h1',slot:['Todos']}),
-                    library.components.atoms.box({is: 'ul', slot:[
-                        window.store.getState().todos.map(todo =>
-                            library.components.atoms.box({is: 'li', slot:[
-                                library.components.atoms.text({
-                                    is: 'label', 
-                                    for: `${todo-id}`, 
-                                    slot: [
-                                        library.components.atoms.input({type: "checkbox", attrs:`${todo.done ? 'checked' : ''} data-action="toggle" data-id="${todo.id} id=${todo.id}"`}),
-                                        `${todo.text}`
-                                    ],
-                                }),
-                                library.components.atoms.button({attrs:'data-fsm-event="GOTO_TODO"', slot:['View'], attrs: `data-param=${todo.id}`})
-                            ]})
-                        ).join('')
-                    ]}),
-                    library.components.atoms.button({attrs:'data-fsm-event="GOTO_HOME"', slot:['Back Home']})
-                ]
-            })  
+            template: todosComponents(window.store.getState().todos)
         },
         {
             name: 'todo',
             url: '/todos/:id',
             template: (params) => {
             const todo = window.store.getState().todos.find(t => t.id == params.id);
-            return todo ? 
-                library.components.atoms.box({
-                    slot:[
-                        library.components.atoms.text({is:'h1',slot:['Todo Detail']}),
-                        library.components.atoms.text({is: 'p', slot:[library.components.atoms.text({is: 'strong', slot: [`${todo.text}`]})]}),
-                        library.components.atoms.text({is: 'p', slot:[`Status: ${todo.done ? 'Done ✅' : 'Not done'}`]}),
-                        library.components.atoms.button({attrs:'data-fsm-event="GOTO_TODOS"', slot:['Back to List']})
-                    ]
-                }) 
-                :
-                library.components.atoms.text({is: 'p', slot:['Todo not found']});
+            return todo ? todoComponents(todo) : 'Todo not found';
             }
         },
         {
             name: 'about',
             url: '/about',
-            template: 
-                library.components.atoms.box({
-                    slot:[
-                        library.components.atoms.text({is:'h1',slot:['About']}),
-                        library.components.atoms.text({is: 'p', slot: ['b0nes is the best framework ever. Fight me.']}),
-                        library.components.atoms.button({attrs:'data-fsm-event="GOTO_HOME"', slot:['HOME']})
-                    ]
-                })
+            template: aboutComponents
         }
     ];
 

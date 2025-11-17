@@ -9,6 +9,7 @@ import picture from './picture/index.js';
 import text from './text/index.js';
 import textarea from './textarea/index.js';
 import video from './video/index.js';
+import progress from './progress/index.js';
 
 export const atoms = {
     accordion,
@@ -21,7 +22,8 @@ export const atoms = {
     picture,
     text,
     textarea,
-    video
+    video,
+    progress
 };
 
 export {
@@ -35,5 +37,6 @@ export {
     picture,
     text,
     textarea,
-    video
+    video,
+    progress
 };

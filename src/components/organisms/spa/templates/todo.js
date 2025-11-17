@@ -1,4 +1,6 @@
-export const components = [
+import { fromConfig } from "/utils/mapper.js"
+
+export const components = (todo) => fromConfig([
     {type: 'atom', name:'box', props: {
                     slot:[
                        {   type: 'atom',
@@ -33,4 +35,4 @@ export const components = [
                             type: 'atom', 
                             name:'button', props: {attrs:'data-fsm-event="GOTO_TODOS"', slot:['Back to List']}}
                     ]
-                }}]
+                }}])

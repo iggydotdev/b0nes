@@ -1,48 +1,62 @@
-export const multiStepForm = ({ className = '', attrs = '' } = {}) => [
-//   { type: 'atom', name: 'progress', props: { max: 3, value: 1, className: 'mb-4' } },
-  { type: 'atom', name: 'box', props: { 
+import { box, input, text, button, progress } from "../../atoms/index.js"
+
+export const multiStepForm = ({ className = '', attrs = '' } = {}) => {
+  
+  return box({ 
     is: 'div', 
     className,
     attrs: `data-b0nes="organisms:multi-step-form" ${attrs}`,
     slot: [
+      progress({ max: 3, value: 1, className: 'form-progress',
+      attrs: 'id="form-progress" aria-label="Form completion progress"'}),
       // All steps are rendered, client will hide/show
-      { type: 'atom', name: 'box', props: { attrs: 'data-step="step1"', slot: [
-        { type: 'atom', name: 'text', props: { is: 'h3', slot: 'Step 1 – Name' } },
-        { type: 'atom', name: 'input', props: { type: 'text', attrs:"name='name' placeholder='Your name' required" } },
-        { type: 'atom', name: 'button', props: { slot: 'Next →', attrs:"data-action='next'" } }
-      ]}},
-      { type: 'atom', name: 'box', props: { attrs:"data-step='2' hidden", slot: [
-        { type: 'atom', name: 'text', props: { is: 'h3', slot: 'Step 2 – Email' } },
-        { type: 'atom', name: 'input', props: { type: 'email', attrs:"name='email' placeholder='you@example.com' required" } },
-        { type: 'atom', name: 'button', props: { slot: '← Back', 'data-action': 'back' } },
-        { type: 'atom', name: 'button', props: { slot: 'Next →', 'data-action': 'next' } }
-      ]}},
-      { type: 'atom', name: 'box', props: { attrs:"data-ste='3' hidden", slot: [
-        { type: 'atom', name: 'text', props: { is: 'h3', slot: 'Step 3 – Age' } },
-        { type: 'atom', name: 'input', props: { type: 'number', attrs: "name='age' placeholder='42'" } },
-        { type: 'atom', name: 'button', props: { slot: '← Back', 'data-action': 'back' } },
-        { type: 'atom', name: 'button', props: { slot: 'Submit', 'data-action': 'submit' } }
-      ]}},
-      { type: 'atom', name: 'box', props: { 'data-step': 'success', hidden: true, slot: [
-        { type: 'atom', name: 'text', props: { is: 'h3', slot: '🎉 Success!' } },
-        { type: 'atom', name: 'box', props: { slot: [
-          { type: 'atom', name: 'text', props: { slot: 'Name: ' } },
-          { type: 'atom', name: 'strong', props: { 'data-field': 'name', slot: '' } }
-        ]}},
-        { type: 'atom', name: 'box', props: { slot: [
-          { type: 'atom', name: 'text', props: { slot: 'Email: ' } },
-          { type: 'atom', name: 'strong', props: { 'data-field': 'email', slot: '' } }
-        ]}},
-        { type: 'atom', name: 'box', props: { slot: [
-          { type: 'atom', name: 'text', props: { slot: 'Age: ' } },
-          { type: 'atom', name: 'strong', props: { 'data-field': 'age', slot: '' } }
-        ]}},
-        { type: 'atom', name: 'button', props: { slot: 'Start Over', 'data-action': 'reset' } }
-      ]}},
-      
-        { type: 'atom', name: 'text', props: { is:'p', slot: [
+      box({ attrs: 'data-step="step1"', slot: [
+        text({ is: 'h3', slot: 'Step 1 – Name' }),
+        input({ type: 'text', attrs:"name='name' placeholder='Your name' required" }),
+        button({ slot: 'Next →', attrs:"data-action='next'" }),
+      ]}),
+
+      box({ attrs:"data-step='step2' hidden", slot: [
+        text({is: 'h3', slot: 'Step 2 – Email' }),
+        input({ type: 'email', attrs:"name='email' placeholder='you@example.com' required" }),
+        button({ slot: '← Back', attrs:"data-action='back'" }),
+        button({ slot: 'Next →', attrs:"data-action='next'" })
+      ]}),
+
+      box({ attrs:"data-step='step3' hidden", slot: [
+        text({ is: 'h3', slot: 'Step 3 – Age' }),
+        input({ type: 'number', attrs: "name='age' placeholder='42'" }),
+        button({ slot: '← Back', attrs:"data-action='back'" }),
+        button({ slot: 'Submit', attrs:"data-action='submit'" })
+      ]}),
+
+      box({ attrs:"data-step='success' hidden", slot: [
+        text({ is: 'h3', slot: '🎉 Success!' }),
+        box({ slot: [
+          text({is: 'p', slot: [
+            'Name: ',
+            text({is: 'strong', attrs:"data-field='name'", slot: [""] })
+          ]}),
+        ]}),
+
+        box({ slot: [
+          text({is:'p', slot: [
+            'Email: ', 
+            text({is: 'strong', attrs:"data-field='email'", slot: [''] })
+        ]}),
+
+        box({ slot: [
+          text({is:'p', slot: [
+            'Age: ',
+            text({is:'strong', attrs:"data-field='age'", slot: ['']})
+          ]}),
+          button({slot: 'Start Over', attrs:"data-action='reset'"})
+        ]}),
+      ]}),
+      text({ is:'p', slot: [
             'FSM state: ',
-            { type: 'atom', name: 'text', props: { is:'strong', attrs: 'data-status=""', slot: 'step1' }}
-        ]}}
-      ]}}
-    ]
+            text({ is:'strong', attrs:"data-status=''", slot: 'step1' })
+        ]})
+      ]})
+    ]})
+  }
