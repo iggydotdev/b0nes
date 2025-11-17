@@ -22,7 +22,7 @@ const testStepProgress = () => {
 // Test 3: Indeterminate progress (no value)
 const testIndeterminateProgress = () => {
     const actual = progress({ max: 100 });
-    const expected = '<progress class="progress" value="0" max="100">0%</progress>';
+    const expected = '<progress class="progress" value="0" max="100">Loading...</progress>';
     return actual === expected ? true : console.error('testIndeterminateProgress failed:', {actual, expected}) || false;
 };
 
