@@ -1,6 +1,6 @@
 {
   "name": "b0nes",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "type": "module",
   "description": "Zero-dependency component library and SSR/SSG framework",
   "main": "src/index.js",
@@ -20,10 +20,11 @@
     "b0nes": "bin/create.js"
   },
   "scripts": {
-    "dev": "node src/framework/server.js",
-    "dev:watch": "node --watch src/framework/server.js",
-    "build": "node src/framework/utils/build/index.js public",
     "test": "node src/components/utils/tester.js",
+    "dev": "NODE_ENV=development node src/framework/server.js",
+    "dev:watch": "NODE_ENV=development node --watch src/framework/server.js",
+    "build": "NODE_ENV=production node src/framework/utils/build/index.js public",
+    "serve": "NODE_ENV=production npx serve public",
     "generate": "node src/components/utils/generator/index.js",
     "install-component": "node src/scripts/install-component.js",
     "create": "node create/index.js",

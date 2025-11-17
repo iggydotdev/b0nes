@@ -5,6 +5,23 @@ import { fileURLToPath } from 'node:url';
 import { compose } from './compose.js';
 import { renderPage } from './renderPage.js';
 import { getRoutes } from './autoRoutes.js';
+import { ENV } from './config/envs.js';
+import path from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// Determine base paths based on environment
+const CLIENT_BASE = ENV.isDev 
+    ? path.resolve(__dirname, './client')  // Dev: framework/client/
+    : path.resolve(__dirname, '../../public/client'); // Prod: public/client/
+
+const COMPONENTS_BASE = ENV.isDev
+    ? path.resolve(__dirname, '../components')  // Dev: components/
+    : path.resolve(__dirname, '../../public/components'); // Prod: public/components/
+
+console.log(`[b0nes] Running in ${ENV.isDev ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
+console.log(`[b0nes] Client base: ${CLIENT_BASE}`);
+console.log(`[b0nes] Components base: ${COMPONENTS_BASE}`);
 
 /**
  * b0nes Development Server
@@ -19,7 +36,7 @@ const server = http.createServer(async (req, res) => {
     // Serve b0nes.js client-side runtime
     if (url.pathname === '/b0nes.js') {
         try {
-            const filePath = fileURLToPath(new URL('./client/b0nes.js', import.meta.url));
+            const filePath = path.join(CLIENT_BASE, 'b0nes.js');
             const content = await readFile(filePath, 'utf-8');
             res.writeHead(200, { 
                 'Content-Type': 'application/javascript',
@@ -35,26 +52,53 @@ const server = http.createServer(async (req, res) => {
         }
     }
     
-    // Serve client behavior files (molecules/organisms with client.js)
+    // Server files
+    if ((url.pathname.startsWith('/client/') || url.pathname.startsWith('/utils/'))&& url.pathname.endsWith('.js')) {
+        try {
+            const filename = path.basename(url.pathname);
+            const filePath = path.join(CLIENT_BASE, filename);
+       
+            const content = await readFile(filePath, 'utf-8');
+            res.writeHead(200, { 
+            'Content-Type': 'application/javascript',
+            'Cache-Control': 'no-cache'
+            });
+            res.end(content);
+            return;
+        } catch (err) {
+            console.log('Client runtime 404:', url.pathname);
+            res.writeHead(404);
+            res.end('Not found');
+            return;
+        }
+    }
+    
+    // Client behavior files (molecules/organisms with client.js)
     if (url.pathname.includes('client.js')) {
         try {
             const segments = url.pathname.split('/').filter(Boolean);
-            const filename = segments[segments.length - 1]; // e.g., "molecules.tabs.client.js"
-            const parts = filename.replace('.client.js', '').split('.');
-            
-            if (parts.length >= 2) {
-                const [type, name] = parts; // e.g., ["molecules", "tabs"]
-                const filePath = fileURLToPath(
-                    new URL(`../components/${type}/${name}/${type}.${name}.client.js`, import.meta.url)
-                );
-                const content = await readFile(filePath, 'utf-8');
-                res.writeHead(200, { 
-                    'Content-Type': 'application/javascript',
-                    'Cache-Control': 'no-cache'
-                });
-                res.end(content);
-                return;
+                        let componentPath = null;
+            for (let i = 0; i < segments.length; i++) {
+                if (['atoms', 'molecules', 'organisms'].includes(segments[i])) {
+                    const type = segments[i];
+                    const name = segments[i + 1];
+                    const filename = segments[segments.length - 1];
+                    componentPath = path.join(COMPONENTS_BASE, type, name, filename);
+                    break;
+                }
             }
+            
+            if (!componentPath) {
+                throw new Error('Could not resolve component path');
+            }
+
+             const content = await readFile(componentPath, 'utf-8');
+            res.writeHead(200, { 
+                'Content-Type': 'application/javascript',
+                'Cache-Control': 'no-cache'
+            });
+            res.end(content);
+            return;
         } catch (error) {
             console.error('[Server] Error loading client behavior:', error);
             res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -101,24 +145,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     
-    if ((url.pathname.startsWith('/client/') || url.pathname.startsWith('/utils/'))&& url.pathname.endsWith('.js')) {
-        try {
-            const filePath = fileURLToPath(new URL(`./${url.pathname}`, import.meta.url));
-       
-            const content = await readFile(filePath, 'utf-8');
-            res.writeHead(200, { 
-            'Content-Type': 'application/javascript',
-            'Cache-Control': 'no-cache'
-            });
-            res.end(content);
-            return;
-        } catch (err) {
-            console.log('Client runtime 404:', url.pathname);
-            res.writeHead(404);
-            res.end('Not found');
-            return;
-        }
-    }
+
 
     if (url.pathname.includes('/templates/') && url.pathname.endsWith('.js')) {
         try {
@@ -145,16 +172,16 @@ const server = http.createServer(async (req, res) => {
     try {
         
             let matchedRoute = null;
-            let matchResult = null;
+            let matchedResult = null;
 
             const routes = getRoutes();
-        
+           
 
             for (const route of routes) {
                 const result = route.pattern.exec(url.pathname);
                 if (result) {
-                matchedRoute = route;
-                matchResult = result;
+                    matchedRoute = route;
+                    matchedResult = result;
                 break;
                 }
             }
@@ -174,10 +201,11 @@ const server = http.createServer(async (req, res) => {
                 // Handle dynamic routes with externalData
                 let components = page.components || page.default || [];
                 
-                if (typeof components === 'function' && route.externalData) {
+                if (typeof components === 'function') {
+                     console.log(matchedResult.pathname.groups)
                     try {
-                        const data = await page.externalData(page.params);
-                        components = await components(matchedRoute.pathname.groups, data);
+                       
+                        components = await components(matchedResult.pathname.groups);
                     } catch (error) {
                         console.error('[Server] Error fetching external data:', error);
                         res.writeHead(500, { 'Content-Type': 'text/html' });

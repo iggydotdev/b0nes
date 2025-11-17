@@ -21,11 +21,9 @@ function buildRoutes() {
     if (indexEntry) {
       const fullPath = path.join(dir, 'index.js');
       let pathname = basePath || '/';
-      if (!pathname.startsWith('/')) {
-        pathname = '/' + pathname;
-      }
+      pathname = '/' + pathname.replace(/^\//, ''); // force leading slash, no double
       routes.push({ 
-        pattern: new URLPattern({ pathname: pathname.replace('index','') }), 
+        pattern: new URLPattern({ pathname: pathname.replace('/index','')  }), 
         load: () => import(fullPath),
         params: pathname.includes(':')        
       });
@@ -45,13 +43,16 @@ function buildRoutes() {
       if (!entry.name.endsWith('.js')) continue;
      
       // Now only leaf pages (not folder-named .js files)
-      const routePath = path.join(basePath, entry.name.replace(/\.js$/, ''));
-      const pathname = '/' + routePath.replace(/\[([^\/]+)\]/g, ':$1');
-      
+      const segment = entry.name.replace(/\.js$/, '');
+      let pathname = basePath? `${basePath}/${segment}`:segment;
+      pathname = pathname.replace(/\[([^\/]+)\]/g, ':$1');
+      // Clean slashes and force leading
+      pathname = '/'+ pathname.replace(/\/+/g, '/').replace(/\/$/, '');
+      pathname = pathname.replace('/index','');
       routes.push({ 
         pattern: new URLPattern({ pathname }), 
         load: () => import(fullPath), 
-        params: pathname.includes(':') 
+        params: pathname.includes(':'),
       });
     }
   }
