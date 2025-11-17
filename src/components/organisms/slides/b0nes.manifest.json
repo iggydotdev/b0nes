@@ -1,0 +1,21 @@
+{
+  "name": "slides",
+  "version": "1.0.0",
+  "type": "organism",
+  "description": "Full-featured presentation slides component with keyboard navigation, click controls, and touch support",
+  "author": "b0nes Community",
+  "license": "MIT",
+  "files": {
+    "component": "./slides.js",
+    "test": "./slides.test.js",
+    "client": "./organisms.slides.client.js"
+  },
+  "dependencies": [],
+  "tags": [
+    "slides",
+    "presentation",
+    "carousel",
+    "keyboard-navigation",
+    "responsive"
+  ]
+}
