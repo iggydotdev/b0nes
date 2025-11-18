@@ -1,4 +1,4 @@
-/* Add this to your stylesheet or global CSS */
+/* 
 .slides {
   width: 100%;
   height: 100vh;
@@ -130,7 +130,7 @@
   line-height: 1.8;
 }
 
-/* Mobile */
+
 
 @media (max-width: 768px) {
   .slide {
@@ -159,7 +159,7 @@
   }
 }
 
-/* Fullscreen mode */
+
 .slides:-webkit-full-screen {
   width: 100%;
   height: 100%;
@@ -174,4 +174,151 @@
   width: 100%;
   height: 100%;
 }
+ */
 
+ /* custom.css – b0nes talk deck, December 6th 2025 edition */
+/* Dark, bold, meme-ready, projector-proof, mobile-tolerant */
+
+body {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #0d0d0d;
+  color: #f0f0f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.slides {
+  height: 100vh;
+  background: #0d0d0d;
+}
+
+.slide {
+  padding: 3rem 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.slide::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0,255,100,0.03) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Big titles – the star of the show */
+.slide h1 {
+  font-size: clamp(3rem, 10vw, 8rem);
+  font-weight: 900;
+  margin: 0 0 1rem 0;
+  line-height: 1.1;
+  text-shadow: 0 0 30px rgba(0,255,100,0.4);
+  color: #00ff64;
+}
+
+.slide h2 {
+  font-size: clamp(2rem, 7vw, 5rem);
+  margin: 0 0 2rem 0;
+  color: #00ff64;
+  font-weight: 700;
+}
+
+/* Body text */
+.slide p, .slide li {
+  font-size: clamp(1.4rem, 4vw, 2.8rem);
+  line-height: 1.6;
+  max-width: 90%;
+}
+
+/* Code blocks – monospaced glory */
+.slide pre {
+  background: rgba(20,20,20,0.9);
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  border: 2px solid #00ff64;
+  font-size: clamp(1.2rem, 3.5vw, 2.2rem);
+  text-align: left;
+  max-width: 95%;
+  overflow-x: auto;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  margin: 2rem 0;
+}
+
+/* Inline code */
+.slide code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  background: #222;
+  padding: 0.2em 0.4em;
+  border-radius: 6px;
+}
+
+/* Memes & GIFs – make them POP */
+.slide img {
+  max-width: 90%;
+  max-height: 60vh;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+  margin: 2rem 0;
+  border: 4px solid #00ff64;
+}
+
+/* Hero slide special sauce */
+.slide-hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem;
+}
+
+/* Success / CTA slides */
+.slide[background="#000"], 
+.slide[background="#1a1a1a"] {
+  background: var(--background) !important;
+}
+
+/* Mobile tweaks – because someone will watch on their phone */
+@media (max-width: 768px) {
+  .slide {
+    padding: 2rem 1.5rem;
+  }
+  .slide pre {
+    font-size: 1.1rem;
+    padding: 1rem;
+  }
+  .slide img {
+    max-width: 100%;
+    border-width: 3px;
+  }
+}
+
+/* Slide number – subtle */
+.slide-number {
+  position: absolute;
+  bottom: 2rem;
+  right: 3rem;
+  font-size: 1.2rem;
+  color: #444;
+  font-family: monospace;
+}
+
+/* Optional neon glow on hover for fun */
+.slide button, .slide a {
+  transition: all 0.3s;
+}
+.slide button:hover, .slide a:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,255,100,0.4);
+}
