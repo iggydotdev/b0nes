@@ -19,9 +19,68 @@ const COMPONENTS_BASE = ENV.isDev
     ? path.resolve(__dirname, '../components')  // Dev: components/
     : path.resolve(__dirname, '../../public/components'); // Prod: public/components/
 
+const PAGES_BASE = ENV.isDev
+    ? path.resolve(__dirname, '../pages')
+    : path.resolve(__dirname, '../../public/');
+
 console.log(`[b0nes] Running in ${ENV.isDev ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
 console.log(`[b0nes] Client base: ${CLIENT_BASE}`);
 console.log(`[b0nes] Components base: ${COMPONENTS_BASE}`);
+console.log(`[b0nes] Pages base: ${PAGES_BASE}`);
+
+/**
+ * Try to resolve a file from multiple possible locations
+ * This is the secret sauce for dev vs prod 🌮
+ */
+async function tryResolveFile(pathname) {
+    const possiblePaths = ENV.isDev 
+        ? [
+        // Dev: colocated in pages/
+        new URL(`../pages/examples/${pathname}`, import.meta.url),
+        // Fallback to public/
+        new URL(`../../public${pathname}`, import.meta.url)
+      ]
+    : [
+        new URL(`../../public${pathname}`, import.meta.url)
+      ];
+    console.log(possiblePaths)
+    for (const filePath of possiblePaths) {
+        try {
+            const content = await readFile(filePath);
+            console.log(content)
+            return { content, found: true, path: filePath };
+        } catch (err) {
+            console.log(filePath, err)
+            continue; // Try next location
+        }
+    }
+    
+    return { content: null, found: false };
+}
+
+/**
+ * Get content type from file extension
+ */
+function getContentType(pathname) {
+    const ext = pathname.split('.').pop()?.toLowerCase();
+    const contentTypes = {
+        'css': 'text/css',
+        'js': 'application/javascript',
+        'json': 'application/json',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'svg': 'image/svg+xml',
+        'webp': 'image/webp',
+        'ico': 'image/x-icon',
+        'woff': 'font/woff',
+        'woff2': 'font/woff2',
+        'ttf': 'font/ttf'
+    };
+    return contentTypes[ext] || 'application/octet-stream';
+}
+
 
 /**
  * b0nes Development Server
@@ -53,7 +112,7 @@ const server = http.createServer(async (req, res) => {
     }
     
     // Server files
-    if ((url.pathname.startsWith('/client/') || url.pathname.startsWith('/utils/'))&& url.pathname.endsWith('.js')) {
+    if ((url.pathname.startsWith('/client/') || url.pathname.startsWith('/utils/')) && url.pathname.endsWith('.js')) {
         try {
             const filename = path.basename(url.pathname);
             const filePath = path.join(CLIENT_BASE, filename);
@@ -107,41 +166,28 @@ const server = http.createServer(async (req, res) => {
         }
     }
     
-    // Serve static files from public/ directory (stylesheets, images, etc.)
+    // Serve static files from pages/ directory (stylesheets, images, etc.)
     if (url.pathname.startsWith('/styles/') || 
         url.pathname.startsWith('/images/') || 
-        url.pathname.startsWith('/assets/')) {
-        try {
-            const filePath = fileURLToPath(new URL(`../../public${url.pathname}`, import.meta.url));
-            const content = await readFile(filePath);
-            
-            // Determine content type
-            const ext = url.pathname.split('.').pop();
-            const contentTypes = {
-                'css': 'text/css',
-                'js': 'application/javascript',
-                'json': 'application/json',
-                'jpg': 'image/jpeg',
-                'jpeg': 'image/jpeg',
-                'png': 'image/png',
-                'gif': 'image/gif',
-                'svg': 'image/svg+xml',
-                'webp': 'image/webp',
-                'ico': 'image/x-icon'
-            };
-            
+        url.pathname.startsWith('/assets/') ||
+        url.pathname.match(/\.(css|jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf)$/)) {
+        console.log(url.pathname)
+        const result = await tryResolveFile(url.pathname);
+        
+        if (result.found) {
+            console.log(`[Server] ✅ Serving static file from: ${result.path}`);
             res.writeHead(200, { 
-                'Content-Type': contentTypes[ext] || 'application/octet-stream',
-                'Cache-Control': 'public, max-age=3600'
+                'Content-Type': getContentType(url.pathname),
+                'Cache-Control': ENV.isDev ? 'no-cache' : 'public, max-age=3600'
             });
-            res.end(content);
-            return;
-        } catch (error) {
-            console.error('[Server] Static file not found:', url.pathname);
-            res.writeHead(404, { 'Content-Type': 'text/plain' });
-            res.end('File not found');
+            res.end(result.content);
             return;
         }
+        
+        console.error('[Server] ❌ Static file not found:', url.pathname);
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('File not found');
+        return;
     }
 
     

@@ -1,0 +1,177 @@
+/* Add this to your stylesheet or global CSS */
+.slides {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.slides-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: #f5f5f5;
+}
+
+.slide {
+  width: 100%;
+  height: 100%;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem;
+  text-align: center;
+  background: #fff;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.slide.active {
+  display: flex;
+  opacity: 1;
+}
+
+.slide-content {
+  max-width: 900px;
+  width: 100%;
+  text-align: left;
+}
+
+.slide-content h1 {
+  font-size: 3.5rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.slide-content h2 {
+  font-size: 2.5rem;
+  margin: 0 0 1.5rem 0;
+}
+
+.slide-content ul {
+  font-size: 1.5rem;
+  line-height: 2;
+  list-style-position: inside;
+}
+
+.slide-content pre {
+  background: #f0f0f0;
+  padding: 1.5rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 1.2rem;
+  text-align: left;
+}
+
+.slide-number {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  font-size: 0.9rem;
+  color: #999;
+}
+
+.slides-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-top: 1px solid #eee;
+}
+
+.slide-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.slide-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+.slide-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.slide-indicator {
+  font-size: 1rem;
+  color: #666;
+}
+
+.slides-info {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  font-size: 0.9rem;
+  color: #999;
+}
+
+.slide-hero {
+  text-align: center;
+}
+
+.slide-hero h1 {
+  margin-bottom: 1rem;
+}
+
+.slide-hero p {
+  font-size: 1.3rem;
+  color: #666;
+  line-height: 1.8;
+}
+
+/* Mobile */
+
+@media (max-width: 768px) {
+  .slide {
+    padding: 2rem;
+  }
+  
+  .slide-content h1 {
+    font-size: 2rem;
+  }
+  
+  .slide-content h2 {
+    font-size: 1.5rem;
+  }
+  
+  .slide-content ul {
+    font-size: 1rem;
+  }
+  
+  .slides-controls {
+    gap: 1rem;
+  }
+  
+  .slide-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Fullscreen mode */
+.slides:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+}
+
+.slides:-moz-full-screen {
+  width: 100%;
+  height: 100%;
+}
+
+.slides:fullscreen {
+  width: 100%;
+  height: 100%;
+}
+
