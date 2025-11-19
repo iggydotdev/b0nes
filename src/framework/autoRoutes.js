@@ -30,7 +30,7 @@ function buildRoutes() {
     }
 
     for (const entry of entries) {
-      if (entries.name === 'index.js') continue;
+      if (entry.name === 'index.js') continue;
 
       const fullPath = path.join(dir, entry.name);
       
@@ -48,7 +48,9 @@ function buildRoutes() {
       pathname = pathname.replace(/\[([^\/]+)\]/g, ':$1');
       // Clean slashes and force leading
       pathname = '/'+ pathname.replace(/\/+/g, '/').replace(/\/$/, '');
-      pathname = pathname.replace('/index','');
+      if (pathname !== '/') {
+        pathname = pathname.replace('/index', '');
+      }
       routes.push({ 
         pattern: new URLPattern({ pathname }), 
         load: () => import(fullPath), 
