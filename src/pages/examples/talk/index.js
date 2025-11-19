@@ -58,7 +58,7 @@ Lines to make a button clickable → 47</code></pre>
 → Problem: Complexity
 → Add another abstraction layer
 → ∞</code></pre>
-              <img src="https://media.giphy.com/media/6gSFHyU1mb1LAVw5aT/giphy.gif" alt="Distracted boyfriend" class="max-w-2xl mt-4 rounded-lg shadow-md">
+              <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3F2d3I3bTh5aDc0cnV3NmNjeWRwZm5xZG53YzM0M3c2MjdvaTM5NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/H62NIrYc3ZzUG273k2/giphy.gif" alt="Its never gonna end" class="max-w-2xl mt-4 rounded-lg shadow-md">
             </div>
           `
         },
@@ -119,7 +119,7 @@ const Button = memo(forwardRef(
               <pre class="bg-gray-800 p-6 rounded-lg shadow-lg text-orange-300 text-2xl font-mono leading-relaxed mb-8 w-full max-w-2xl"><code>npm ls | wc -l
 React app → 1847
 b0nes app → 1 (just b0nes itself)</code></pre>
-              <img src="https://media.tenor.com/3j0Y1fYXb0IAAAAe/zero-deps.png" alt="Zero deps meme" class="max-w-xl rounded-lg shadow-md">
+              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExaHNvOWI2ZTBvYTJlNHg2bTB6ZGdxeHkxODdvbWEzdjJsZmI2bGE5cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/r0q8JfQLzevKR24Anc/giphy.gif" alt="Steve Jobs - Zero" class="max-w-xl rounded-lg shadow-md">
             </div>
           `
         },
@@ -135,7 +135,7 @@ Developer experience ↑↑↑
 Time to interactive ↓↓↓
 Bundle size ↑↑↑
 Battery drain ↑↑↑</code></pre>
-              <img src="https://media.tenor.com/2e5q4nE2r4AAAAAe/change-my-mind.png" alt="Change my mind" class="max-w-xl rounded-lg shadow-md">
+              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXJqNjZpZG5uZmU4NHBxOHN2dTBwMHlyamtnMjFxYzlvOXBxb2M1NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/nTfdeBvfgzV26zjoFP/giphy.gif" alt="Keanu Reeves Confused" class="max-w-xl rounded-lg shadow-md">
             </div>
           `
         },

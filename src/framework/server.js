@@ -267,14 +267,16 @@ async function createServer() {
             const routes = getRoutes();
 
             for (const route of routes) {
-                const result = route.pattern.exec(url.pathname);
+
+                const result = route.pattern.exec(url.href);
+
                 if (result) {
                     matchedRoute = route;
                     matchedResult = result;
                     break;
                 }
             }
-            
+
             if (!matchedRoute) {
                 console.warn('[Server] 404 Not Found:', url.pathname);
                 res.writeHead(404, { 'content-type': 'text/html' });
