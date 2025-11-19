@@ -1,7 +1,7 @@
+// src/framework/utils/build/generateRoute.js
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Local imports
 import { compose } from '../../compose.js';
 import { renderPage } from '../../renderPage.js';
 
@@ -13,21 +13,29 @@ import { renderPage } from '../../renderPage.js';
  */
 
 export const generateRoute = async (route, outputDir='public') => {
-    const pathname = route.pattern.pathname
+    // Get pathname from URLPattern
+    const pathname = route.pattern.pathname;
 
-    // skip for now dynamic routes
-    // Skip routes without components
-    if (!route.components || !Array.isArray(route.components)) {
-        console.warn(`⚠️  Route "${route.name}" has no components, skipping`);
+    // Skip dynamic routes (they should use generateDynamicRoute)
+    if (pathname.includes(':')) {
+        console.warn(`⚠️  Route "${pathname}" has dynamic params, use generateDynamicRoute instead`);
         return null;
     }
+
+    // Skip routes without components
+    if (!route.components || !Array.isArray(route.components)) {
+        console.warn(`⚠️  Route "${pathname}" has no components, skipping`);
+        return null;
+    }
+
     try {
         // Build file path
         let filePath = pathname;
         if (filePath === '/') {
             filePath = 'index.html';
         } else if (!filePath.endsWith('.html')) {
-            filePath = `${filePath}/index.html`;
+            // Remove trailing slash and add /index.html
+            filePath = `${filePath.replace(/\/$/, '')}/index.html`;
         }
         
         const fullPath = path.join(outputDir, filePath);
@@ -54,9 +62,6 @@ export const generateRoute = async (route, outputDir='public') => {
             file: fullPath,
         };
     } catch (error) {
-        throw new Error(`Failed to generate ${route.name}: ${error.message}`);
+        throw new Error(`Failed to generate ${pathname}: ${error.message}`);
     }
-
-
-
-}
+};
