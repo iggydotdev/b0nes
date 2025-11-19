@@ -23,7 +23,7 @@ export const components = [
             <div class="flex flex-col items-center justify-center text-center min-h-screen p-8 bg-gray-900 text-white">
               <h1 class="text-6xl font-extrabold leading-tight mb-4 text-red-400">Your framework downloaded<br><strong>700 MB</strong></h1>
               <h2 class="text-4xl font-semibold text-gray-300 mb-8">to render a button</h2>
-              <img src="https://media.tenor.com/MYZgsN2TDJAAAAAM/this-is.gif" alt="This is fine dog" class="max-w-xl mx-auto rounded-lg shadow-xl border-4 border-red-600">
+              <img src="https://media.tenor.com/MYZgsN2TDJAAAAAM/this-is.gif" loading="lazy" alt="This is fine dog" class="max-w-xl mx-auto rounded-lg shadow-xl border-4 border-red-600">
               <p class="mt-8 text-2xl text-red-400 font-medium">(yes, that’s a real create-next-app screenshot)</p>
             </div>
           `
@@ -39,7 +39,7 @@ export const components = [
 node_modules → 412 MB
 Time to interactive → 3.2 s on 4G
 Lines to make a button clickable → 47</code></pre>
-              <img src="https://media.tenor.com/f4MzvvjwUhAAAAAM/spongebob-mocking.gif" alt="Mocking SpongeBob" class="max-w-xl mt-4 rounded-lg shadow-md">
+              <img src="https://media.tenor.com/f4MzvvjwUhAAAAAM/spongebob-mocking.gif" loading="lazy" alt="Mocking SpongeBob" class="max-w-xl mt-4 rounded-lg shadow-md">
               <p class="mt-8 text-3xl text-gray-300 text-center">We optimized for developer speed.<br>Users pay the price.</p>
             </div>
           `
@@ -58,7 +58,7 @@ Lines to make a button clickable → 47</code></pre>
 → Problem: Complexity
 → Add another abstraction layer
 → ∞</code></pre>
-              <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3F2d3I3bTh5aDc0cnV3NmNjeWRwZm5xZG53YzM0M3c2MjdvaTM5NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/H62NIrYc3ZzUG273k2/giphy.gif" alt="Its never gonna end" class="max-w-2xl mt-4 rounded-lg shadow-md">
+              <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3F2d3I3bTh5aDc0cnV3NmNjeWRwZm5xZG53YzM0M3c2MjdvaTM5NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/H62NIrYc3ZzUG273k2/giphy.gif" loading="lazy" alt="Its never gonna end" class="max-w-2xl mt-4 rounded-lg shadow-md">
             </div>
           `
         },
@@ -71,7 +71,7 @@ Lines to make a button clickable → 47</code></pre>
 Compilation: 300–600 ms
 Execution  : 400–800 ms
 Total      : ~1.5 s of JS just to start</code></pre>
-              <img src="https://media.tenor.com/7tGhjTpUh4QAAAAM/drake-drizzy.gif" alt="Drake hotline bling" class="max-w-xl rounded-lg shadow-md">
+              <img src="https://media.tenor.com/7tGhjTpUh4QAAAAM/drake-drizzy.gif" loading="lazy" alt="Drake hotline bling" class="max-w-xl rounded-lg shadow-md">
             </div>
           `
         },
@@ -91,7 +91,7 @@ const Button = memo(forwardRef(
   ({onClick, children}) => 
     &lt;button onClick={useCallback(onClick)}&gt;{children}&lt;/button&gt;
 ));</code></pre>
-              <img src="https://media.tenor.com/JPiEKf_wEKkAAAAe/hshs.png" alt="Success kid" class="max-w-md rounded-lg shadow-md">
+              <img src="https://media.tenor.com/JPiEKf_wEKkAAAAe/hshs.png" loading="lazy" alt="Success kid" class="max-w-md rounded-lg shadow-md">
             </div>
           `
         },
@@ -119,7 +119,7 @@ const Button = memo(forwardRef(
               <pre class="bg-gray-800 p-6 rounded-lg shadow-lg text-orange-300 text-2xl font-mono leading-relaxed mb-8 w-full max-w-2xl"><code>npm ls | wc -l
 React app → 1847
 b0nes app → 1 (just b0nes itself)</code></pre>
-              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExaHNvOWI2ZTBvYTJlNHg2bTB6ZGdxeHkxODdvbWEzdjJsZmI2bGE5cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/r0q8JfQLzevKR24Anc/giphy.gif" alt="Steve Jobs - Zero" class="max-w-xl rounded-lg shadow-md">
+              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExaHNvOWI2ZTBvYTJlNHg2bTB6ZGdxeHkxODdvbWEzdjJsZmI2bGE5cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/r0q8JfQLzevKR24Anc/giphy.gif" loading="lazy" alt="Steve Jobs - Zero" class="max-w-xl rounded-lg shadow-md">
             </div>
           `
         },
@@ -135,7 +135,7 @@ Developer experience ↑↑↑
 Time to interactive ↓↓↓
 Bundle size ↑↑↑
 Battery drain ↑↑↑</code></pre>
-              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXJqNjZpZG5uZmU4NHBxOHN2dTBwMHlyamtnMjFxYzlvOXBxb2M1NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/nTfdeBvfgzV26zjoFP/giphy.gif" alt="Keanu Reeves Confused" class="max-w-xl rounded-lg shadow-md">
+              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXJqNjZpZG5uZmU4NHBxOHN2dTBwMHlyamtnMjFxYzlvOXBxb2M1NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/nTfdeBvfgzV26zjoFP/giphy.gif" loading="lazy" alt="Keanu Reeves Confused" class="max-w-xl rounded-lg shadow-md">
             </div>
           `
         },
@@ -162,7 +162,7 @@ No build step? No problem.</code></pre>
               <p class="text-3xl text-gray-300 mb-4 max-w-3xl">A zero-dependency toolkit that does SSR, SSG, SPA, state machines, and forms — all in pure JS.</p>
               <p class="text-3xl text-green-400 mb-4">Bundle size: &lt; 10 KB</p>
               <p class="text-3xl text-yellow-400 mb-8">Learning curve: one afternoon</p>
-              <img src="https://media.tenor.com/8RKdKkyTEKkAAAAe/hshs.png" alt="Success kid" class="max-w-md mt-4 rounded-lg shadow-md">
+              <img src="https://media.tenor.com/8RKdKkyTEKkAAAAe/hshs.png" loading="lazy" alt="Success kid" class="max-w-md mt-4 rounded-lg shadow-md">
             </div>
           `
         },
@@ -190,7 +190,7 @@ export const components = [
               <h2 class="text-5xl font-bold text-red-400 mb-6">Your framework didn't download 700 MB to render a button.</h2>
               <p class="text-3xl text-gray-300 mb-6">You downloaded 700 MB to feel productive while rendering a button.</p>
               <p class="text-4xl font-extrabold text-white mb-8"><strong>There's a difference.</strong></p>
-              <img src="https://media.tenor.com/f4MzvvjwUhAAAAAM/spongebob-mocking.gif" alt="Spongebob mocking" class="max-w-md mt-4 rounded-lg shadow-lg">
+              <img src="https://media.tenor.com/f4MzvvjwUhAAAAAM/spongebob-mocking.gif" loading="lazy" alt="Spongebob mocking" class="max-w-md mt-4 rounded-lg shadow-lg">
             </div>
           `
         },
@@ -204,7 +204,7 @@ export const components = [
                 <a href="https://github.com/iggydotdev/b0nes" class="text-cyan-400 hover:text-cyan-300 underline font-semibold transition duration-300">github.com/iggydotdev/b0nes</a>
               </p>
               <p class="mt-12 text-3xl text-gray-400">npx b0nes my-app → start shipping</p>
-              <img src="https://media.tenor.com/8RKdKkyTEKkAAAAe/hshs.png" alt="Success kid" class="max-w-sm mt-8 rounded-lg shadow-lg">
+              <img src="https://media.tenor.com/8RKdKkyTEKkAAAAe/hshs.png" loading="lazy" alt="Success kid" class="max-w-sm mt-8 rounded-lg shadow-lg">
             </div>
           `
         }
