@@ -176,15 +176,9 @@ export const installComponent = async (url, options = {}) => {
     }
     
     // Step 4: Install component
-    if (reference) {
-      // Create reference file instead of copying
-      console.log(`\n→ Creating URL reference...`);
-      await installReference(targetDir, url, manifest);
-    } else {
-      // Download and copy files
-      console.log(`\n→ Downloading files...`);
-      await installFiles(targetDir, url, manifest);
-    }
+    // Download and copy files
+    console.log(`\n→ Downloading files...`);
+    await installFiles(targetDir, url, manifest);
     
     // Step 5: Update component index
     console.log(`→ Updating component registry...`);
