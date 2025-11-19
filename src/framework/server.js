@@ -84,7 +84,7 @@ async function tryResolveFile(pathname) {
     const possiblePaths = ENV.isDev 
         ?  [
         // Dev: colocated in pages/
-        new URL(`../pages/examples/${pathname}`, import.meta.url),
+        new URL(`../pages/examples${pathname}`, import.meta.url),
         // Fallback to public/
         new URL(`../../public${pathname}`, import.meta.url)
       ]
