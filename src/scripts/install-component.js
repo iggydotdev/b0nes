@@ -129,6 +129,7 @@ export const installComponent = async (url, options = {}) => {
   const {
     force = false,           // Overwrite if exists
     dryRun = false,         // Preview without installing
+    reference = false       // Use URL reference instead of copying
   } = options;
   
   console.log(`\n📦 Installing component from: ${url}\n`);
@@ -176,9 +177,15 @@ export const installComponent = async (url, options = {}) => {
     }
     
     // Step 4: Install component
-    // Download and copy files
-    console.log(`\n→ Downloading files...`);
-    await installFiles(targetDir, url, manifest);
+    if (reference) {
+      // Create reference file instead of copying
+      console.log(`\n→ Creating URL reference...`);
+      await installReference(targetDir, url, manifest);
+    } else {
+      // Download and copy files
+      console.log(`\n→ Downloading files...`);
+      await installFiles(targetDir, url, manifest);
+    }
     
     // Step 5: Update component index
     console.log(`→ Updating component registry...`);
@@ -262,6 +269,72 @@ const installFiles = async (targetDir, baseUrl, manifest) => {
     'utf8'
   );
   console.log(`  ✓ b0nes.manifest.json`);
+};
+
+/**
+ * Creates URL reference instead of copying files
+ */
+const installReference = async (targetDir, url, manifest) => {
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+  
+  // Create reference file
+  const referenceContent = `/**
+ * URL Reference Component
+ * This component loads from: ${url}
+ * 
+ * Name: ${manifest.name}
+ * Version: ${manifest.version}
+ * Type: ${manifest.type}
+ */
+
+const COMPONENT_URL = '${url}';
+
+// Lazy load component from URL
+let componentCache = null;
+
+const loadComponent = async () => {
+  if (componentCache) return componentCache;
+  
+  const response = await fetch('${resolveUrl(url, manifest.files.component)}');
+  const code = await response.text();
+  
+  // Create module from code (eval in isolated scope)
+  const module = { exports: {} };
+  const func = new Function('module', 'exports', code);
+  func(module, module.exports);
+  
+  componentCache = module.exports;
+  return componentCache;
+};
+
+export const ${manifest.name} = {
+  render: async (props) => {
+    const component = await loadComponent();
+    return component.render ? component.render(props) : component(props);
+  },
+  _reference: true,
+  _url: COMPONENT_URL
+};
+
+export default ${manifest.name}.render;
+`;
+  
+  fs.writeFileSync(
+    path.join(targetDir, 'index.js'),
+    referenceContent,
+    'utf8'
+  );
+  
+  // Save manifest
+  fs.writeFileSync(
+    path.join(targetDir, 'b0nes.manifest.json'),
+    JSON.stringify({ ...manifest, _reference: url }, null, 2),
+    'utf8'
+  );
+  
+  console.log(`  ✓ Created URL reference`);
 };
 
 /**
@@ -386,6 +459,9 @@ Examples:
   # Install from URL
   npm run install-component https://example.com/components/my-card
 
+  # Install with URL reference (not yet... coming soon???)
+  npm run install-component https://example.com/card --reference
+
   # Preview installation
   npm run install-component https://example.com/card --dry-run
 
@@ -414,6 +490,7 @@ Component Manifest Format:
   const options = {
     force: args.includes('--force'),
     dryRun: args.includes('--dry-run'),
+    reference: false //args.includes('--reference')
   };
   
   const result = await installComponent(url, options);
