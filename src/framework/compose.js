@@ -1,3 +1,4 @@
+
 import library from '../components/library.js';
 
 const componentLibrary = {
@@ -5,6 +6,12 @@ const componentLibrary = {
     molecule: library.molecules,
     organism: library.organisms
 };
+
+import { createRenderCache } from "./utils/compose/createRenderCache.js";
+import { createErrorTracker } from "./utils/compose/errorTracker.js";
+
+const renderCache = createRenderCache(500);
+const errorTracker = createErrorTracker(100);
 
 const compositionCache = new Map();
 
@@ -214,3 +221,162 @@ export const clearCompositionCache = () => {
 export const getCompositionCacheSize = () => {
     return compositionCache.size;
 };
+
+
+
+
+
+// /**
+//  * Compose components with error boundaries and intelligent caching
+//  * @param {Array} components - Array of component configurations
+//  * @param {Object} options - Composition options
+//  * @param {boolean} options.cache - Enable/disable caching (default: true)
+//  * @param {boolean} options.throwOnError - Throw on first error instead of using fallback (default: false)
+//  * @param {Function} options.onError - Callback for errors (error, component) => void
+//  * @returns {string} Composed HTML
+//  */
+// export const compose = (components = [], options = {}) => {
+//     const { 
+//         cache = true,
+//         throwOnError = false,
+//         onError = null
+//     } = options;
+    
+//     if (!Array.isArray(components)) {
+//         console.warn('[compose] Components must be an array, got:', typeof components);
+//         return '';
+//     }
+    
+//     if (components.length === 0) {
+//         return '';
+//     }
+    
+//     const results = [];
+//     const errors = [];
+    
+//     for (const component of components) {
+//         const result = safeRenderComponent(component, { cache });
+        
+//         if (result.success) {
+//             results.push(result.html);
+//         } else {
+//             errors.push(result.error);
+            
+//             // Call error callback if provided
+//             if (onError && typeof onError === 'function') {
+//                 try {
+//                     onError(result.error, component);
+//                 } catch (callbackError) {
+//                     console.error('[compose] Error in onError callback:', callbackError);
+//                 }
+//             }
+            
+//             // Throw if requested
+//             if (throwOnError) {
+//                 throw new Error(
+//                     `Component render failed: ${result.error.message}`,
+//                     { cause: result.error }
+//                 );
+//             }
+            
+//             // Use fallback
+//             results.push(result.fallback);
+//         }
+//     }
+    
+//     // Log summary if there were errors
+//     if (errors.length > 0 && process.env.NODE_ENV === 'development') {
+//         console.warn(
+//             `[compose] Rendered ${components.length} components with ${errors.length} error(s)`
+//         );
+//     }
+    
+//     return results.join('\n');
+// };
+
+/**
+ * Set custom error fallback renderer
+ * @param {Function} renderer - Custom renderer function (error, component) => html
+ */
+export const setErrorFallback = (renderer) => {
+    if (typeof renderer !== 'function') {
+        throw new Error('[compose] Error fallback must be a function');
+    }
+    errorFallbackRenderer = renderer;
+};
+
+/**
+ * Get error statistics
+ */
+export const getErrorStats = () => {
+    return errorTracker.getStats();
+};
+
+/**
+ * Get all tracked errors
+ */
+export const getErrors = () => {
+    return errorTracker.getErrors();
+};
+
+/**
+ * Get errors for specific component
+ */
+export const getComponentErrors = (componentName) => {
+    return errorTracker.getErrorsByComponent(componentName);
+};
+
+/**
+ * Clear error tracking
+ */
+export const clearErrors = () => {
+    errorTracker.clear();
+};
+
+/**
+ * Clear the render cache
+ */
+export const clearCache = () => {
+    renderCache.clear();
+    console.log('[compose] Cache cleared');
+};
+
+/**
+ * Get cache statistics
+ */
+export const getCacheStats = () => {
+    return renderCache.getStats();
+};
+
+/**
+ * Compose a single component (convenience function)
+ */
+export const composeOne = (component, options) => {
+    return compose([component], options);
+};
+
+/**
+ * Pre-warm the cache with common components
+ */
+export const warmCache = (components) => {
+    console.log(`[compose] Warming cache with ${components.length} components...`);
+    const start = performance.now();
+    
+    compose(components, { cache: true });
+    
+    const end = performance.now();
+    const stats = renderCache.getStats();
+    
+    console.log(`[compose] Cache warmed in ${(end - start).toFixed(2)}ms`);
+    console.log(`[compose] Cache stats:`, stats);
+};
+
+/**
+ * Batch compose multiple component arrays
+ */
+export const composeBatch = (batches, options) => {
+    return batches.map(batch => compose(batch, options));
+};
+
+// Export cache and error tracker instances for advanced use
+export { renderCache, errorTracker };

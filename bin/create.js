@@ -15,11 +15,6 @@ import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import readline from 'node:readline';
 
-// import { homeComponents, homeRoutes } from '../src/pages/examples/basic/index.js';
-// import { homeComponents, blogComponents, postComponents, blogRoutes } from '../src/pages/examples/blogPost/index.js';
-// import { docsComponents, docsRoutes } from '../src/pages/examples/documentation/index.js';
-
-
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

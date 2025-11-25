@@ -6,11 +6,23 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
+import { stat } from 'node:fs/promises'
+
 
 import { compose } from './compose.js';
 import { renderPage } from './renderPage.js';
-import { getRoutes } from './autoRoutes.js';
+import { getRoutes } from './utils/server/autoRoutes.js';
 import { ENV } from './config/envs.js';
+
+//
+import { validateAndSanitizePath } from './utils/sanitizePaths.js';
+import { serveStaticFiles } from './utils/server/staticFiles.js';
+import { CLIENT_BASE, COMPONENTS_BASE, PAGES_BASE, CERTS_DIR } from './utils/server/getServerConfig.js';
+import { serveRuntimeFiles } from './utils/server/serveRuntimeFiles.js';
+import { serveB0nes } from './utils/server/serveB0nes.js';
+import { serveClientFiles } from './utils/server/serveClientFiles.js';
+import { serveTemplates } from './utils/server/serveTemplates.js';
+import { servePages } from './utils/server/servePages.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,25 +30,6 @@ const __dirname = path.dirname(__filename);
 // Add this config near the top
 const USE_HTTP2 = process.env.NODE_ENV === 'production' || process.env.FORCE_HTTP2 === 'true';
 
-// Determine base paths based on environment
-const CLIENT_BASE = ENV.isDev 
-    ? path.resolve(__dirname, './client')
-    : path.resolve(__dirname, '../../public/client');
-
-const COMPONENTS_BASE = ENV.isDev
-    ? path.resolve(__dirname, '../components')
-    : path.resolve(__dirname, '../../public/components');
-
-const PAGES_BASE = ENV.isDev
-    ? path.resolve(__dirname, '../pages')
-    : path.resolve(__dirname, '../../public/pages');
-
-const CERTS_DIR = path.resolve(__dirname, '../../.certs');
-
-console.log(`[b0nes] Running in ${ENV.isDev ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
-console.log(`[b0nes] Client base: ${CLIENT_BASE}`);
-console.log(`[b0nes] Components base: ${COMPONENTS_BASE}`);
-console.log(`[b0nes] Pages base: ${PAGES_BASE}`);
 
 /**
  * Generate self-signed certificates for HTTP/2
@@ -81,57 +74,101 @@ async function ensureCerts() {
     }
 }
 
-/**
- * Try to resolve a file from multiple possible locations
- */
-async function tryResolveFile(pathname) {
-    const possiblePaths = ENV.isDev 
-        ?  [
-        // Dev: colocated in pages/
-        new URL(`../pages/examples${pathname}`, import.meta.url),
-        // Fallback to public/
-        new URL(`../../public${pathname}`, import.meta.url)
-      ]
-    : [
-        new URL(`../../public${pathname}`, import.meta.url)
-      ];
-    
-    for (const filePath of possiblePaths) {
-        try {
-            const content = await readFile(filePath);
-            return { content, found: true, path: filePath };
-        } catch {
-            continue;
-        }
-    }
-    
-    return { content: null, found: false };
-}
-
-/**
- * Get content type from file extension
- */
-function getContentType(pathname) {
-    const ext = pathname.split('.').pop()?.toLowerCase();
-    const contentTypes = {
-        'css': 'text/css',
-        'js': 'application/javascript',
-        'json': 'application/json',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'svg': 'image/svg+xml',
-        'webp': 'image/webp',
-        'ico': 'image/x-icon',
-        'woff': 'font/woff',
-        'woff2': 'font/woff2',
-        'ttf': 'font/ttf'
-    };
-    return contentTypes[ext] || 'application/octet-stream';
-}
 
 const requestHandler = async (req, res) => {
+  const host = req.headers.host || 'localhost';
+  const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${url.pathname}`);
+
+  // Choose exactly one handler based on URL
+  const selectHandler = (pathname) => {
+    // runtime
+    if (pathname === '/b0nes.js') return serveB0nes;
+    if ((pathname.startsWith('/client/') || pathname.startsWith('/utils/')) && pathname.endsWith('.js')) return serveRuntimeFiles;
+    // component runtime files
+    if (pathname.includes('client.js')) return serveClientFiles;
+    // static assets
+    if (
+      pathname.startsWith('/styles/') ||
+      pathname.startsWith('/images/') ||
+      pathname.startsWith('/assets/') ||
+      pathname.match(/\.(css|jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf)$/)
+    ) return serveStaticFiles;
+    // templates
+    if (pathname.includes('/templates/') && pathname.endsWith('.js')) return serveTemplates;
+    // default -> pages router (dynamic + static pages)
+    return servePages;
+  };
+
+  const handler = selectHandler(url.pathname);
+
+  try {
+    console.log(`[Server] Using handler: ${handler.name} for ${url.pathname}`, );
+    const result = await handler(req, res, url);
+
+    // If handler didn't send a response and didn't return true, it's treated as "not found"
+    if (!(result === true || res.headersSent || res.writableEnded)) {
+      console.warn('[Server] Handler did not respond:', handler.name || 'unknown', url.pathname);
+      if (!res.headersSent && !res.writableEnded) {
+        res.writeHead(404, { 'content-type': 'text/html' });
+        res.end(renderPage('<h1>404 - Page Not Found</h1>', { title: '404' }));
+      }
+    }
+  } catch (err) {
+    console.error('[Server] Error in handler', err);
+    if (res.headersSent || res.writableEnded) return;
+    try {
+      res.writeHead(500, { 'content-type': 'text/plain' });
+      res.end('Internal Server Error');
+    } catch (_) {}
+  }
+};
+
+
+/**
+ * Create HTTP/2 server
+ */
+async function createServer(port) {
+    let server;
+    if (USE_HTTP2) {
+        // Only in prod (or if someone really wants the pain)
+        const { key, cert } = await ensureCerts();
+        server = http2.createSecureServer({key, cert, allowHTTP1: true}, (req, res) => requestHandler(req, res));
+      } else {
+        // Dev: pure, sweet, delicious HTTP/1.1
+        server = http.createServer((req, res) => requestHandler(req, res));
+      }
+    return server; 
+}
+
+export async function startServer(port = 5000, host = '0.0.0.0') {
+    let server = await createServer(port);
+    
+    server.listen(port, host, () => {
+        console.log(`\n🦴 b0nes development server running with ${USE_HTTP2? 'HTTP/2':'HTTP/1'}`);
+        console.log(`   Local:   https://localhost:${port}`);
+        console.log(`   Network: https://${host}:${port}\n`);
+        if (USE_HTTP2) {
+            console.log('   ⚠️  Self-signed certificate warning is normal for dev\n');
+        }
+        console.log('   Press Ctrl+C to stop\n');
+    });
+    
+    return server;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+    const PORT = process.env.PORT || 5000;
+    const HOST = process.env.HOST || '0.0.0.0';
+    startServer(PORT, HOST);
+}
+
+export default startServer;
+
+
+
+/**
+ * const requestHandler = async (req, res) => {
     // HTTP/2 uses :authority pseudo-header instead of Host
     const authority = req.headers[':authority'] || req.headers.host || 'localhost';
     const url = new URL(req.url, `https://${authority}`);
@@ -320,43 +357,5 @@ const requestHandler = async (req, res) => {
         ));
     }
 };
-
-/**
- * Create HTTP/2 server
+ * 
  */
-async function createServer(port) {
-    let server;
-    if (USE_HTTP2) {
-        // Only in prod (or if someone really wants the pain)
-        const { key, cert } = await ensureCerts();
-        server = http2.createSecureServer({key, cert, allowHTTP1: true}, (req, res) => requestHandler(req, res));
-      } else {
-        // Dev: pure, sweet, delicious HTTP/1.1
-        server = http.createServer((req, res) => requestHandler(req, res));
-      }
-    return server; 
-}
-
-export async function startServer(port = 5000, host = '0.0.0.0') {
-    let server = await createServer(port);
-    
-    server.listen(port, host, () => {
-        console.log(`\n🦴 b0nes development server running with ${USE_HTTP2? 'HTTP/2':'HTTP/1'}`);
-        console.log(`   Local:   https://localhost:${port}`);
-        console.log(`   Network: https://${host}:${port}\n`);
-        if (USE_HTTP2) {
-            console.log('   ⚠️  Self-signed certificate warning is normal for dev\n');
-        }
-        console.log('   Press Ctrl+C to stop\n');
-    });
-    
-    return server;
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-    const PORT = process.env.PORT || 5000;
-    const HOST = process.env.HOST || '0.0.0.0';
-    startServer(PORT, HOST);
-}
-
-export default startServer;

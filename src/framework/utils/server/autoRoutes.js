@@ -2,14 +2,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { URLPattern } from './utils/urlPattern.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const pagesDir = path.resolve(__dirname, '../pages');
+import { URLPattern } from '../urlPattern.js';
+
+// Import PAGES_BASE from getServerConfig
+import { PAGES_BASE } from './getServerConfig.js'; 
+
+
+const pagesDir = PAGES_BASE;
+console.log(`[b0nes] Auto-discovering routes in: ${PAGES_BASE}`);
 
 function kebabToCamel(str) {
   return str.replace(/-([a-z])/g, g => g[1].toUpperCase());
 }
+
+
 
 function buildRoutes() {
   const routes = [];
@@ -41,7 +48,7 @@ function buildRoutes() {
       }
 
       if (!entry.name.endsWith('.js')) continue;
-     
+      
       // Now only leaf pages (not folder-named .js files)
       const segment = entry.name.replace(/\.js$/, '');
       let pathname = basePath? `${basePath}/${segment}`:segment;
@@ -68,6 +75,7 @@ export function getRoutes() {
   if (!ROUTES_CACHE) {
     ROUTES_CACHE = buildRoutes();
     console.log(`Auto-discovered ${ROUTES_CACHE.length} routes`);
+    console.log(ROUTES_CACHE.map(r => ` - ${r.pattern.pathname}`).join('\n'));
   }
   return ROUTES_CACHE;
 }
