@@ -1,9 +1,10 @@
+// src/framework/utils/build/ssg.js
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
 
-// Local imports
-import { routes } from '../../routes.js';
+// Fixed imports - use the auto-routes system
+import { getRoutes } from '../server/autoRoutes.js';
 import { generateRoute } from './generateRoute.js';
 import { generateDynamicRoute } from './generateDynamicRoute.js';
 
@@ -45,12 +46,9 @@ const createBuildCache = (cacheDir = '.b0nes-cache') => {
     const hashRoute = (route) => {
         try {
             const data = JSON.stringify({
-                name: route.name,
                 pathname: route.pattern?.pathname,
-                meta: route.meta,
-                components: typeof route.components === 'function' 
-                    ? route.components.toString()
-                    : JSON.stringify(route.components)
+                // Hash the actual page module path
+                modulePath: route.load?.toString()
             });
             
             return crypto.createHash('md5').update(data).digest('hex');
@@ -63,7 +61,7 @@ const createBuildCache = (cacheDir = '.b0nes-cache') => {
         const hash = hashRoute(route);
         if (!hash) return true;
         
-        const routeKey = route.pattern?.pathname || route.name;
+        const routeKey = route.pattern?.pathname || 'unknown';
         const cached = cache.routes[routeKey];
         
         if (!cached) return true;
@@ -75,7 +73,7 @@ const createBuildCache = (cacheDir = '.b0nes-cache') => {
         const hash = hashRoute(route);
         if (!hash) return;
         
-        const routeKey = route.pattern?.pathname || route.name;
+        const routeKey = route.pattern?.pathname || 'unknown';
         cache.routes[routeKey] = {
             hash,
             lastBuild: Date.now(),
@@ -116,19 +114,79 @@ const createBuildCache = (cacheDir = '.b0nes-cache') => {
 };
 
 /**
- * Safe route builder with error recovery
+ * Check if a route should be rendered as SSG or SSR
+ * @param {Object} page - The loaded page module
+ * @param {Object} route - The route object
+ * @returns {boolean} - true if should be SSG, false if SSR
+ */
+const shouldBeStatic = (page, route) => {
+    // Check for explicit render mode in meta
+    if (page.meta?.render === 'ssr') {
+        return false; // Force SSR
+    }
+    
+    if (page.meta?.render === 'ssg') {
+        return true; // Force SSG
+    }
+    
+    // Dynamic routes (with params like [slug]) need special handling
+    if (route.params) {
+        // If it has externalData, it can be pre-rendered (SSG)
+        if (page.externalData && typeof page.externalData === 'function') {
+            return true; // SSG with pre-fetched data
+        }
+        
+        // No externalData? Must be SSR (needs runtime data)
+        return false; // SSR - will fetch data at runtime
+    }
+    
+    // Static routes: if components is a function, it's SSR (needs runtime data)
+    // If it's a static array, it's SSG
+    const components = page.components || page.default || [];
+    
+    if (typeof components === 'function') {
+        return false; // SSR - needs runtime data
+    }
+    
+    return true; // SSG - static components
+};
+
+/**
+ * Safe route builder with error recovery and hybrid rendering support
  */
 async function safeBuildRoute(route, buildCache, outputDir, options) {
     const { verbose, continueOnError } = options;
     
     try {
+        // Load the page module
+        const page = await route.load();
+        
+        // Check if this route should be static or dynamic
+        if (!shouldBeStatic(page, route)) {
+            if (verbose) {
+                const reason = route.params 
+                    ? 'Dynamic route without externalData (runtime SSR)'
+                    : 'Components function detected (SSR)';
+                console.log(`⚡ ${route.pattern.pathname} (${reason})`);
+            }
+            return {
+                success: true,
+                skipped: true,
+                ssr: true,
+                route,
+                reason: route.params 
+                    ? 'Dynamic route - SSR (no externalData)'
+                    : 'SSR - components function'
+            };
+        }
+        
         // Check cache
         if (buildCache && !buildCache.hasChanged(route)) {
-            const routeKey = route.pattern?.pathname || route.name;
+            const routeKey = route.pattern?.pathname || 'unknown';
             const cached = buildCache.getCache().routes[routeKey];
             
             if (verbose) {
-                console.log(`⏭️  ${route.name} (cached)`);
+                console.log(`⏭️  ${route.pattern.pathname} (cached)`);
             }
             
             return {
@@ -139,28 +197,34 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
             };
         }
         
-        // Dynamic route with external data
-        if (route.pattern.pathname.includes(':')) {
-            if (!route.externalData) {
-                throw new Error(
-                    `Dynamic route "${route.name}" missing externalData function`
-                );
-            }
-            
+        // Dynamic route with externalData (SSG with pre-fetched data)
+        if (route.params && page.externalData) {
             let data;
             try {
-                data = await route.externalData();
+                data = await page.externalData();
             } catch (error) {
                 throw new Error(
-                    `Failed to fetch external data for "${route.name}": ${error.message}`
+                    `Failed to fetch external data for "${route.pattern.pathname}": ${error.message}`
                 );
             }
             
             const dataArray = Array.isArray(data) ? data : [data];
-            const results = await generateDynamicRoute(route, dataArray, outputDir);
+            
+            // Convert components function to proper format for generateDynamicRoute
+            const routeWithComponents = {
+                ...route,
+                pattern: route.pattern,
+                meta: page.meta || {},
+                components: (data) => {
+                    const comps = page.components;
+                    return typeof comps === 'function' ? comps(data) : comps;
+                }
+            };
+            
+            const results = await generateDynamicRoute(routeWithComponents, dataArray, outputDir);
             
             if (results.length === 0) {
-                throw new Error(`Dynamic route "${route.name}" generated no output`);
+                throw new Error(`Dynamic route "${route.pattern.pathname}" generated no output`);
             }
             
             // Update cache for first result (representative)
@@ -175,12 +239,19 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
                 results
             };
         } 
-        // Static route
+        // Static route with static components array
         else {
-            const result = await generateRoute(route, outputDir);
+            // Convert auto-route format to generateRoute format
+            const staticRoute = {
+                pattern: route.pattern,
+                components: page.components || page.default || [],
+                meta: page.meta || {}
+            };
+            
+            const result = await generateRoute(staticRoute, outputDir);
             
             if (!result) {
-                throw new Error(`Route "${route.name}" generated no output`);
+                throw new Error(`Route "${route.pattern.pathname}" generated no output`);
             }
             
             if (buildCache) {
@@ -199,14 +270,13 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
         // Enhanced error information
         const errorInfo = {
             success: false,
-            route: route.name,
-            pathname: route.pattern?.pathname,
+            route: route.pattern?.pathname || 'unknown',
             error: error.message,
             stack: error.stack,
             timestamp: Date.now()
         };
         
-        console.error(`❌ ${route.name} failed:`, error.message);
+        console.error(`❌ ${route.pattern?.pathname || 'unknown'} failed:`, error.message);
         
         if (verbose) {
             console.error('   Stack:', error.stack);
@@ -223,6 +293,8 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
 
 /**
  * Build static site with error boundaries and intelligent caching
+ * Now supports hybrid SSG/SSR rendering!
+ * 
  * @param {string} outputDir - Output directory
  * @param {Object} options - Build options
  * @param {boolean} options.cache - Enable build cache (default: true)
@@ -247,6 +319,7 @@ export const build = async (outputDir = 'public', options = {}) => {
     const generated = [];
     const errors = [];
     const skipped = [];
+    const ssrRoutes = [];
     
     // Initialize cache
     const buildCache = enableCache ? createBuildCache() : null;
@@ -281,6 +354,23 @@ export const build = async (outputDir = 'public', options = {}) => {
         throw error; // Can't continue without output dir
     }
     
+    // Get routes from auto-discovery
+    const routes = getRoutes();
+    
+    if (routes.length === 0) {
+        console.warn('⚠️  No routes found. Check your pages/ directory.');
+        return {
+            success: true,
+            generated: [],
+            skipped: [],
+            ssrRoutes: [],
+            errors: [],
+            duration: 0
+        };
+    }
+    
+    console.log(`📦 Found ${routes.length} route(s)\n`);
+    
     // Build routes
     const routeTasks = routes.map(route => async () => {
         const result = await safeBuildRoute(
@@ -291,7 +381,13 @@ export const build = async (outputDir = 'public', options = {}) => {
         );
         
         if (result.success) {
-            if (result.skipped) {
+            if (result.ssr) {
+                // Route is SSR - skip in build, handle at runtime
+                ssrRoutes.push({
+                    pathname: route.pattern.pathname,
+                    reason: result.reason
+                });
+            } else if (result.skipped) {
                 skipped.push(result);
             } else if (result.results) {
                 // Dynamic route with multiple results
@@ -354,17 +450,27 @@ export const build = async (outputDir = 'public', options = {}) => {
     // Print summary
     console.log('\n📊 Build Summary');
     console.log('─'.repeat(50));
-    console.log(`✅ Generated: ${generated.length} route(s)`);
-    console.log(`⏭️  Skipped:   ${skipped.length} route(s) (cached)`);
-    console.log(`❌ Errors:    ${errors.length} route(s)`);
-    console.log(`⏱️  Duration:  ${duration}s`);
+    console.log(`✅ Generated (SSG): ${generated.length} route(s)`);
+    console.log(`⏭️  Skipped:        ${skipped.length} route(s) (cached)`);
+    console.log(`⚡ SSR Routes:      ${ssrRoutes.length} route(s) (runtime)`);
+    console.log(`❌ Errors:          ${errors.length} route(s)`);
+    console.log(`⏱️  Duration:        ${duration}s`);
     
     if (buildCache) {
         const stats = buildCache.getStats();
-        console.log(`💾 Cache:     ${stats.totalRoutes} route(s), ${(stats.cacheSize / 1024).toFixed(2)} KB`);
+        console.log(`💾 Cache:           ${stats.totalRoutes} route(s), ${(stats.cacheSize / 1024).toFixed(2)} KB`);
     }
     
     console.log('─'.repeat(50));
+    
+    // Show SSR routes
+    if (ssrRoutes.length > 0) {
+        console.log('\n⚡ SSR Routes (will be rendered at runtime):');
+        ssrRoutes.forEach(r => {
+            console.log(`   • ${r.pathname} - ${r.reason}`);
+        });
+        console.log('');
+    }
     
     // Detailed error reporting
     if (errors.length > 0) {
@@ -385,6 +491,7 @@ export const build = async (outputDir = 'public', options = {}) => {
         success: errors.length === 0,
         generated,
         skipped,
+        ssrRoutes,
         errors,
         duration: parseFloat(duration),
         cacheStats: buildCache ? buildCache.getStats() : null
