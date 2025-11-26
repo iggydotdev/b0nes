@@ -34,6 +34,17 @@ const createPolyfill = () => {
    */
   const patternToRegex = (pattern) => {
     if (!pattern) return null;
+    
+    // Accept RegExp directly (wrap with anchors)
+    if (pattern instanceof RegExp) {
+      // preserve provided flags? use none for safety
+      return new RegExp(`^${pattern.source}$`);
+    }
+
+    // Coerce non-string inputs to string safely
+    if (typeof pattern !== 'string') {
+      pattern = String(pattern);
+    }
 
     const regexStr = pattern
       .split('/')

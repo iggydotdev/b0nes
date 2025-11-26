@@ -23,11 +23,13 @@ const PAGES_BASE = ENV.isDev
 
 const CERTS_DIR = path.resolve(__dirname, '../../.certs');
 
-console.log(`[b0nes] Running in ${ENV.isDev ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
-console.log(`[b0nes] Project root: ${PROJECT_ROOT}`);
-console.log(`[b0nes] Client base: ${CLIENT_BASE}`);
-console.log(`[b0nes] Components base: ${COMPONENTS_BASE}`);
-console.log(`[b0nes] Pages base: ${PAGES_BASE}`);
+const PRINT_CURRENT_CONFIG = () => {
+    console.log(`[b0nes] Running in ${ENV.isDev ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
+    console.log(`[b0nes] Project root: ${PROJECT_ROOT}`);
+    console.log(`[b0nes] Client base: ${CLIENT_BASE}`);
+    console.log(`[b0nes] Components base: ${COMPONENTS_BASE}`);
+    console.log(`[b0nes] Pages base: ${PAGES_BASE}`);
+}
 
 export {
     PROJECT_ROOT,
@@ -35,7 +37,8 @@ export {
     COMPONENTS_BASE,
     PAGES_BASE,
     CERTS_DIR,
-    ENV
+    ENV,
+    PRINT_CURRENT_CONFIG
 }
 
 export default {
@@ -44,5 +47,6 @@ export default {
     COMPONENTS_BASE,
     PAGES_BASE,
     CERTS_DIR,
-    ENV
+    ENV,
+    PRINT_CURRENT_CONFIG
 }
