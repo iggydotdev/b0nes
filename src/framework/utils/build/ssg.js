@@ -7,6 +7,8 @@ import path from 'node:path';
 import { getRoutes } from '../server/autoRoutes.js';
 import { generateRoute } from './generateRoute.js';
 import { generateDynamicRoute } from './generateDynamicRoute.js';
+import { copyColocatedAssets } from './colocatedAssets.js';
+import { generateSSRFallback } from './ssrFallback.js';
 
 /**
  * Build cache to skip unchanged routes (functional style with closures)
@@ -154,12 +156,24 @@ const shouldBeStatic = (page, route) => {
 /**
  * Safe route builder with error recovery and hybrid rendering support
  */
+/**
+ * Safe route builder with error recovery and hybrid rendering support
+ * Now also copies co-located assets!
+ */
 async function safeBuildRoute(route, buildCache, outputDir, options) {
     const { verbose, continueOnError } = options;
     
     try {
         // Load the page module
         const page = await route.load();
+        
+        // Copy co-located assets FIRST (CSS, images, etc. in same folder as page)
+        if (route.filePath) {
+            const assetStats = copyColocatedAssets(route.filePath, outputDir, { verbose });
+            if (verbose && assetStats.filesCopied > 0) {
+                console.log(`   📎 Copied ${assetStats.filesCopied} co-located asset(s) for ${route.pattern.pathname}`);
+            }
+        }
         
         // Check if this route should be static or dynamic
         if (!shouldBeStatic(page, route)) {
@@ -302,6 +316,7 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
  * @param {boolean} options.parallel - Enable parallel builds (default: false)
  * @param {boolean} options.verbose - Verbose logging (default: false)
  * @param {boolean} options.continueOnError - Continue build on error (default: true)
+ * @param {boolean} options.generateSSRStubs - Generate fallback pages for SSR routes (default: true)
  * @param {Function} options.onError - Error callback (error, route) => void
  * @returns {Object} Build result with stats
  */
@@ -312,6 +327,7 @@ export const build = async (outputDir = 'public', options = {}) => {
         parallel = false,
         verbose = false,
         continueOnError = true,
+        generateSSRStubs = true,
         onError = null
     } = options;
     
@@ -371,7 +387,7 @@ export const build = async (outputDir = 'public', options = {}) => {
     
     console.log(`📦 Found ${routes.length} route(s)\n`);
     
-    // Build routes
+    // Build routes (co-located assets are copied per-route in safeBuildRoute)
     const routeTasks = routes.map(route => async () => {
         const result = await safeBuildRoute(
             route, 
@@ -385,7 +401,8 @@ export const build = async (outputDir = 'public', options = {}) => {
                 // Route is SSR - skip in build, handle at runtime
                 ssrRoutes.push({
                     pathname: route.pattern.pathname,
-                    reason: result.reason
+                    reason: result.reason,
+                    route: route
                 });
             } else if (result.skipped) {
                 skipped.push(result);
@@ -432,6 +449,22 @@ export const build = async (outputDir = 'public', options = {}) => {
                     throw error;
                 }
             }
+        }
+    }
+    
+    // Generate SSR fallback pages (if enabled)
+    if (generateSSRStubs && ssrRoutes.length > 0) {
+        console.log('\n⚡ Generating SSR fallback pages...\n');
+        try {
+            for (const ssrRoute of ssrRoutes) {
+                await generateSSRFallback(ssrRoute.route, outputDir, { verbose });
+            }
+            if (verbose) {
+                console.log(`✅ Generated ${ssrRoutes.length} SSR fallback page(s)\n`);
+            }
+        } catch (error) {
+            console.error('❌ Failed to generate SSR fallbacks:', error.message);
+            if (!continueOnError) throw error;
         }
     }
     
