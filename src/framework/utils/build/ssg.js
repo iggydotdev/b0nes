@@ -9,6 +9,7 @@ import { generateRoute } from './generateRoute.js';
 import { generateDynamicRoute } from './generateDynamicRoute.js';
 import { copyColocatedAssets } from './colocatedAssets.js';
 import { generateSSRFallback } from './ssrFallback.js';
+import { copyFrameworkRuntime } from './copyFrameworkRuntime.js';
 
 /**
  * Build cache to skip unchanged routes (functional style with closures)
@@ -370,6 +371,20 @@ export const build = async (outputDir = 'public', options = {}) => {
         throw error; // Can't continue without output dir
     }
     
+     // Copy framework runtime files
+    console.log('📋 Copying framework runtime files...\n');
+    try {
+        await copyFrameworkRuntime(outputDir, { verbose });
+    } catch (error) {
+        console.error('❌ Build failed during runtime file copy');
+        if (!continueOnError) throw error;
+        errors.push({
+            route: 'framework-runtime',
+            error: 'Failed to copy runtime files'
+        });
+    }
+
+
     // Get routes from auto-discovery
     const routes = getRoutes();
     

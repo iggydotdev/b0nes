@@ -25,7 +25,7 @@ export const servePages = async (req, res, url) => {
         }
 
         if (!matchedRoute) {
-            console.warn('[Server] 404 Not Found:', url.pathname);
+            console.warn('[Server - Wildcard] 404 Not Found:', url.pathname);
             res.writeHead(404, { 'content-type': 'text/html' });
             res.end(renderPage(
                 '<h1>404 - Page Not Found</h1><p>The page you are looking for does not exist.</p>',

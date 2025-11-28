@@ -1,19 +1,17 @@
+import path from 'path';
+import fs from 'fs';
 /**
  * Copies essential framework runtime files to the build output directory.
  * Organizes them into an assets/ directory structure for cleaner builds.
  */
-async function copyFrameworkRuntime(outputDir, options = {}) {
+export async function copyFrameworkRuntime(outputDir, options = {}) {
     const { verbose } = options;
-    
+    const __dirname = path.dirname(new URL(import.meta.url).pathname);
     try {
         // Path from ssg.js to framework root: ../../
         const FRAMEWORK_DIR = path.resolve(__dirname, '../../');
         
         const filesToCopy = [
-            {
-                src: path.join(FRAMEWORK_DIR, 'runtime', 'b0nes.js'),
-                dest: path.join(outputDir, 'assets', 'js', 'b0nes.js')
-            },
             {
                 src: path.join(FRAMEWORK_DIR, 'client'),
                 dest: path.join(outputDir, 'assets', 'js', 'client')
@@ -48,6 +46,7 @@ async function copyFrameworkRuntime(outputDir, options = {}) {
         }
     } catch (error) {
         console.error('❌ Failed to copy framework runtime files:', error.message);
+        console.log(error);
         throw error;
     }
 }
