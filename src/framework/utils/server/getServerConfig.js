@@ -19,7 +19,7 @@ const COMPONENTS_BASE = ENV.isDev
 
 const PAGES_BASE = ENV.isDev
     ? path.resolve(__dirname, '../../../pages')
-    : path.resolve(__dirname, '../../../../public/pages');
+    : path.resolve(__dirname, '../../../../public/');
 
 const CERTS_DIR = path.resolve(__dirname, '../../.certs');
 

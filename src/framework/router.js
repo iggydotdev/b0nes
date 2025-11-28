@@ -27,14 +27,20 @@ export function createRouter() {
     if (routes.has(key)) {
       console.warn(`[Router] Overwriting existing route: ${key}. Drama alert!`);
     }
-    // URLPattern handles strings like '/blog/:id' or '/files/*', and even RegExp directly.
-    const urlPattern = new URLPattern({ pathname: pattern });
-    routes.set(key, {
-      method: method.toUpperCase(),
-      pattern: urlPattern,
-      handler,
-      rawPattern: pattern
-    });
+   // store either a URLPattern instance or the original RegExp
+  let patternObj;
+  if (pattern instanceof RegExp) {
+    patternObj = pattern; // keep RegExp as-is
+  } else {
+    patternObj = new URLPattern({ pathname: pattern });
+  }
+
+  routes.set(key, {
+    method: method.toUpperCase(),
+    pattern: patternObj,
+    handler,
+    rawPattern: pattern
+  });
     return this;
   }
 
@@ -47,15 +53,26 @@ export function createRouter() {
   // Public: Match request. Now using .exec({ pathname }) for that clean groups extraction.
   function match(method, pathname) {
     const methodUpper = method.toUpperCase();
-    for (const [key, route] of routes) {
+    for (const [, route] of routes) {
       if (route.method !== methodUpper) continue;
-      const matchResult = route.pattern.exec({ pathname });
-      if (matchResult) {
-        return {
-          handler: route.handler,
-          params: matchResult.pathname.groups || {},  // Groups FTW—named params like { id: '123' }
-          pattern: route.rawPattern
-        };
+
+      // handle URLPattern vs RegExp
+      let matchResult = null;
+      if (route.pattern instanceof RegExp) {
+        matchResult = route.pattern.exec(pathname); // RegExp.exec expects string
+        if (matchResult) {
+          // no named groups from RegExp; return empty params
+          return { handler: route.handler, params: {}, pattern: route.rawPattern };
+        }
+      } else {
+        const urlMatch = route.pattern.exec({ pathname });
+        if (urlMatch) {
+          return {
+            handler: route.handler,
+            params: urlMatch.pathname.groups || {},
+            pattern: route.rawPattern
+          };
+        }
       }
     }
     return null;

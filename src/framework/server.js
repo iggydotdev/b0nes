@@ -37,25 +37,29 @@ router.get('/b0nes.js', async (req,res)=> {
 router.get(/^\/(client|utils)\/.*\.js$/, async (req, res) => {
     const host = req.headers.host || 'localhost';
     const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
-    return serveClientFiles(req, res, url);
+    return serveRuntimeFiles(req, res, url);
 });
 
 // 3. Component client behaviors (e.g., /atoms/button/client.js)
 router.get(/client\.js$/, async (req, res) => {
     const host = req.headers.host || 'localhost';
     const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
-    return serveRuntimeFiles(req, res, url);
+    return  serveClientFiles(req, res, url);
 });
 
 // 4. Static assets (styles, images, assets, or file extensions)
 router.get(/^\/(styles|images|assets)\//, async (req,res) => {
     const host = req.headers.host || 'localhost';
     const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
+    console.log(url);
+    console.log('[Server] Static file request:', url.pathname);
     return serveStaticFiles(req, res, url);
 });
-router.get(/\.(css|jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf)$/, async () => {
+router.get(/\.(css|jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf)$/i, async (req, res) => {
     const host = req.headers.host || 'localhost';
     const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
+        console.log(url);
+    console.log('[Server] Static file request:', url.pathname);
     return serveStaticFiles(req, res, url)
 });
 

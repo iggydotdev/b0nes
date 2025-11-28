@@ -6,7 +6,7 @@ export const meta = {
   // Using a Tailwind CDN for demonstration. In a real project, you'd likely use a build process.
   stylesheets: stylesheetPresets.combine(
     'https://cdn.tailwindcss.com', // Tailwind CSS CDN
-    '/talk/custom.css' // dark mode, huge code fonts, meme-ready (can still be used for specific overrides)
+    './custom.css' // dark mode, huge code fonts, meme-ready (can still be used for specific overrides)
   )
 };
 
