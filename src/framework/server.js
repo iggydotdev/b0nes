@@ -47,23 +47,14 @@ router.get(/client\.js$/, async (req, res) => {
     return  serveClientFiles(req, res, url);
 });
 
-// 4. Static assets (styles, images, assets, or file extensions)
-router.get(/^\/(styles|images|assets)\//, async (req,res) => {
+// 4. Static assets (styles, images, assets, or // 4. Static assets: This is a consolidated route for all static assets,
+// combining directory and file-extension matching into a single handler.
+router.get(/^\/(styles|images|assets)\/|.*\.(css|jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf|js)$/i, async (req, res) => {
     const host = req.headers.host || 'localhost';
     const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
-    console.log(url);
-    console.log('[Server] Static file request:', url.pathname);
+    console.log('[Server] Static asset request:', url.pathname);
     return serveStaticFiles(req, res, url);
 });
-router.get(/\.(css|jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf)$/i, async (req, res) => {
-    const host = req.headers.host || 'localhost';
-    const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
-        console.log(url);
-    console.log('[Server] Static file request:', url.pathname);
-    return serveStaticFiles(req, res, url)
-});
-
-
 
 // 5. Templates? (This seems unused or duplicate—kept as-is, but check if needed)
 router.get(/^\/templates\/.*\.js$/, async (req, res) => {

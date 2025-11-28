@@ -13,11 +13,39 @@ export async function tryResolveFile(pathname) {
     const allowedBases = ENV.isDev
         ? [PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE].filter(Boolean)
         : [CLIENT_BASE, COMPONENTS_BASE, PAGES_BASE].filter(Boolean);
+ 
     
+ 
     // Common suffixes to attempt for URLs that are directory-like or extension-less
     const candidateSuffixes = ['', '.js', '.html', '/index.js', '/index.html'];
 
- for (const baseDir of allowedBases) {
+    
+    // ⭐ NEW: Special handling for co-located assets (CSS, images in same folder as page)
+    // Extract the page path and asset filename
+    // e.g., /examples/talk/custom.css → look in pages/examples/talk/custom.css
+    if (pathname.match(/\.(css|jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf)$/)) {
+        console.log(`[Server] 🔍 Co-located asset detected: ${pathname}`);
+        
+        // Try to find it in PAGES_BASE first (co-located with pages)
+        const validation = validateAndSanitizePath(pathname, PAGES_BASE);
+        
+        if (validation.safe) {
+            try {
+                const stats = await stat(validation.sanitized);
+                if (stats.isFile()) {
+                    const content = await readFile(validation.sanitized);
+                    console.log(`[Server] ✅ Found co-located asset: ${validation.sanitized}`);
+                    return { content, found: true, path: validation.sanitized };
+                }
+            } catch (err) {
+                console.log(`[Server] ⚠️ Co-located asset not found in PAGES_BASE: ${pathname}`);
+            }
+        }
+    }
+
+
+
+    for (const baseDir of allowedBases) {
         // --- LOGIC ADDED: Attempt to resolve the path directly ---
         const validation = validateAndSanitizePath(pathname, baseDir);
         if (validation.safe) {
