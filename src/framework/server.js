@@ -26,7 +26,7 @@ const router = createRouterWithDefaults();
 // Register static routes—priority order: specific first, wildcards last.
 
 // 1. b0nes.js runtime
-router.get('/b0nes.js', async (req,res)=> {
+router.get(/assets\/js\/b0nes.js$/, async (req,res)=> {
     const host = req.headers.host || 'localhost';
     const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
     return serveB0nes(req,res,url)

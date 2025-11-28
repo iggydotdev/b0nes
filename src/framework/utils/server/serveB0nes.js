@@ -5,7 +5,7 @@ import { CLIENT_BASE } from './getServerConfig.js';
 export const serveB0nes = async (req, res, url) => {
     // Serve b0nes.js client-side runtime
 
-    if (url.pathname === '/b0nes.js') {
+    if (url.pathname.includes('b0nes.js')) {
         try {
             const filePath = path.join(CLIENT_BASE, 'b0nes.js');
             const content = await readFile(filePath, 'utf-8');

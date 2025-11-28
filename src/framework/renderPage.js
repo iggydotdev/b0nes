@@ -302,7 +302,7 @@ export const renderPage = (content, meta = {}) => {
     // Include b0nes.js for client-side interactivity if enabled
     const includeScript = meta.interactive !== false; // Opt-out, defaults to true
     const b0nesScriptTag = includeScript 
-        ? `\n    <script src="/b0nes.js?v=${process.env.npm_package_version || '0.1.8'}"></script>` 
+        ? `\n    <script src="assets/js/b0nes.js?v=${process.env.npm_package_version || '0.1.11'}"></script>` 
         : '';
     
     // Additional scripts from meta.scripts
