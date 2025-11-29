@@ -370,20 +370,6 @@ export const build = async (outputDir = 'public', options = {}) => {
         console.error('❌ Failed to create output directory:', error.message);
         throw error; // Can't continue without output dir
     }
-    
-     // Copy framework runtime files
-    console.log('📋 Copying framework runtime files...\n');
-    try {
-        await copyFrameworkRuntime(outputDir, { verbose });
-    } catch (error) {
-        console.error('❌ Build failed during runtime file copy');
-        if (!continueOnError) throw error;
-        errors.push({
-            route: 'framework-runtime',
-            error: 'Failed to copy runtime files'
-        });
-    }
-
 
     // Get routes from auto-discovery
     const routes = getRoutes();
@@ -443,6 +429,19 @@ export const build = async (outputDir = 'public', options = {}) => {
         return result;
     });
     
+    // Copy framework runtime files
+    console.log('📋 Copying framework runtime files...\n');
+    try {
+        await copyFrameworkRuntime(outputDir, { verbose });
+    } catch (error) {
+        console.error('❌ Build failed during runtime file copy');
+        if (!continueOnError) throw error;
+        errors.push({
+            route: 'framework-runtime',
+            error: 'Failed to copy runtime files'
+        });
+    }
+
     // Execute builds (parallel or sequential)
     if (parallel && routes.length > 5) {
         console.log('⚡ Building routes in parallel...\n');

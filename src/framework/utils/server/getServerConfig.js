@@ -11,15 +11,13 @@ const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
 // Determine base paths based on environment
 const CLIENT_BASE = ENV.isDev 
     ? path.resolve(__dirname, '../../client')
-    : path.resolve(__dirname, '../../../../public/client');
+    : path.resolve(__dirname, '../../../../public/assets');
 
 const COMPONENTS_BASE = ENV.isDev
     ? path.resolve(__dirname, '../../../components')
     : path.resolve(__dirname, '../../../../public/components');
 
-const PAGES_BASE = ENV.isDev
-    ? path.resolve(__dirname, '../../../pages')
-    : path.resolve(__dirname, '../../../../public/');
+const PAGES_BASE = path.resolve(__dirname, '../../../pages');
 
 const CERTS_DIR = path.resolve(__dirname, '../../.certs');
 

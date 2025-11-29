@@ -15,7 +15,12 @@ import { renderPage } from '../../renderPage.js';
 export const generateRoute = async (route, outputDir='public') => {
     // Get pathname from URLPattern
     const pathname = route.pattern.pathname;
-
+    
+    // Skip framework runtime and asset paths (these are copied, not generated)
+        if (pathname.startsWith('/assets/')) {
+            console.warn(`⚠️  Skipping asset path "${pathname}" (framework runtime)`);
+            return null;
+        }
     // Skip dynamic routes (they should use generateDynamicRoute)
     if (pathname.includes(':')) {
         console.warn(`⚠️  Route "${pathname}" has dynamic params, use generateDynamicRoute instead`);
@@ -23,7 +28,7 @@ export const generateRoute = async (route, outputDir='public') => {
     }
 
     // Skip routes without components
-    if (!route.components || !Array.isArray(route.components)) {
+    if (route.components === undefined || !Array.isArray(route.components)) {
         console.warn(`⚠️  Route "${pathname}" has no components, skipping`);
         return null;
     }

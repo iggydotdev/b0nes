@@ -10,13 +10,19 @@ export async function copyFrameworkRuntime(outputDir, options = {}) {
     try {
         // Path from ssg.js to framework root: ../../
         const FRAMEWORK_DIR = path.resolve(__dirname, '../../');
-        
+        console.log(`[Build] 📦 Copying framework runtime to: ${outputDir}/assets/js/`);
         const filesToCopy = [
             {
                 src: path.join(FRAMEWORK_DIR, 'client'),
                 dest: path.join(outputDir, 'assets', 'js', 'client')
+            },
+            {
+                src: path.join(FRAMEWORK_DIR, 'utils'),
+                dest: path.join(outputDir, 'assets', 'js', 'utils')
             }
         ];
+        
+        let copiedCount = 0;
         
         for (const item of filesToCopy) {
             if (fs.existsSync(item.src)) {
@@ -30,20 +36,31 @@ export async function copyFrameworkRuntime(outputDir, options = {}) {
                 if (stats.isDirectory()) {
                     // Copy directory recursively
                     fs.cpSync(item.src, item.dest, { recursive: true, force: true });
+                    
+                    // Count files copied
+                    const files = fs.readdirSync(item.dest, { recursive: true });
+                    copiedCount += files.filter(f => {
+                        const fullPath = path.join(item.dest, f);
+                        return fs.statSync(fullPath).isFile();
+                    }).length;
+
                 } else {
                     // Copy single file
                     fs.copyFileSync(item.src, item.dest);
+                    copiedCount++
                 }
                 
                 if (verbose) {
-                    console.log(`   📋 Copied ${path.relative(outputDir, item.dest)}`);
+                     const relativePath = path.relative(outputDir, item.dest);
+                    console.log(`   ✅ Copied → ${relativePath}`);
                 }
+            } else {
+                console.warn(`   ⚠️  Source not found: ${item.src}`);
             }
         }
         
-        if (verbose) {
-            console.log('');
-        }
+        console.log(`   📋 Total runtime files copied: ${copiedCount}\n`);
+       
     } catch (error) {
         console.error('❌ Failed to copy framework runtime files:', error.message);
         console.log(error);

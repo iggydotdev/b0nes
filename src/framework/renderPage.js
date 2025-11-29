@@ -1,3 +1,4 @@
+import { resolveVersionedAsset } from './utils/assetPath.js';
 /**
  * b0nes Page Renderer
  * Generates complete HTML pages with meta tags, stylesheets, and scripts
@@ -299,10 +300,10 @@ export const renderPage = (content, meta = {}) => {
         html = html.replace('</head>', `    ${stylesheetTags}\n</head>`);
     }
     
-    // Include b0nes.js for client-side interactivity if enabled
-    const includeScript = meta.interactive !== false; // Opt-out, defaults to true
+   // Use dynamic asset path that works in both dev and prod
+    const includeScript = meta.interactive !== false;
     const b0nesScriptTag = includeScript 
-        ? `\n    <script src="assets/js/b0nes.js?v=${process.env.npm_package_version || '0.1.11'}"></script>` 
+        ? `\n    <script src="${resolveVersionedAsset('js/b0nes.js', process.env.npm_package_version)}"></script>` 
         : '';
     
     // Additional scripts from meta.scripts

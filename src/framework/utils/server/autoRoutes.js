@@ -13,7 +13,7 @@ function kebabToCamel(str) {
 }
 
 function buildRoutes() {
-  const routes = [];
+  let routes = [];
   
   function walk(dir, basePath ='') {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -66,6 +66,20 @@ function buildRoutes() {
   }
   
   walk(pagesDir);
+
+  // Filter out framework runtime and asset paths
+    routes = routes.filter(route => {
+        const pathname = route.pattern?.pathname;
+        
+        // Skip asset paths - these are served statically, not rendered
+        if (pathname && pathname.startsWith('/assets/')) {
+            return false;
+        }
+        
+        return true;
+    });
+
+
   return routes;
 }
 

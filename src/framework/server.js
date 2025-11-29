@@ -25,16 +25,15 @@ const router = createRouterWithDefaults();
 
 // Register static routes—priority order: specific first, wildcards last.
 
-// 1. b0nes.js runtime
-router.get(/assets\/js\/b0nes.js$/, async (req,res)=> {
+// 1. b0nes.js runtime - works for both /client/b0nes.js (dev) and /assets/js/b0nes.js (prod)
+router.get(/\/(client\/b0nes\.js|assets\/js\/b0nes\.js)$/, async (req, res) => {
     const host = req.headers.host || 'localhost';
     const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
-    return serveB0nes(req,res,url)
+    return serveB0nes(req, res, url);
 });
 
-
-// 2. Client/utils files (e.g., /client/*.js or /utils/*.js)
-router.get(/^\/(client|utils)\/.*\.js$/, async (req, res) => {
+// 2. Client/utils files - handle both direct and assets/ paths
+router.get(/^\/(client|utils|assets\/js\/(client|utils))\/.*\.js$/, async (req, res) => {
     const host = req.headers.host || 'localhost';
     const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
     return serveRuntimeFiles(req, res, url);

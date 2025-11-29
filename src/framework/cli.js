@@ -12,6 +12,8 @@
 
 import { build, clearBuildCache } from './utils/build/ssg.js';
 import startServer from './server.js';
+import fs from 'node:fs';
+
 
 // Parse CLI arguments the old-fashioned way
 const args = process.argv.slice(2);
@@ -25,6 +27,7 @@ const flags = {
     noCache: args.includes('--no-cache'),
     port: parseInt(args.find(arg => arg.startsWith('--port='))?.split('=')[1]) || 5000,
     host: args.find(arg => arg.startsWith('--host='))?.split('=')[1] || '0.0.0.0',
+    outputDir: args.find(arg => arg.startsWith('--output='))?.split('=')[1] || 'public',
     help: args.includes('--help') || args.includes('-h')
 };
 
@@ -142,11 +145,23 @@ const runClean = () => {
     console.log('🦴 b0nes Clean\n');
     
     try {
+        // Clear build cache
         clearBuildCache();
-        console.log('✅ Cache cleared successfully!');
+        console.log('✅ Cache cleared');
+        
+        // Remove output directory
+        if (fs.existsSync(flags.outputDir)) {
+            fs.rmSync(flags.outputDir, { recursive: true, force: true });
+            console.log(`✅ Removed ${flags.outputDir}`);
+        }
+        
+        console.log('\n✅ Clean completed successfully!');
         process.exit(0);
     } catch (error) {
-        console.error('❌ Failed to clear cache:', error.message);
+        console.error('❌ Failed to clean:', error.message);
+        if (flags.verbose) {
+            console.error(error.stack);
+        }
         process.exit(1);
     }
 };

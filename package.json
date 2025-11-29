@@ -24,7 +24,7 @@
     "dev": "NODE_ENV=development node src/framework/server.js",
     "dev:watch": "NODE_ENV=development node --watch src/framework/server.js",
     
-    "build": "NODE_ENV=development node src/framework/cli.js build",
+    "build": "node src/framework/cli.js build",
     "build:verbose": "node src/framework/cli.js build --verbose",
     "build:clean": "node src/framework/cli.js build --clean",
     "build:fast": "node src/framework/cli.js build --parallel",
