@@ -1,3 +1,4 @@
+
 * {
   margin: 0;
   padding: 0;
@@ -33,27 +34,29 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 4rem 2rem;
+  padding: 2rem 1rem;
   position: absolute;
   top: 0;
   left: 0;
   opacity: 0;
-  transform: translateX(20%); /* Softer slide-in for less aggressive movement */
-  transition: all 0.4s ease-in-out; /* Shorter duration, smoother easing to prevent "disappearing" acts */
+  transform: translateX(0); /* No initial offset - prevents shift */
+  transition: opacity 0.3s ease-in-out;
   pointer-events: none;
+  overflow-y: auto; /* Allow scrolling if content overflows */
 }
 
 .slide.active {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateX(0); /* No transform change needed */
   pointer-events: auto;
-  position: relative;
-  z-index: 1; /* Ensure active slide is on top to avoid overlap glitches */
+  position: absolute; /* Keep absolute like siblings */
+  z-index: 1;
 }
 
 .slide-content {
   width: 100%;
-  max-width: 90%;
+  max-width: 1200px; /* Fixed max-width instead of percentage */
+  padding: 0 2rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -62,48 +65,50 @@ body {
 }
 
 .slide-content h1 {
-  font-size: clamp(2rem, 8vw, 5rem);
+  font-size: clamp(1.75rem, 5vw, 4rem); /* More conservative sizing */
   font-weight: 900;
   line-height: 1.2;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   letter-spacing: -0.02em;
   background: linear-gradient(135deg, #00d4ff, #0099cc, #00ff88);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  width: 100%; /* Prevent width issues */
 }
 
 .slide-content h2 {
-  font-size: clamp(1.5rem, 5vw, 3.5rem);
+  font-size: clamp(1.25rem, 3.5vw, 2.5rem); /* Toned down */
   font-weight: 700;
   line-height: 1.3;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   color: #e0e0e0;
+  width: 100%;
 }
 
 .slide-content p {
-  font-size: clamp(1rem, 2.5vw, 1.5rem);
-  line-height: 1.8;
+  font-size: clamp(0.95rem, 2vw, 1.25rem); /* More readable */
+  line-height: 1.6;
   color: #b0b0b0;
-  margin-bottom: 2rem;
-  max-width: 85%;
+  margin-bottom: 1.5rem;
+  width: 100%; /* No max-width shenanigans */
 }
 
 .slide-content pre {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: clamp(1rem, 3vw, 2.5rem);
-  font-size: clamp(0.75rem, 1.5vw, 1.1rem);
-  overflow: auto; /* Changed to auto for both x and y – no more vertical cutoffs! */
+  border-radius: 8px;
+  padding: 1.5rem;
+  font-size: clamp(0.7rem, 1.2vw, 0.95rem); /* Smaller, more practical */
+  overflow: auto;
   width: 100%;
-  max-width: 90%;
-  max-height: 60vh; /* Prevent code blocks from exploding the slide height */
+  max-width: 100%; /* No percentage games */
+  max-height: 50vh; /* Reasonable height */
   color: #00ff88;
   text-align: left;
-  line-height: 1.6;
-  white-space: pre-wrap; /* Wrap long lines instead of forcing horizontal scroll on tiny screens */
-  word-wrap: break-word; /* Break those pesky long words/strings */
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
   backdrop-filter: blur(10px);
 }
 
@@ -113,14 +118,14 @@ body {
 }
 
 .slide-content img {
-  max-width: 90%;
-  max-height: 50vh;
+  max-width: 100%;
+  max-height: 45vh; /* Slightly smaller */
   width: auto;
   height: auto;
-  border-radius: 16px;
-  margin: 2rem 0;
-  box-shadow: 0 20px 60px rgba(0, 255, 136, 0.3);
-  animation: slideImageFadeIn 0.8s ease-out;
+  border-radius: 12px;
+  margin: 1.5rem 0;
+  box-shadow: 0 15px 40px rgba(0, 255, 136, 0.25);
+  animation: slideImageFadeIn 0.6s ease-out;
 }
 
 @keyframes slideImageFadeIn {
@@ -134,7 +139,7 @@ body {
   }
 }
 
-/* Slide-specific backgrounds – unchanged, but remember: data-attributes for flexibility! */
+/* Slide-specific backgrounds */
 .slide:nth-child(1) {
   background: linear-gradient(135deg, #1a0033 0%, #330066 50%, #001a4d 100%);
 }
@@ -230,26 +235,43 @@ body {
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .slide {
-    padding: 2rem 1rem;
+    padding: 1.5rem 0.75rem;
   }
 
   .slide-content {
-    max-width: 95%;
+    padding: 0 1rem;
+  }
+
+  .slide-content h1 {
+    font-size: clamp(1.5rem, 4vw, 2.5rem); /* Even more conservative on mobile */
+  }
+
+  .slide-content h2 {
+    font-size: clamp(1.1rem, 3vw, 1.8rem);
+  }
+
+  .slide-content p {
+    font-size: clamp(0.85rem, 1.8vw, 1.1rem);
   }
 
   .slides-controls {
-    gap: 0.75rem;
-    padding: 1rem;
+    gap: 0.5rem;
+    padding: 0.75rem;
     flex-wrap: wrap;
   }
 
   .slide-btn {
-    padding: 0.6rem 1rem;
-    font-size: 0.8rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
   }
 
   .slide-content img {
-    max-height: 40vh;
+    max-height: 35vh;
+  }
+
+  .slide-content pre {
+    font-size: 0.65rem;
+    padding: 1rem;
   }
 
   .slide-indicator {
@@ -258,33 +280,27 @@ body {
     width: 100%;
     margin-bottom: 0.5rem;
   }
-
-  .slide-content pre {
-    white-space: pre-wrap; /* Extra emphasis on wrapping for mobile code blocks */
-    word-wrap: break-word;
-    font-size: clamp(0.6rem, 1.2vw, 0.9rem); /* Slightly smaller on tiny screens to fit more */
-  }
 }
 
 /* Tablet responsiveness */
 @media (min-width: 769px) and (max-width: 1024px) {
   .slide {
-    padding: 3rem 2rem;
+    padding: 2rem 1.5rem;
   }
 
   .slide-content {
-    max-width: 85%;
+    padding: 0 1.5rem;
   }
 }
 
 /* Large screens */
 @media (min-width: 1440px) {
   .slide {
-    padding: 5rem 2rem;
+    padding: 3rem 2rem;
   }
 
   .slide-content {
-    max-width: 80%;
+    padding: 0 2rem;
   }
 }
 
