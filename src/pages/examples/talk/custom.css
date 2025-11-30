@@ -34,7 +34,7 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 2rem 1rem;
+  /* padding: 2rem 1rem; */
   position: absolute;
   top: 0;
   left: 0;
@@ -284,9 +284,9 @@ body {
 
 /* Tablet responsiveness */
 @media (min-width: 769px) and (max-width: 1024px) {
-  .slide {
+  /* .slide {
     padding: 2rem 1.5rem;
-  }
+  } */
 
   .slide-content {
     padding: 0 1.5rem;
@@ -344,4 +344,8 @@ html {
 ::selection {
   background: rgba(0, 255, 136, 0.3);
   color: #00ff88;
+}
+
+.slide-number {
+  display:none;
 }

@@ -5,9 +5,12 @@ export const meta = {
   description: 'DDD Brisbane 2025 – b0nes: the revenge of vanilla JS',
   // Using a Tailwind CDN for demonstration. In a real project, you'd likely use a build process.
   stylesheets: stylesheetPresets.combine(
-    'https://cdn.tailwindcss.com', // Tailwind CSS CDN
+    // 'https://cdn.tailwindcss.com', // Tailwind CSS CDN
     './custom.css' // dark mode, huge code fonts, meme-ready (can still be used for specific overrides)
-  )
+  ),
+  scripts: [
+    './tailwind.js'
+  ]
 };
 
 export const components = [
@@ -24,7 +27,6 @@ export const components = [
               <h1 class="text-4xl md:text-6xl font-extrabold leading-tight mb-4 text-red-400">Your framework downloaded<br><strong>700 MB</strong></h1>
               <h2 class="text-2xl md:text-4xl font-semibold text-gray-300 mb-4 md:mb-8">to render a button</h2>
               <img src="https://media.tenor.com/MYZgsN2TDJAAAAAM/this-is.gif" loading="lazy" alt="This is fine dog" class="w-full max-w-[80vw] md:max-w-xl mx-auto rounded-lg shadow-xl border-4 border-red-600">
-              <p class="mt-4 md:mt-8 text-xl md:text-2xl text-red-400 font-medium">(yes, that’s a real create-next-app screenshot)</p>
             </div>
           `
         },
@@ -46,10 +48,15 @@ export const components = [
 2013+: Framework Wars – React, Vue, Svelte, Angular 2+, Solid...
 
 2025: Next.js – "SSR! SSG! RSC! ...700MB node_modules?"</code></pre>
-              <img src="https://media.tenor.com/f4MzvvjwUhAAAAAM/spongebob-mocking.gif" loading="lazy" alt="Mocking SpongeBob" class="w-full max-w-[80vw] md:max-w-xl mt-4 rounded-lg shadow-md">
-              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-gray-300 text-center">We chased "productivity."<br>Ended up with overengineering fatigue.</p>
             </div>
           `
+        },
+        {
+          title: 'Why? – Chasing "Productivity"',
+          content: `
+          <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-gray-300 text-center">We chased "productivity."<br>Ended up with overengineering fatigue.</p>
+          </div>`
         },
         {
           title: 'Why? – The Current State (2025)',
@@ -60,10 +67,17 @@ export const components = [
 node_modules → 412 MB
 Time to interactive → 3.2s on 4G
 Lines to make a button clickable → 47</code></pre>
-              <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3F2d3I3bTh5aDc0cnV3NmNjeWRwZm5xZG53YzM0M3c2MjdvaTM5NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/H62NIrYc3ZzUG273k2/giphy.gif" loading="lazy" alt="Its never gonna end" class="w-full max-w-[80vw] md:max-w-2xl mt-4 rounded-lg shadow-md">
-              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-red-400 text-center">Optimized for devs. Users? "Hold my 5G."</p>
+
             </div>
           `
+        },
+        {
+          title: 'Why? – Chasing "Productivity"',
+          content: `
+          <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3F2d3I3bTh5aDc0cnV3NmNjeWRwZm5xZG53YzM0M3c2MjdvaTM5NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/H62NIrYc3ZzUG273k2/giphy.gif" loading="lazy" alt="Its never gonna end" class="w-full max-w-[80vw] md:max-w-2xl mt-4 rounded-lg shadow-md">
+              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-red-400 text-center">Optimized for devs. Users? "Hold my 5G."</p>
+          </div>`
         },
         {
           title: 'Why? – The Over-Abstraction Spiral',
@@ -75,10 +89,16 @@ Problem: State → Add Redux/Zustand
 Problem: Bundle size → Add code splitting
 Problem: Complexity → Add another layer
 Problem: Now you need a PhD to debug</code></pre>
-              <img src="https://media.tenor.com/7tGhjTpUh4QAAAAM/drake-drizzy.gif" loading="lazy" alt="Drake hotline bling" class="w-full max-w-[80vw] md:max-w-xl rounded-lg shadow-md">
-              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-gray-300 text-center">Each "fix" spawns two new problems.<br>Like hydra, but less mythical.</p>
+              
             </div>
           `
+        },
+        {
+          title: 'Why? – Chasing "Productivity"',
+          content: `
+          <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+          <img src="https://media.tenor.com/7tGhjTpUh4QAAAAM/drake-drizzy.gif" loading="lazy" alt="Drake hotline bling" class="w-full max-w-[80vw] md:max-w-xl rounded-lg shadow-md">
+              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-gray-300 text-center">Each "fix" spawns two new problems.<br>Like hydra, but less mythical.</p></div>`
         },
         {
           title: 'Why? – The TypeScript Paradox',
@@ -94,10 +114,16 @@ let name: string = 'b0nes';
 
 // But wait... TS compiles to JS anyway!
 // So why the extra build step + complexity?</code></pre>
-              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXJqNjZpZG5uZmU4NHBxOHN2dTBwMHlyamtnMjFxYzlvOXBxb2M1NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/nTfdeBvfgzV26zjoFP/giphy.gif" loading="lazy" alt="Keanu Reeves Confused" class="w-full max-w-[80vw] md:max-w-xl rounded-lg shadow-md">
-              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-gray-300 text-center">We added a language to fix JS...<br>That transpiles back to JS. 🤦</p>
+             
             </div>
           `
+        }, {
+          title: 'Why? – Chasing "Productivity"',
+          content: `
+          <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+           <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXJqNjZpZG5uZmU4NHBxOHN2dTBwMHlyamtnMjFxYzlvOXBxb2M1NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/nTfdeBvfgzV26zjoFP/giphy.gif" loading="lazy" alt="Keanu Reeves Confused" class="w-full max-w-[80vw] md:max-w-xl rounded-lg shadow-md">
+              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-gray-300 text-center">We added a language to fix JS...<br>That transpiles back to JS. 🤦</p>
+          </div>`
         },
         {
           title: 'Why? – NPM Ecosystem Blues',
@@ -235,10 +261,12 @@ import { Button } from 'fancy-lib';
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-red-400">Adding a Page in 5 Seconds</h2>
               <pre class="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg text-cyan-300 text-sm md:text-2xl font-mono leading-relaxed mb-4 md:mb-8 w-full max-w-[90vw] md:max-w-3xl"><code># Live on stage
+mkdir src/pages/examples/live
+cd src/pages/examples/live
 echo "export const meta = { title: 'Live' };
 export const components = [
   { type: 'atom', name: 'text', props: { is: 'h1', slot: 'Born live!' } }
-];" > live.js
+];" > index.js
 
 # Refresh → /live exists. Magic? Nah, simplicity.</code></pre>
               <p class="text-4xl md:text-6xl mt-6 md:mt-12 text-yellow-400 font-extrabold animate-pulse">Your move, frameworks.</p>
