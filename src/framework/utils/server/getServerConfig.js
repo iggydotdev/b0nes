@@ -1,6 +1,5 @@
 
 import path from 'node:path';
-
 import { ENV } from "../../config/envs.js";
 import { fileURLToPath } from 'node:url';
 
@@ -15,7 +14,7 @@ const CLIENT_BASE = ENV.isDev
 
 const COMPONENTS_BASE = ENV.isDev
     ? path.resolve(__dirname, '../../../components')
-    : path.resolve(__dirname, '../../../../public/components');
+    : path.resolve(__dirname, '../../../../public/assets/js/components');
 
 const PAGES_BASE = path.resolve(__dirname, '../../../pages');
 

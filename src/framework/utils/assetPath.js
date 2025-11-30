@@ -36,7 +36,9 @@ export const resolveAsset = (assetPath) => {
     if (assetPath.startsWith('js/utils/')) {
       return assetPath.replace('js/utils/', '/utils/');
     }
-    
+    if (assetPath.startsWith('behaviors/')) {
+      return `/components/${assetPath.replace('behaviors/', '')}`;
+    }
     // Default: just return the path as-is for dev
     return `/${assetPath}`;
   }
@@ -58,6 +60,7 @@ export const ASSETS = {
   b0nes: () => resolveAsset('js/b0nes.js'),
   client: (file) => resolveAsset(`js/client/${file}`),
   utils: (file) => resolveAsset(`js/utils/${file}`),
+   behavior: (componentPath) => resolveAsset(`js/behaviors/${componentPath}`),
 };
 
 export default { resolveAsset, resolveVersionedAsset, getAssetBasePath, ASSETS };

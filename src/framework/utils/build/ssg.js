@@ -10,6 +10,7 @@ import { generateDynamicRoute } from './generateDynamicRoute.js';
 import { copyColocatedAssets } from './colocatedAssets.js';
 import { generateSSRFallback } from './ssrFallback.js';
 import { copyFrameworkRuntime } from './copyFrameworkRuntime.js';
+import { copyComponentBehaviors } from './copyComponentBehaviors.js';
 
 /**
  * Build cache to skip unchanged routes (functional style with closures)
@@ -439,6 +440,19 @@ export const build = async (outputDir = 'public', options = {}) => {
         errors.push({
             route: 'framework-runtime',
             error: 'Failed to copy runtime files'
+        });
+    }
+
+    // Copy component client behaviors
+    console.log('📋 Copying component client behaviors...\n');
+    try {
+        await copyComponentBehaviors(outputDir, { verbose });
+    } catch (error) {
+        console.error('❌ Build failed during component behaviors copy');
+        if (!continueOnError) throw error;
+        errors.push({
+            route: 'component-behaviors',
+            error: 'Failed to copy component behaviors'
         });
     }
 

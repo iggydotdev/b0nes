@@ -134,7 +134,9 @@
                     }
                 } else {
                     // Lazy load component
-                    import(`../../components/${type}/${name}/${type}.${name}.client.js`)
+                    const behaviorPath = `/assets/js/behaviors/${type}/${name}/${type}.${name}.client.js`;
+                    
+                    import(behaviorPath)
                         .then(component => {
                             this.register(name, component.client);
                             console.log(`[b0nes] Loaded component: ${type}/${name}`);
@@ -154,7 +156,30 @@
                             }
                         })
                         .catch(error => {
-                            console.error(`[b0nes] Failed to load ${type}/${name}:`, error);
+                            // Fallback to dev path if production path fails
+                            console.warn(`[b0nes] Production path failed, trying dev path...`);
+                            const devPath = `../../components/${type}/${name}/${type}.${name}.client.js`;
+                            
+                            import(devPath)
+                                .then(component => {
+                                    this.register(name, component.client);
+                                    console.log(`[b0nes] Loaded component (dev): ${type}/${name}`);
+                                    
+                                    try {
+                                        const cleanup = this.behaviors[name](el);
+                                        if (typeof cleanup === 'function') {
+                                            instanceCleanup.set(el, cleanup);
+                                        }
+                                        el.dataset.b0nesInit = 'true';
+                                        this.activeInstances.add(el);
+                                        count++;
+                                    } catch (e) {
+                                        console.error(`[b0nes] Error initializing ${type}:${name}`, e);
+                                    }
+                                })
+                                .catch(devError => {
+                                    console.error(`[b0nes] Failed to load ${type}/${name} from either path:`, error, devError);
+                                });
                         });
                 }
             });
