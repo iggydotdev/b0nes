@@ -5,12 +5,12 @@ export const meta = {
   description: 'DDD Brisbane 2025 – b0nes: the revenge of vanilla JS',
   // Using a Tailwind CDN for demonstration. In a real project, you'd likely use a build process.
   stylesheets: stylesheetPresets.combine(
-    // 'https://cdn.tailwindcss.com', // Tailwind CSS CDN
+    'https://cdn.tailwindcss.com', // Tailwind CSS CDN
     './custom.css' // dark mode, huge code fonts, meme-ready (can still be used for specific overrides)
   ),
-  scripts: [
-    './tailwind.js'
-  ]
+  //scripts: [
+   // './tailwind.js'
+ // ]
 };
 
 export const components = [
