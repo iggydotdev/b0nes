@@ -349,3 +349,8 @@ html {
 .slide-number {
   display:none;
 }
+
+.current-title {
+  font-weight: bold;
+  color: white;
+}

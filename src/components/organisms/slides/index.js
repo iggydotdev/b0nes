@@ -1,6 +1,6 @@
 import { slides as slidesRender } from "./slides.js";
 
-export cont slides = {
+export const slides = {
   render: slidesRender
 };
 

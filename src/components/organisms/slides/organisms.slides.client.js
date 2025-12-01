@@ -35,7 +35,7 @@ export const client = (root) => {
         // Update title for screen readers
         const slideTitle = slides[currentSlide].getAttribute('aria-label');
         if (currentTitle) {
-            currentTitle.textContent = slideTitle;
+            currentTitle.textContent = slideTitle.split(':')[1]?.trim();
         }
         
         // Update button states

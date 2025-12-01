@@ -33,7 +33,7 @@ export const components = [
 
         // ============ WHY – The Overengineering Saga ============
         {
-          title: 'Why? – A Brief History of Web Dev Drama',
+          title: 'A Brief History of Web Dev Drama',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-purple-400">From Humble HTML to Framework Hell</h2>
@@ -52,14 +52,14 @@ export const components = [
           `
         },
         {
-          title: 'Why? – Chasing "Productivity"',
+          title: 'Chasing Productivity',
           content: `
           <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <p class="mt-4 md:mt-8 text-xl md:text-3xl text-gray-300 text-center">We chased "productivity."<br>Ended up with overengineering fatigue.</p>
           </div>`
         },
         {
-          title: 'Why? – The Current State (2025)',
+          title: 'The Current State (2025)',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-yellow-400">We lost the plot</h2>
@@ -72,7 +72,7 @@ Lines to make a button clickable → 47</code></pre>
           `
         },
         {
-          title: 'Why? – Chasing "Productivity"',
+          title: 'Benefits?',
           content: `
           <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3F2d3I3bTh5aDc0cnV3NmNjeWRwZm5xZG53YzM0M3c2MjdvaTM5NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/H62NIrYc3ZzUG273k2/giphy.gif" loading="lazy" alt="Its never gonna end" class="w-full max-w-[80vw] md:max-w-2xl mt-4 rounded-lg shadow-md">
@@ -80,7 +80,7 @@ Lines to make a button clickable → 47</code></pre>
           </div>`
         },
         {
-          title: 'Why? – The Over-Abstraction Spiral',
+          title: 'Problem #1 - The Over-Abstraction Spiral',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-red-400">Abstractions on abstractions on...</h2>
@@ -94,14 +94,14 @@ Problem: Now you need a PhD to debug</code></pre>
           `
         },
         {
-          title: 'Why? – Chasing "Productivity"',
+          title: 'Consequence #1 - The Hydra Effect',
           content: `
           <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
           <img src="https://media.tenor.com/7tGhjTpUh4QAAAAM/drake-drizzy.gif" loading="lazy" alt="Drake hotline bling" class="w-full max-w-[80vw] md:max-w-xl rounded-lg shadow-md">
-              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-gray-300 text-center">Each "fix" spawns two new problems.<br>Like hydra, but less mythical.</p></div>`
+              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-gray-300 text-center">Each "fix" spawns new problems.<br>Like a  hydra, but less mythical.</p></div>`
         },
         {
-          title: 'Why? – The TypeScript Paradox',
+          title: 'Problem #2 - The TypeScript Paradox',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-orange-400">TS: Extra Logic to... Be Like JS?</h2>
@@ -118,7 +118,7 @@ let name: string = 'b0nes';
             </div>
           `
         }, {
-          title: 'Why? – Chasing "Productivity"',
+          title: 'Consequence #2 – The Infinite Compile Loop',
           content: `
           <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
            <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXJqNjZpZG5uZmU4NHBxOHN2dTBwMHlyamtnMjFxYzlvOXBxb2M1NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/nTfdeBvfgzV26zjoFP/giphy.gif" loading="lazy" alt="Keanu Reeves Confused" class="w-full max-w-[80vw] md:max-w-xl rounded-lg shadow-md">
@@ -126,7 +126,7 @@ let name: string = 'b0nes';
           </div>`
         },
         {
-          title: 'Why? – NPM Ecosystem Blues',
+          title: 'Problem #3 - NPM Ecosystem Blues',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-blue-400">NPM: Where Packages Go to Die</h2>
@@ -134,13 +134,18 @@ let name: string = 'b0nes';
 Breaking changes → "Just rewrite everything!"
 No migration guides → "Figure it out, champ"
 Your perfect app? Obsolete in 6 months.</code></pre>
-              <img src="https://media.tenor.com/MYZgsN2TDJAAAAAM/this-is.gif" loading="lazy" alt="This is fine dog" class="w-full max-w-[80vw] md:max-w-xl rounded-lg shadow-md border-4 border-red-600">
-              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-red-400 text-center">Dependency hell is real.<br>And it's in your node_modules.</p>
             </div>
           `
+        },{
+          title: 'Consequence #3 – Dependency Hell',
+          content: `
+          <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+               <img src="https://media.tenor.com/MYZgsN2TDJAAAAAM/this-is.gif" loading="lazy" alt="This is fine dog" class="w-full max-w-[80vw] md:max-w-xl rounded-lg shadow-md border-4 border-red-600">
+              <p class="mt-4 md:mt-8 text-xl md:text-3xl text-red-400 text-center">Dependency hell is real.<br>And it's in your node_modules.</p>
+          </div>`
         },
         {
-          title: 'Why? – The JavaScript Tax',
+          title: 'Problem #4 - Performance Pitfalls',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-yellow-400">Every Millisecond Counts × Millions</h2>
@@ -152,11 +157,23 @@ Total: ~1.5s of JS tax before anything happens</code></pre>
               <p class="mt-4 md:mt-8 text-xl md:text-3xl text-gray-300 text-center">Users on potato phones? Good luck.</p>
             </div>
           `
+        },{
+          title: 'Consequence #4 – Performance Nightmares',
+          content: `
+          <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+         
+          </div>`
         },
-
+{
+          title: 'What can we do about it?',
+          content: `
+          <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+                <p> So.. what can we do? </p>
+          </div>`
+        },
         // ============ HOW – The Escape Plan ============
         {
-          title: 'How? – Principle 1: Respect Web Standards',
+          title: 'Principle #1 - Respect Web Standards',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-green-400">Use HTML/CSS/JS as Intended</h2>
@@ -173,7 +190,7 @@ import { Button } from 'fancy-lib';
           `
         },
         {
-          title: 'How? – Principle 2: JS as Enhancement',
+          title: 'Principle #2 - JS as Enhancement',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-teal-400">Ask: "Do We Even Need JS Here?"</h2>
@@ -181,13 +198,19 @@ import { Button } from 'fancy-lib';
 // No runtime = Instant load
 // Graceful degradation built-in
 // Direct DOM when needed? Fine.</code></pre>
-              <img src="https://media.tenor.com/8RKdKkyTEKkAAAAe/hshs.png" loading="lazy" alt="Success kid" class="w-full max-w-[80vw] md:max-w-md mt-4 rounded-lg shadow-md">
-              <p class="text-xl md:text-3xl mt-4 md:mt-8 text-green-400 text-center">Progressive enhancement: Works without JS.<br>Better with it. Novel idea!</p>
+             
             </div>
           `
+        },{
+          title: 'Principle #2 - JS as Enhancement (Contd)',
+          content: `
+          <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+            <img src="https://media.tenor.com/8RKdKkyTEKkAAAAe/hshs.png" loading="lazy" alt="Success kid" class="w-full max-w-[80vw] md:max-w-md mt-4 rounded-lg shadow-md">
+                <p class="text-xl md:text-3xl mt-4 md:mt-8 text-green-400 text-center">Progressive enhancement: Works without JS.<br>Better with it. Novel idea!</p>
+          </div>`
         },
         {
-          title: 'How? – Principle 3: Minimize Dependencies',
+          title: 'Principle #3 - Minimize Dependencies',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-orange-400">Zero NPM Drama</h2>
@@ -200,7 +223,7 @@ import { Button } from 'fancy-lib';
           `
         },
         {
-          title: 'How? – Principle 4: Measure What Matters',
+          title: 'Principle #4 - Measure What Matters',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-purple-400">Users > Dev Ego</h2>
@@ -208,13 +231,19 @@ import { Button } from 'fancy-lib';
 // Right: "How fast does it run?"
 // Bonus: Simplicity reduces bugs.
 // Maintenance? Now a breeze.</code></pre>
-              <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXJqNjZpZG5uZmU4NHBxOHN2dTBwMHlyamtnMjFxYzlvOXBxb2M1NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/nTfdeBvfgzV26zjoFP/giphy.gif" loading="lazy" alt="Keanu Reeves Confused" class="w-full max-w-[80vw] md:max-w-xl rounded-lg shadow-md">
-              <p class="text-xl md:text-3xl mt-4 md:mt-8 text-red-400 text-center">DevEx is great. Until users bail.</p>
+             
             </div>
           `
+        },{
+          title: 'Principle #4 - Measure What Matters (Contd)',
+          content: `
+          <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+             <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXJqNjZpZG5uZmU4NHBxOHN2dTBwMHlyamtnMjFxYzlvOXBxb2M1NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/nTfdeBvfgzV26zjoFP/giphy.gif" loading="lazy" alt="Keanu Reeves Confused" class="w-full max-w-[80vw] md:max-w-xl rounded-lg shadow-md">
+              <p class="text-xl md:text-3xl mt-4 md:mt-8 text-red-400 text-center">DX is great... Until users bail.</p>
+          </div>`
         },
         {
-          title: 'How? – Principle 5: Framework-Lite',
+          title: 'Principle #5 - Framework-Lite',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-green-400">Only What You Need, Nothing More</h2>
@@ -226,23 +255,39 @@ import { Button } from 'fancy-lib';
               <p class="text-3xl md:text-5xl mt-4 md:mt-8 text-gray-300 text-center font-extrabold">Simplicity isn't lazy.<br>It's smart.</p>
             </div>
           `
+        },{
+          title: 'Principle #5 - Framework-Lite (Contd)',
+          content: `
+          <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <q class="text-xl md:text-3xl mt-4 md:mt-8 text-red-400 text-center">Simplicity is hard work. But, there's a huge payoff. The person who has a genuinely simpler system - a system made out of genuinely simple parts, is going to be able to affect the greatest change with the least work. He's going to kick your ass. He's gonna spend more time simplifying things up front and in the long haul he's gonna wipe the plate with you because he'll have that ability to change things when you're struggling to push elephants around.</q>
+              <q class="text-xl md:text-3xl mt-4 md:mt-8 text-red-400 text-center">Programming Is Not About Typing, It's About Thinking</q>
+              <p class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-green-400">Rich Hickey</p>
+          </div>`
         },
-
+        {
+          title: 'If only...',
+          content: `
+          <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <p class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-green-400">
+                Maybe we could build something...
+              </p>
+          </div>`
+        },
         // ============ WHAT – The Shameless Plug ============
         {
-          title: 'What? – Meet b0nes',
+          title: 'Shameless Plug (syntax like)',
           content: `
             <div class="flex flex-col items-center justify-center text-center min-h-screen p-4 md:p-8 bg-gray-900 text-white">
-              <h1 class="text-5xl md:text-7xl font-extrabold text-teal-400 mb-4 md:mb-8">b0nes</h1>
+              <h1 class="text-5xl md:text-7xl font-extrabold text-teal-400 mb-4 md:mb-8">Meet b0nes</h1>
+              <img src="./b0nes.png" loading="lazy" alt="B0nes" class="w-full max-w-[60vw] md:max-w-sm mt-4 md:mt-2 rounded-lg shadow-lg bg-white">
               <p class="text-xl md:text-3xl text-gray-300 mb-2 md:mb-4 max-w-3xl">Zero-dependency toolkit: SSR, SSG, SPA, state machines, forms – pure JS.</p>
-              <p class="text-xl md:text-3xl text-green-400 mb-2 md:mb-4">Bundle: &lt;10 KB. Learning: One afternoon.</p>
-              <p class="text-xl md:text-3xl text-yellow-400 mb-4 md:mb-8">Mitigates all that Why/How nonsense.</p>
-              <img src="https://media.tenor.com/8RKdKkyTEKkAAAAe/hshs.png" loading="lazy" alt="Success kid" class="w-full max-w-[80vw] md:max-w-md mt-4 rounded-lg shadow-md">
+              <p class="text-xl md:text-3xl text-green-400 mb-2 md:mb-4">Learning: One afternoon.</p>
+              <p class="text-xl md:text-3xl text-yellow-400 mb-4 md:mb-8">Aiming to mitigate all that nonsense.</p>
             </div>
           `
         },
         {
-          title: 'What? – How b0nes Fixes the Mess',
+          title: 'How b0nes Fixes the Mess',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-8 text-orange-400">Principles in Action</h2>
@@ -288,12 +333,11 @@ export const components = [
           title: 'Call to Action',
           content: `
             <div class="flex flex-col items-center justify-center text-center min-h-screen p-4 md:p-8 bg-gray-900 text-white">
-              <h1 class="text-4xl md:text-6xl font-extrabold text-green-400 mb-4 md:mb-8">Ready to pick a b0ne?</h1>
-              <p class="text-2xl md:text-4xl mt-4 md:mt-8">
-                <a href="https://github.com/iggydotdev/b0nes" class="text-cyan-400 hover:text-cyan-300 underline font-semibold transition duration-300">github.com/iggydotdev/b0nes</a>
+              <h1 class="text-4xl md:text-6xl font-extrabold text-green-400 mb-4 md:mb-2">Ready to pick a b0ne?</h1>
+              <p class="text-2xl md:text-4xl mt-4 md:mt-2">
               </p>
-              <p class="mt-6 md:mt-12 text-xl md:text-3xl text-gray-400">npx b0nes my-app → Ship simple.</p>
-              <img src="https://media.tenor.com/8RKdKkyTEKkAAAAe/hshs.png" loading="lazy" alt="Success kid" class="w-full max-w-[80vw] md:max-w-sm mt-4 md:mt-8 rounded-lg shadow-lg">
+              <p class="mt-6 md:mt-2 text-xl md:text-3xl text-gray-400">npx b0nes my-app → Ship simple.</p>
+              <img src="./qr-code.png" loading="lazy" alt="qr code for B0nes" class="w-full max-w-[60vw] md:max-w-sm mt-4 md:mt-2 rounded-lg shadow-lg bg-white">
             </div>
           `
         }
