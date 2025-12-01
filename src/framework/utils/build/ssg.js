@@ -11,6 +11,7 @@ import { copyColocatedAssets } from './colocatedAssets.js';
 import { generateSSRFallback } from './ssrFallback.js';
 import { copyFrameworkRuntime } from './copyFrameworkRuntime.js';
 import { copyComponentBehaviors } from './copyComponentBehaviors.js';
+import { processColocatedAssets } from './processColocatedAssets.js';
 
 /**
  * Build cache to skip unchanged routes (functional style with closures)
