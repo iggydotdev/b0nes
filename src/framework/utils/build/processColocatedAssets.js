@@ -21,7 +21,7 @@ export async function processColocatedAssets(html, route, outputDir, options = {
     const assetRegex = /(?:href|src)=["'](\.\/[^"']+)["']/g;
 
     const pageSourceDir = path.dirname(route.filePath);
-    const routeBasePath = path.dirname(route.pattern.pathname);
+    const routeBasePath = route.pattern.pathname;
 
     const matches = Array.from(html.matchAll(assetRegex));
 
