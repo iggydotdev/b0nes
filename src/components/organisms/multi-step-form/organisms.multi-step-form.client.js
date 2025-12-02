@@ -1,5 +1,5 @@
-import { createFSM } from '/client/fsm.js';
-import { createStore } from '/client/store.js';
+import { createFSM } from '/assets/js/client/fsm.js';
+import { createStore } from '/assets/js/client/store.js';
 
 export const client = (root) => {
 

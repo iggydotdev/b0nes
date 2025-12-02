@@ -1,4 +1,6 @@
 
+import path from 'path';
+
 import library from '../components/library.js';
 
 const componentLibrary = {
@@ -66,7 +68,7 @@ const getComponent = (type, name) => {
  * @returns {string} Rendered HTML string
  * @private
  */
-const composeSlot = (slot) => {
+const composeSlot = (slot, context) => {
     if (typeof slot === 'string') {
         return slot;
     }
@@ -80,7 +82,7 @@ const composeSlot = (slot) => {
             return child;
         }
         if (typeof child === 'object' && child !== null) {
-            return compose([child]);
+            return compose([child], context);
         }
         return '';
     }).filter(Boolean).join('\n');
@@ -151,7 +153,7 @@ const safeRender = (comp, props, componentName, componentType) => {
  *   }
  * ]);
  */
-export const compose = (components = []) => {
+export const compose = (components = [], context = {}) => {
     return components.map(component => {
         if (!component || typeof component !== 'object') {
             return '';
@@ -172,6 +174,30 @@ export const compose = (components = []) => {
             return renderErrorFallback(name, type, 'Component not found in library');
         }
 
+                // --- NEW: PATH REWRITING LOGIC ---
+        // Create a mutable copy of props to allow for path rewriting.
+        const finalProps = { ...props };
+
+        // If we have a route context (from the build process), rewrite relative asset paths.
+        if (context.route && context.route.pattern && context.route.pattern.pathname) {
+            const routeBasePath = path.dirname(context.route.pattern.pathname);
+            const pathProps = ['src', 'href', 'poster']; // Props that might contain asset paths
+
+            for (const prop of pathProps) {
+                if (typeof finalProps[prop] === 'string' && finalProps[prop].startsWith('./')) {
+                    // Create a root-relative path, e.g., /examples/talk/qr-code.png
+                    const newPath = path.join(routeBasePath, finalProps[prop].substring(2));
+                    // Ensure forward slashes for URL compatibility
+                    finalProps[prop] = newPath.replace(/\\/g, '/');
+                }
+            }
+        }
+        // --- END OF NEW LOGIC ---
+
+        // Use the (potentially modified) finalProps for caching and rendering.
+        const componentWithFinalProps = { type, name, props: finalProps };
+       
+
         const cacheKey = getCacheKey(component);
 
         if (compositionCache.has(cacheKey)) {
@@ -180,7 +206,7 @@ export const compose = (components = []) => {
 
         let slotContent = '';
         if (props.slot !== undefined && props.slot !== null) {
-            slotContent = composeSlot(props.slot);
+            slotContent = composeSlot(props.slot, context);
         }
 
         const html = safeRender(

@@ -36,7 +36,7 @@ export const generateDynamicRoute = async (route, dataSource, outputDir = 'publi
 
         try {
             // Compose components
-            const content = compose(components);
+            const content = compose(components, {route});
             
             // ✨ THE FIX: Pass currentPath for asset resolution
             const meta = {

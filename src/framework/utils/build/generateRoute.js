@@ -51,7 +51,7 @@ export const generateRoute = async (route, outputDir='public') => {
         }
 
         // Compose components to HTML
-        const content = compose(route.components);
+        const content = compose(route.components, {route});
         
         // ✨ THE FIX: Pass currentPath in meta for asset resolution
         const meta = {

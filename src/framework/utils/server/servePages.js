@@ -50,8 +50,12 @@ export const servePages = async (req, res, url) => {
                     return;
                 }
             }
-            
-            const html = renderPage(compose(components), page.meta || {});
+            // Provide `currentPath` so renderPage can correctly resolve relative assets.
+            const meta = {
+                ...(page.meta || {}),
+                currentPath: matchedRoute.pattern.pathname 
+            };
+            const html = renderPage(compose(components), meta);
             
             res.writeHead(200, { 
                 'content-type': 'text/html',
