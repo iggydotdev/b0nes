@@ -419,6 +419,7 @@ Radical concept! 🤯</code></pre>
           `
         },
 
+        
         {
           title: 'How b0nes Fixes the Mess',
           content: `
@@ -433,6 +434,355 @@ Radical concept! 🤯</code></pre>
 TypeScript? JSDoc works
 NPM? Not invited
 Build step? Optional</code></pre>
+              <p class="mt-8 text-2xl text-yellow-400 font-bold">But talk is cheap. Show me the code.</p>
+            </div>
+          `
+        },
+
+        // ============ CODE EXAMPLES START ============
+        {
+          title: 'Auto-Routes: File = Route',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-cyan-400">Zero Config Routing</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-green-300 text-base md:text-xl font-mono w-full max-w-[90vw] md:max-w-3xl"><code>// File structure = URL structure
+src/pages/
+├── index.js           → /
+├── about/index.js     → /about
+├── blog/
+│   ├── index.js       → /blog
+│   └── [slug].js      → /blog/:slug
+└── api/users.js       → /api/users
+
+// No config files
+// No route definitions
+// Just create files 🎉</code></pre>
+              <p class="mt-6 text-xl md:text-2xl text-yellow-400 text-center">Next.js taught us this. We just made it <span class="font-bold">zero-dependency</span>.</p>
+            </div>
+          `
+        },
+
+        {
+          title: 'Auto-Routes: The Magic',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-purple-400">How Does It Work?</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-cyan-300 text-sm md:text-base font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl overflow-auto"><code>// autoRoutes.js - walks your pages/ directory
+function walk(dir, basePath = '') {
+  for (const entry of fs.readdirSync(dir)) {
+    if (entry.isDirectory()) {
+      walk(fullPath, path.join(basePath, entry.name));
+    } else if (entry.name === 'index.js') {
+      // index.js → /path
+      routes.push({
+        pattern: new URLPattern({ pathname: basePath }),
+        load: () => import(fullPath)
+      });
+    } else if (entry.name.startsWith('[')) {
+      // [slug].js → /path/:slug
+      const param = entry.name.replace(/\\[|\\]|\\.js/g, '');
+      routes.push({
+        pattern: new URLPattern({ 
+          pathname: \`\${basePath}/:\${param}\` 
+        }),
+        load: () => import(fullPath)
+      });
+    }
+  }
+}</code></pre>
+              <p class="mt-6 text-xl text-gray-300 text-center max-w-3xl">66 lines. No magic. Just Node fs + URLPattern. <span class="text-green-400 font-bold">That's it.</span></p>
+            </div>
+          `
+        },
+
+        {
+          title: 'Component Composition',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-green-400">Components Return Strings</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-pink-300 text-sm md:text-lg font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl"><code>// src/components/atoms/button/button.js
+export const button = ({ slot, type = 'button' }) => {
+  return \`<button type="\${type}">\${slot}</button>\`;
+};
+
+// That's a component. No JSX. No transpilation.
+// Just a function that returns HTML.
+
+// Use it:
+button({ slot: 'Click Me', type: 'submit' })
+// → '<button type="submit">Click Me</button>'
+
+// Compose them:
+const page = [
+  { type: 'atom', name: 'button', props: { slot: 'Hi' } },
+  { type: 'atom', name: 'text', props: { is: 'p', slot: 'Bye' } }
+];
+
+compose(page) 
+// → '<button>Hi</button><p>Bye</p>'</code></pre>
+            </div>
+          `
+        },
+
+        {
+          title: 'The Compose Function',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-orange-400">Recursion All The Way Down</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-lime-300 text-sm md:text-base font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl overflow-auto"><code>// compose.js - simplified
+export const compose = (components) => {
+  return components.map(comp => {
+    // Get the component function from registry
+    const fn = library[comp.type][comp.name];
+    
+    // If slot has nested components, compose them first
+    if (Array.isArray(comp.props.slot)) {
+      comp.props.slot = compose(comp.props.slot);
+    }
+    
+    // Call the function with props
+    return fn(comp.props);
+  }).join('\\n');
+};
+
+// Recursion handles nesting
+// Registry holds all components
+// No virtual DOM. Just strings. 🎯</code></pre>
+              <p class="mt-6 text-xl text-yellow-400 text-center">React: 20,000 lines. b0nes: 140 lines. Fight me.</p>
+            </div>
+          `
+        },
+
+        {
+          title: 'Client Behaviors: The Problem',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-red-400">Server Rendered ≠ Interactive</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-gray-300 text-lg md:text-2xl font-mono leading-relaxed w-full max-w-[90vw] md:max-w-2xl"><code>// Server gives you:
+<div class="tabs">
+  <button class="tab-btn">Tab 1</button>
+  <button class="tab-btn">Tab 2</button>
+  <div class="tab-panel">Content</div>
+</div>
+
+// Cool HTML. But it does nothing.
+// No clicks. No interaction. Dead fish.</code></pre>
+              <p class="mt-6 text-2xl text-yellow-400 text-center">We need JavaScript. But <span class="font-bold">how much?</span></p>
+            </div>
+          `
+        },
+
+        {
+          title: 'Client Behaviors: The Solution',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-green-400">Progressive Enhancement Pattern</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-cyan-300 text-sm md:text-base font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl overflow-auto"><code>// 1. Server renders with data attribute
+<div class="tabs" data-b0nes="molecules:tabs">
+  <!-- HTML here -->
+</div>
+
+// 2. Client runtime discovers it
+window.b0nes.init(); // finds [data-b0nes]
+
+// 3. Loads behavior on-demand
+import('/molecules/tabs/tabs.client.js')
+  .then(module => {
+    module.client(element); // attach behavior
+  });
+
+// Total JS for tabs: ~2KB
+// React tabs bundle: ~45KB
+// Savings: 95% 🚀</code></pre>
+            </div>
+          `
+        },
+
+        {
+          title: 'Client Behaviors: Real Example',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-purple-400">Tabs Behavior</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-pink-300 text-xs md:text-sm font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl overflow-auto"><code>// molecules/tabs/molecules.tabs.client.js
+export const client = (el) => {
+  const buttons = el.querySelectorAll('.tab-btn');
+  const panels = el.querySelectorAll('.tab-panel');
+  
+  buttons.forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      // Hide all panels
+      panels.forEach(p => p.hidden = true);
+      buttons.forEach(b => b.classList.remove('active'));
+      
+      // Show clicked panel
+      panels[i].hidden = false;
+      btn.classList.add('active');
+    });
+  });
+  
+  // Return cleanup (optional)
+  return () => {
+    buttons.forEach(b => b.replaceWith(b.cloneNode(true)));
+  };
+};
+
+// Vanilla JS. No framework. No problem.</code></pre>
+            </div>
+          `
+        },
+
+        {
+          title: 'The b0nes Runtime',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-blue-400">b0nes.js: The Brain</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-orange-300 text-xs md:text-sm font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl overflow-auto"><code>// client/b0nes.js - simplified
+window.b0nes = {
+  behaviors: {},
+  
+  register(name, fn) {
+    this.behaviors[name] = fn;
+  },
+  
+  init(root = document) {
+    // Find all [data-b0nes] elements
+    root.querySelectorAll('[data-b0nes]').forEach(el => {
+      const [type, name] = el.dataset.b0nes.split(':');
+      
+      // Already initialized? Skip
+      if (el.dataset.b0nesInit) return;
+      
+      // Load behavior on-demand
+      import(\`/\${type}s/\${name}/\${type}.\${name}.client.js\`)
+        .then(mod => {
+          this.register(name, mod.client);
+          mod.client(el); // attach
+          el.dataset.b0nesInit = 'true';
+        });
+    });
+  }
+};
+
+// Auto-init on page load
+document.addEventListener('DOMContentLoaded', () => b0nes.init());</code></pre>
+              <p class="mt-4 text-lg text-gray-300 text-center">Total size: <span class="text-green-400 font-bold">~3KB gzipped</span></p>
+            </div>
+          `
+        },
+
+        {
+          title: 'State Management: FSM',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-teal-400">Finite State Machines</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-lime-300 text-sm md:text-base font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl overflow-auto"><code>// Multi-step form with FSM
+const fsm = createFSM({
+  initial: 'step1',
+  states: {
+    step1: { on: { NEXT: 'step2' } },
+    step2: { on: { NEXT: 'step3', BACK: 'step1' } },
+    step3: { on: { SUBMIT: 'success', BACK: 'step2' } },
+    success: {}
+  }
+});
+
+fsm.send('NEXT'); // step1 → step2
+fsm.send('BACK'); // step2 → step1
+fsm.is('step1');  // true
+fsm.can('NEXT');  // true
+
+// Impossible states? Impossible.
+// XState without the 200KB download.</code></pre>
+            </div>
+          `
+        },
+
+        {
+          title: 'State Management: Store',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-purple-400">Redux-style Store</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-pink-300 text-sm md:text-base font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl overflow-auto"><code>// client/store.js
+const store = createStore({
+  state: { count: 0 },
+  actions: {
+    increment: (state) => ({ count: state.count + 1 }),
+    decrement: (state) => ({ count: state.count - 1 })
+  },
+  getters: {
+    doubled: (state) => state.count * 2
+  }
+});
+
+store.dispatch('increment'); // count = 1
+store.getState();            // { count: 1 }
+store.computed('doubled');   // 2
+
+// Subscribe to changes
+store.subscribe((change) => {
+  console.log('State updated!', change);
+});
+
+// Redux without the boilerplate hell.</code></pre>
+            </div>
+          `
+        },
+
+        {
+          title: 'SPAs with FSM Router',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-orange-400">Client-Side Routing</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-cyan-300 text-xs md:text-sm font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl overflow-auto"><code>// Define routes
+const routes = [
+  { name: 'home', url: '/', template: '<h1>Home</h1>' },
+  { name: 'about', url: '/about', template: '<h1>About</h1>' },
+  { name: 'blog', url: '/blog/:id', template: (params) => 
+      \`<h1>Post \${params.id}</h1>\`
+  }
+];
+
+// Create router FSM
+const { fsm } = createRouterFSM(routes);
+
+// Connect to DOM
+connectFSMtoDOM(fsm, document.getElementById('app'), routes);
+
+// Navigate via events
+<button data-fsm-event="GOTO_ABOUT">About</button>
+
+// Or programmatically
+fsm.send('GOTO_BLOG', { id: 123 });
+
+// Handles URL changes, history, back/forward.
+// React Router complexity: ZERO.</code></pre>
+            </div>
+          `
+        },
+
+        {
+          title: 'Putting It All Together',
+          content: `
+            <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <h2 class="text-3xl md:text-5xl font-bold mb-6 text-yellow-400">The Full Stack</h2>
+              <pre class="bg-gray-800 p-4 rounded-lg text-green-300 text-sm md:text-lg font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl"><code>// 1. Auto-routes discover pages
+pages/blog/[slug].js → /blog/:slug
+
+// 2. Compose renders to HTML
+compose(components) → '<div>...</div>'
+
+// 3. Server sends HTML + b0nes.js
+renderPage(html, { interactive: true })
+
+// 4. Client hydrates [data-b0nes]
+b0nes.init() → attach behaviors
+
+// 5. FSM + Store manage state
+fsm.send('NEXT') + store.dispatch('save')
+
+Result: Full-featured site
+Size: <50KB total JS
+Time: ~50ms to interactive 🚀</code></pre>
             </div>
           `
         },
