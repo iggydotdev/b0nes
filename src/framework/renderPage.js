@@ -1,4 +1,8 @@
 import { resolveVersionedAsset } from './utils/assetPath.js';
+import { generateStylesheetTag } from './utils/build/generateStylesheetTag.js';
+import { generateMetaTags } from './utils/build/generateMetaTags.js';
+import { resolveAssetPath } from './utils/server/resolveAssetPath.js';
+
 /**
  * b0nes Page Renderer
  * Generates complete HTML pages with meta tags, stylesheets, and scripts
@@ -160,93 +164,6 @@ const normalizeStylesheets = (stylesheets) => {
 };
 
 /**
- * Generate link tag for stylesheet
- * @param {Object} stylesheet - Stylesheet configuration
- * @param {string} stylesheet.href - Stylesheet URL
- * @param {string} [stylesheet.media] - Media query
- * @param {string} [stylesheet.integrity] - SRI hash
- * @param {string} [stylesheet.crossOrigin] - CORS setting
- * @param {Object} [stylesheet.attrs] - Additional attributes
- * @returns {string} Link tag HTML
- * 
- * @example
- * generateStylesheetTag({ 
- *   href: '/styles/main.css',
- *   media: '(prefers-color-scheme: dark)'
- * })
- */
-const generateStylesheetTag = (stylesheet) => {
-    if (stylesheet.href.includes(`tailwind`)) {
-        return `<script src="${stylesheet.href}"></script>`;
-    }
-    let attrs = `rel="stylesheet" href="${stylesheet.href}"`;
-    
-    if (stylesheet.media) {
-        attrs += ` media="${stylesheet.media}"`;
-    }
-    
-    if (stylesheet.integrity) {
-        attrs += ` integrity="${stylesheet.integrity}"`;
-    }
-    
-    if (stylesheet.crossOrigin) {
-        attrs += ` crossorigin="${stylesheet.crossOrigin}"`;
-    }
-    
-    // Additional custom attributes
-    if (stylesheet.attrs && typeof stylesheet.attrs === 'object') {
-        Object.entries(stylesheet.attrs).forEach(([key, value]) => {
-            attrs += ` ${key}="${value}"`;
-        });
-    }
-    
-    return `<link ${attrs}>`;
-};
-
-/**
- * Generate meta tags from meta object
- * @param {Object} meta - Meta information
- * @returns {string} Meta tags HTML
- * 
- * @example
- * generateMetaTags({
- *   title: 'My Page',
- *   description: 'Page description',
- *   keywords: 'web, development',
- *   'og:title': 'My Page',
- *   'og:image': '/images/og.jpg'
- * })
- */
-const generateMetaTags = (meta) => {
-    const tags = [];
-    
-    // Standard meta tags
-    const standardMeta = ['description', 'keywords', 'author', 'viewport', 'charset'];
-    
-    Object.entries(meta).forEach(([name, content]) => {
-        // Skip special keys
-        if (['title', 'stylesheets', 'scripts', 'interactive'].includes(name)) {
-            return;
-        }
-        
-        // Open Graph and Twitter cards
-        if (name.startsWith('og:') || name.startsWith('twitter:')) {
-            tags.push(`<meta property="${name}" content="${content}">`);
-        }
-        // Standard meta tags
-        else if (standardMeta.includes(name)) {
-            tags.push(`<meta name="${name}" content="${content}">`);
-        }
-        // Custom meta tags
-        else {
-            tags.push(`<meta name="${name}" content="${content}">`);
-        }
-    });
-    
-    return tags.join('\n    ');
-};
-
-/**
  * Render complete HTML page
  * @param {string} content - Page content (composed components)
  * @param {Object} [meta={}] - Page metadata and configuration
@@ -286,6 +203,9 @@ export const renderPage = (content, meta = {}) => {
         html = html.replace('</head>', `    ${metaTags}\n</head>`);
     }
     
+    // Get current page path for resolving relative assets
+    const currentPath = meta.currentPath || '/';
+
     // Process stylesheets
     const pageStylesheets = meta.stylesheets || [];
     const allStylesheets = [...DEFAULT_STYLESHEETS, ...pageStylesheets];
@@ -293,7 +213,7 @@ export const renderPage = (content, meta = {}) => {
     
     if (normalizedStylesheets.length > 0) {
         const stylesheetTags = normalizedStylesheets
-            .map(generateStylesheetTag)
+            .map(sheet=>generateStylesheetTag(sheet, currentPath))
             .join('\n    ');
         
         // Insert before closing </head>
@@ -310,7 +230,10 @@ export const renderPage = (content, meta = {}) => {
     let additionalScripts = '';
     if (meta.scripts && Array.isArray(meta.scripts)) {
         additionalScripts = '\n    ' + meta.scripts
-            .map(src => `<script src="${src}"></script>`)
+            .map(src => {
+                const resolvedSrc = resolveAssetPath(src, currentPath);
+                return `<script defer src="${resolvedSrc}"></script>`;
+            })
             .join('\n    ');
     }
     
