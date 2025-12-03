@@ -260,18 +260,18 @@ Before anything renders</code></pre>
                   </thead>
                   <tbody class="font-mono">
                     <tr class="border-b border-gray-700">
-                      <td class="p-4 text-gray-300">Dependencies</td>
-                      <td class="text-center p-4 text-red-300">847</td>
-                      <td class="text-center p-4 text-green-300 font-bold">0</td>
+                      <td class="p-4 text-gray-300">Packages installed</td>
+                      <td class="text-center p-4 text-red-300">358</td>
+                      <td class="text-center p-4 text-green-300 font-bold">1</td>
                     </tr>
                     <tr class="border-b border-gray-700">
                       <td class="p-4 text-gray-300">node_modules</td>
-                      <td class="text-center p-4 text-red-300">412 MB</td>
-                      <td class="text-center p-4 text-green-300 font-bold">0 MB</td>
+                      <td class="text-center p-4 text-red-300">466 MB</td>
+                      <td class="text-center p-4 text-green-300 font-bold">1.51 MB</td>
                     </tr>
                     <tr class="border-b border-gray-700">
                       <td class="p-4 text-gray-300">Time to Interactive</td>
-                      <td class="text-center p-4 text-red-300">3.2s</td>
+                      <td class="text-center p-4 text-red-300">~1.9s</td>
                       <td class="text-center p-4 text-green-300 font-bold">~0s</td>
                     </tr>
                     <tr class="border-b border-gray-700">
@@ -391,9 +391,13 @@ Radical concept! 🤯</code></pre>
         },
 
         {
-          title: 'The Rich Hickey Wisdom',
+          title: 'The Wise men',
           content: `
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+              <blockquote class="text-xl md:text-2xl text-gray-300 italic mb-6 max-w-4xl text-center border-l-4 border-green-400 pl-6">
+                "Simplicity is a great virtue but it requires hard work to achieve it and education to appreciate it. And to make matters worse: complexity sells better."
+              </blockquote>
+              <p class="text-2xl md:text-3xl text-green-400 font-bold">— Edsger Wybe Dijkstra</p>
               <blockquote class="text-xl md:text-2xl text-gray-300 italic mb-6 max-w-4xl text-center border-l-4 border-green-400 pl-6">
                 "Simplicity is hard work. But there's a huge payoff. The person who has a genuinely simpler system is going to be able to affect the greatest change with the least work."
               </blockquote>
@@ -409,9 +413,9 @@ Radical concept! 🤯</code></pre>
           content: `
             <div class="flex flex-col items-center justify-center text-center min-h-screen p-4 md:p-8 bg-gray-900 text-white">
               <h1 class="text-5xl md:text-7xl font-extrabold text-teal-400 mb-6">Meet b0nes 🦴</h1>
-              <img src="./b0nes.png" loading="lazy" alt="B0nes logo" class="w-full max-w-[60vw] md:max-w-sm mt-2 rounded-lg shadow-lg bg-white">
+              <img src="./b0nes.png" loading="lazy" alt="B0nes logo" class="w-full max-w-[60vw] md:max-w-sm mt-2 rounded-lg shadow-lg bg-white" width="160" height="100">
               <p class="text-xl md:text-2xl text-gray-300 mb-2 mt-6 max-w-3xl">Zero-dependency toolkit</p>
-              <p class="text-xl md:text-2xl text-gray-300 mb-4 max-w-3xl">SSR • SSG • SPA • State • Forms</p>
+              <p class="text-xl md:text-2xl text-gray-300 mb-4 max-w-3xl">SSR • SSG • FSM • State • And more!</p>
               <p class="text-2xl md:text-3xl text-green-400 mb-2 font-bold">Learning curve: One afternoon</p>
               <p class="text-2xl md:text-3xl text-yellow-400 mb-4 font-bold">Maintenance: Minimal</p>
               <p class="text-xl md:text-2xl text-purple-400">Pure JavaScript. No drama.</p>
@@ -469,24 +473,41 @@ src/pages/
               <h2 class="text-3xl md:text-5xl font-bold mb-6 text-purple-400">How Does It Work?</h2>
               <pre class="bg-gray-800 p-4 rounded-lg text-cyan-300 text-sm md:text-base font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl overflow-auto"><code>// autoRoutes.js - walks your pages/ directory
 function walk(dir, basePath = '') {
-  for (const entry of fs.readdirSync(dir)) {
-    if (entry.isDirectory()) {
-      walk(fullPath, path.join(basePath, entry.name));
-    } else if (entry.name === 'index.js') {
-      // index.js → /path
-      routes.push({
-        pattern: new URLPattern({ pathname: basePath }),
-        load: () => import(fullPath)
-      });
-    } else if (entry.name.startsWith('[')) {
-      // [slug].js → /path/:slug
-      const param = entry.name.replace(/\\[|\\]|\\.js/g, '');
-      routes.push({
-        pattern: new URLPattern({ 
-          pathname: \`\${basePath}/:\${param}\` 
-        }),
-        load: () => import(fullPath)
-      });
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      
+      if (entry.isDirectory()) {
+        const childBase = path.join(basePath, entry.name);
+        walk(fullPath, childBase);
+      } else if (entry.isFile() && entry.name.endsWith('.js')) {
+        const isIndexPage = entry.name === 'index.js';
+        const isDynamicPage = entry.name.startsWith('[') || entry.name.startsWith(':');
+        
+        if (!isIndexPage && !isDynamicPage) {
+          continue; 
+        }
+        
+        let routePath = basePath;
+        if (!isIndexPage) {
+          const segment = entry.name.replace(/\.js$/, '');
+          routePath = path.join(basePath, segment);
+        }
+        
+        let pathname = ('/' + routePath.replace(/\\/g, '/')).replace(/\/+/g, '/');
+        pathname = pathname.replace(/\[([^\/]+)\]/g, ':$1');
+        
+        if (pathname.length > 1 && pathname.endsWith('/')) {
+            pathname = pathname.slice(0, -1);
+        }
+        
+        routes.push({ 
+          pattern: new URLPattern({ pathname }), 
+          load: () => import(pathToFileURL(fullPath).href), 
+          filePath: fullPath
+        });
+      }
     }
   }
 }</code></pre>
@@ -501,9 +522,51 @@ function walk(dir, basePath = '') {
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-6 text-green-400">Components Return Strings</h2>
               <pre class="bg-gray-800 p-4 rounded-lg text-pink-300 text-sm md:text-lg font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl"><code>// src/components/atoms/button/button.js
-export const button = ({ slot, type = 'button' }) => {
-  return \`<button type="\${type}">\${slot}</button>\`;
+export const button = ({
+    type = 'button',
+    attrs = '', 
+    className = '',
+    slot,
+}) => {
+    // Validate required props
+    validateProps(
+        { slot },
+        ['slot'],
+        { componentName: 'button', componentType: 'atom' }
+    );
+    
+    // Validate prop types
+    validatePropTypes(
+        { type, attrs, className, slot },
+        { 
+            type: 'string',
+            attrs: 'string',
+            className: 'string',
+            // slot can be string or array
+        },
+        { componentName: 'button', componentType: 'atom' }
+    );
+    
+    // Validate button type
+    const validTypes = ['button', 'submit', 'reset'];
+    if (!validTypes.includes(type)) {
+        throw new Error(
+            \`Invalid button type: "\${type}". Must be one of: \${validTypes.join(', ')}\`
+        );
+    }
+    
+    // Process attributes
+    attrs = attrs ? \` \${attrs}\` : '';
+
+    // Normalize classes
+    const classes = normalizeClasses(['btn', className]);
+    
+    // Process slot content (trust component-rendered HTML)
+    const slotContent = processSlotTrusted(slot);
+    
+    return \`<button type="\${type}" class="\${classes}"\${attrs}>\${slotContent}</button>\`;
 };
+
 
 // That's a component. No JSX. No transpilation.
 // Just a function that returns HTML.
@@ -514,12 +577,11 @@ button({ slot: 'Click Me', type: 'submit' })
 
 // Compose them:
 const page = [
-  { type: 'atom', name: 'button', props: { slot: 'Hi' } },
-  { type: 'atom', name: 'text', props: { is: 'p', slot: 'Bye' } }
+  { type: 'atom', name: 'button', props: { slot: 'Hi' } }
 ];
 
 compose(page) 
-// → '<button>Hi</button><p>Bye</p>'</code></pre>
+// → '<button>Hi</button>'</code></pre>
             </div>
           `
         },
@@ -548,7 +610,7 @@ export const compose = (components) => {
 // Recursion handles nesting
 // Registry holds all components
 // No virtual DOM. Just strings. 🎯</code></pre>
-              <p class="mt-6 text-xl text-yellow-400 text-center">React: 20,000 lines. b0nes: 140 lines. Fight me.</p>
+             
             </div>
           `
         },
@@ -559,11 +621,11 @@ export const compose = (components) => {
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-6 text-red-400">Server Rendered ≠ Interactive</h2>
               <pre class="bg-gray-800 p-4 rounded-lg text-gray-300 text-lg md:text-2xl font-mono leading-relaxed w-full max-w-[90vw] md:max-w-2xl"><code>// Server gives you:
-<div class="tabs">
+'<div class="tabs">
   <button class="tab-btn">Tab 1</button>
   <button class="tab-btn">Tab 2</button>
   <div class="tab-panel">Content</div>
-</div>
+</div>'
 
 // Cool HTML. But it does nothing.
 // No clicks. No interaction. Dead fish.</code></pre>
@@ -578,9 +640,9 @@ export const compose = (components) => {
             <div class="p-4 md:p-8 bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
               <h2 class="text-3xl md:text-5xl font-bold mb-6 text-green-400">Progressive Enhancement Pattern</h2>
               <pre class="bg-gray-800 p-4 rounded-lg text-cyan-300 text-sm md:text-base font-mono leading-relaxed w-full max-w-[90vw] md:max-w-3xl overflow-auto"><code>// 1. Server renders with data attribute
-<div class="tabs" data-b0nes="molecules:tabs">
+'<div class="tabs" data-b0nes="molecules:tabs">
   <!-- HTML here -->
-</div>
+</div>'
 
 // 2. Client runtime discovers it
 window.b0nes.init(); // finds [data-b0nes]
@@ -866,8 +928,7 @@ EOF
           content: `
             <div class="flex flex-col items-center justify-center text-center min-h-screen p-4 md:p-8 bg-gray-900 text-white">
               <h1 class="text-4xl md:text-6xl font-extrabold text-green-400 mb-4">Ready to Pick a b0ne?</h1>
-              <pre class="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg text-cyan-300 text-2xl md:text-4xl font-mono mb-8"><code>npx b0nes my-app</code></pre>
-              <p class="text-xl md:text-2xl text-gray-400 mb-6">github.com/iggydotdev/b0nes</p>
+              
               <img src="./qr-code.png" loading="lazy" alt="QR code for b0nes" class="w-full max-w-[60vw] md:max-w-sm rounded-lg shadow-lg bg-white">
               <p class="mt-8 text-2xl md:text-3xl text-purple-400">Questions? Let's chat.</p>
             </div>
