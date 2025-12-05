@@ -43,7 +43,7 @@ function walk(dir, basePath = '') {
     }
   }
 }</code></pre>
-              <p class="mt-6 text-xl text-gray-300 text-center max-w-3xl">66 lines. No magic. Just Node fs + URLPattern. <span class="text-green-400 font-bold">That's it.</span></p>
+              <p class="mt-6 text-xl text-gray-300 text-center max-w-3xl">No magic. Just Node fs + URLPattern. <span class="text-green-400 font-bold">That's it.</span></p>
             </div>
           `
         };
