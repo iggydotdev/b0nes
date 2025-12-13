@@ -1,2 +1,34 @@
 /* grid */
-...
+/* --- Grid utilities --- */
+
+.grid {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.cols-1 { grid-template-columns: 1fr; }
+.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* Grid area layouts (Tachyons never had this!) */
+
+.grid-layout {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-areas:
+    "header header"
+    "sidebar main"
+    "footer footer";
+}
+
+.area-header  { grid-area: header; }
+.area-sidebar { grid-area: sidebar; }
+.area-main    { grid-area: main; }
+.area-footer  { grid-area: footer; }
+
+/* Centered grid */
+.grid-center {
+  display: grid;
+  place-items: center;
+}

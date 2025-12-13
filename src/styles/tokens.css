@@ -1,2 +1,27 @@
 /* tokens */
-...
+/* --- Design tokens --- */
+
+:root {
+  /* Spacing scale */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+
+  /* Border radius */
+  --radius-1: 4px;
+  --radius-2: 8px;
+  --radius-round: 9999px;
+
+  /* Colors */
+  --color-text: #111;
+  --color-bg: #fff;
+  --color-accent: #0066ff;
+  --color-muted: #666;
+  --color-border: #ddd;
+
+  /* Sizing */
+  --max-width: 1400px;
+}

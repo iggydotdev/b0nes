@@ -1,2 +1,40 @@
 /* utilities */
-...
+/* --- Utility classes: spacing, borders, typographic atoms --- */
+
+/* Spacing */
+.m0 { margin: var(--space-0); }
+.m1 { margin: var(--space-1); }
+.m2 { margin: var(--space-2); }
+.m3 { margin: var(--space-3); }
+.m4 { margin: var(--space-4); }
+
+.p1 { padding: var(--space-1); }
+.p2 { padding: var(--space-2); }
+.p3 { padding: var(--space-3); }
+.p4 { padding: var(--space-4); }
+
+/* Axis spacing */
+.mt1 { margin-top: var(--space-1); }
+.mb1 { margin-bottom: var(--space-1); }
+.ml1 { margin-left: var(--space-1); }
+.mr1 { margin-right: var(--space-1); }
+
+/* Borders */
+.border { border: 1px solid var(--color-border); }
+.border-0 { border: none; }
+.round { border-radius: var(--radius-1); }
+.round-lg { border-radius: var(--radius-2); }
+.pill { border-radius: var(--radius-round); }
+
+/* Text utilities */
+.bold { font-weight: 700; }
+.semibold { font-weight: 600; }
+.light { font-weight: 300; }
+.fs1 { font-size: 0.875rem; }
+.fs2 { font-size: 1rem; }
+.fs3 { font-size: 1.25rem; }
+
+/* Display */
+.block { display: block; }
+.inline-block { display: inline-block; }
+.hidden { display: none !important; }

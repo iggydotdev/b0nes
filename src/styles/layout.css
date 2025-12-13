@@ -1,2 +1,19 @@
 /* layout */
-...
+/* --- Flex, layout primitives --- */
+
+.container {
+  width: 100%;
+  margin-inline: auto;
+  max-width: var(--max-width);
+  padding-inline: var(--space-3);
+}
+
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.row { display: flex; flex-direction: row; }
+
+.center { display: flex; align-items: center; justify-content: center; }
+.between { display: flex; justify-content: space-between; }
+
+.w-100 { width: 100%; }
+.h-100 { height: 100%; }

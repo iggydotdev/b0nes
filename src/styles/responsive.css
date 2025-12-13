@@ -1,2 +1,25 @@
 /* responsive */
-...
+/* --- Semantic responsive utilities --- */
+/* No inline queries like Tailwind; each breakpoint lives here */
+
+@media (min-width: 600px) {
+  .sm-grid { display: grid; }
+  .sm-cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .sm-cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+  .sm-flex { display: flex; }
+  .sm-flex-row { flex-direction: row; }
+  .sm-flex-col { flex-direction: column; }
+}
+
+@media (min-width: 900px) {
+  .md-cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .md-cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .md-flex { display: flex; }
+}
+
+@media (min-width: 1200px) {
+  .lg-cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .lg-cols-6 { grid-template-columns: repeat(6, 1fr); }
+}
