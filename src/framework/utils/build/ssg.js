@@ -346,6 +346,27 @@ export const build = async (outputDir = 'public', options = {}) => {
     
     console.log('🦴 b0nes SSG Build Starting...\n');
     
+    // ✨ COMPILE SPA TEMPLATES FIRST (before anything else!)
+    console.log('📦 Compiling SPA templates...\n');
+    try {
+        const spaComponentPath = path.resolve(__dirname, '../../../components/organisms/spa');
+        const compiledOutputPath = path.join(outputDir, 'assets', 'js', 'spa-templates.js');
+        
+        // Make sure the directory exists
+        const compiledDir = path.dirname(compiledOutputPath);
+        if (!fs.existsSync(compiledDir)) {
+            fs.mkdirSync(compiledDir, { recursive: true });
+        }
+        
+        await generateCompiledTemplates(spaComponentPath, compiledOutputPath);
+        console.log('✅ Templates compiled!\n');
+    } catch (error) {
+        console.error('❌ Failed to compile SPA templates:', error.message);
+        if (!continueOnError) throw error;
+    }
+    
+
+
     if (verbose && buildCache) {
         const stats = buildCache.getStats();
         console.log(`📊 Cache: ${stats.totalRoutes} routes cached, ${(stats.cacheSize / 1024).toFixed(2)} KB\n`);
@@ -432,17 +453,7 @@ export const build = async (outputDir = 'public', options = {}) => {
         return result;
     });
     
-    // Compile SPA templates
-    console.log('\n📦 Compiling SPA templates...\n');
-    try {
-        const spaComponentPath = path.resolve(__dirname, '../../../components/organisms/spa');
-        const compiledOutputPath = path.join(outputDir, 'assets', 'js', 'spa-templates.js');
-        
-        await generateCompiledTemplates(spaComponentPath, compiledOutputPath);
-    } catch (error) {
-        console.error('❌ Failed to compile SPA templates:', error.message);
-        if (!continueOnError) throw error;
-    }
+   
     
     // Copy framework runtime files
     console.log('📋 Copying framework runtime files...\n');
