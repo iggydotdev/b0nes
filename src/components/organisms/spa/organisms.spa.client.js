@@ -35,12 +35,17 @@ export const client = async (root) => {
         }
     });
 
-    const getTodosTemplate = () => {
-        const todos = window.store.getState().todos;
+    const getTodosTemplate = (todos) => {
+        
         // If template is a function, call it with data
-        const template = typeof templates.todos === 'function' 
-            ? templates.todos(todos)
-            : templates.todos;
+        let template
+        if (typeof templates.todos === 'function') {
+            console.log('Generating todos template with', todos.length, 'items');
+         template = templates.todos(todos)
+        } else {
+            console.log('Using static todos template');
+           template =  templates.todos;
+        }
         console.log('Generated todos template with', todos.length, 'items', template);
         return template;
     };
@@ -57,9 +62,9 @@ export const client = async (root) => {
         },
         {
             name: 'todos',
-            url: '/todos',
+            url: '/#todos',
             // Dynamic template - function that returns HTML
-            template: `${getTodosTemplate()}`,
+            template: `${getTodosTemplate(window.store.getState().todos)}`,
             onEnter: (context) => {
                 console.log('[SPA] Todos page loaded');
             }
@@ -90,7 +95,7 @@ export const client = async (root) => {
         },
         {
             name: 'about',
-            url: '/about',
+            url: '/#about',
             // Static template
             template: templates.about,
             onEnter: (context) => {

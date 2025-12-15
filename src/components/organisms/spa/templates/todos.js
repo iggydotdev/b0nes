@@ -1,4 +1,4 @@
-import { fromConfig } from '../../../framework/component.js';
+import { fromConfig } from '../../../../framework/utils/mapper.js';
 // ===================================
 // PATTERN 2: Dynamic Template (Function)
 // ===================================
@@ -6,7 +6,7 @@ import { fromConfig } from '../../../framework/component.js';
 
 // ✅ Exports function that takes data and returns component config
 // Function gets preserved in compiled output, called with data at runtime
-export const components = (todos) => [
+export const components = (todos) => fromConfig([
   {
     type: 'atom',
     name: 'box',
@@ -70,5 +70,5 @@ export const components = (todos) => [
       ]
     }
   }
-];
+]);
 
