@@ -10,9 +10,33 @@ import {components as todoComponents} from '/spa/templates/todo.js';
 import {components as todosComponents} from '/spa/templates/todos.js';
 
 
-export const client = (el) => {
+// Dynamic import helper for templates
+const importTemplate = async (name) => {
+  // Try production path first
+  try {
+    const module = await import(`/assets/js/behaviors/organisms/spa/templates/${name}.js`);
+    return module.components;
+  } catch (e) {
+    // Fallback to dev path
+    const module = await import(`../../organisms/spa/templates/${name}.js`);
+    return module.components;
+  }
+};
+
+export const client = async (el) => {
     // Global store
     console.log(el)
+      // Load all templates
+  const templates = {};
+  try {
+    templates.home = await importTemplate('home');
+    templates.about = await importTemplate('about');
+    templates.todos = await importTemplate('todos');
+    templates.todo = await importTemplate('todo');
+  } catch (error) {
+    console.error('[SPA] Failed to load templates:', error);
+    return;
+  }
     window.store = createStore({
     state: { 
         user: 'Grok', 
