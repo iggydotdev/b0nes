@@ -12,9 +12,6 @@
     // Track event listeners for cleanup
     const globalListeners = new Map(); // element -> [{type, listener, options}]
     
-    // Track timers (setTimeout, setInterval)
-    const activeTimers = new Set();
-    
     /**
      * Safe addEventListener wrapper that tracks for cleanup
      */

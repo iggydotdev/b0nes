@@ -2,6 +2,8 @@
 
 import {createStore} from '/client/store.js';
 import { createRouterFSM, connectFSMtoDOM } from '/client/fsm.js';
+
+// Import templates
 import {components as homeComponents} from '/spa/templates/home.js';
 import {components as aboutComponents} from '/spa/templates/about.js';
 import {components as todoComponents} from '/spa/templates/todo.js';
@@ -63,7 +65,26 @@ export const client = (el) => {
     // Force re-render current page
     const current = fsm.getState();
     fsm.send(`GOTO_${current.toUpperCase()}`); // hacky but works for demo
+    }); 
+    
+    
+    // Event delegation
+
+    root.addEventListener('click', (e) => {
+        if (e.target.matches('[data-action="toggle"]')) {
+            e.preventDefault();
+            const id = parseInt(e.target.dataset.id);
+            window.store.dispatch('toggleTodo', id);
+            
+            // Re-render current page
+            const currentState = fsm.getState();
+            fsm.send(`GOTO_${currentState.toUpperCase()}`);
+        }
     });
+    
+    return () => {
+        console.log('[SPA] Cleanup');
+    };
 }
 
 

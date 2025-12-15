@@ -6,12 +6,13 @@ import path from 'node:path';
 // Fixed imports - use the auto-routes system
 import { getRoutes } from '../server/autoRoutes.js';
 import { generateRoute } from './generateRoute.js';
-import { generateDynamicRoute } from './generateDynamicRoute.js';
+
 import { copyColocatedAssets } from './colocatedAssets.js';
 import { generateSSRFallback } from './ssrFallback.js';
 import { copyFrameworkRuntime } from './copyFrameworkRuntime.js';
 import { copyComponentBehaviors } from './copyComponentBehaviors.js';
-import { processColocatedAssets } from './processColocatedAssets.js';
+import { generateCompiledTemplates } from './compileTemplates.js';
+
 
 /**
  * Build cache to skip unchanged routes (functional style with closures)
@@ -227,7 +228,7 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
             
             const dataArray = Array.isArray(data) ? data : [data];
             
-            // Convert components function to proper format for generateDynamicRoute
+            // Convert components function to proper format for dynamic route
             const routeWithComponents = {
                 ...route,
                 pattern: route.pattern,
@@ -238,7 +239,7 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
                 }
             };
             
-            const results = await generateDynamicRoute(routeWithComponents, dataArray, outputDir);
+            const results = await generateRoute(routeWithComponents, outputDir, dataArray);
             
             if (results.length === 0) {
                 throw new Error(`Dynamic route "${route.pattern.pathname}" generated no output`);
@@ -430,6 +431,18 @@ export const build = async (outputDir = 'public', options = {}) => {
         
         return result;
     });
+    
+    // Compile SPA templates
+    console.log('\n📦 Compiling SPA templates...\n');
+    try {
+        const spaComponentPath = path.resolve(__dirname, '../../../components/organisms/spa');
+        const compiledOutputPath = path.join(outputDir, 'assets', 'js', 'spa-templates.js');
+        
+        await generateCompiledTemplates(spaComponentPath, compiledOutputPath);
+    } catch (error) {
+        console.error('❌ Failed to compile SPA templates:', error.message);
+        if (!continueOnError) throw error;
+    }
     
     // Copy framework runtime files
     console.log('📋 Copying framework runtime files...\n');

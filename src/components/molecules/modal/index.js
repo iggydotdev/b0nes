@@ -1,9 +1,7 @@
 import {modal as modalRender} from './modal.js';
-import {client} from './molecules.modal.client.js'; 
 
 export const modal = {
-    render: modalRender,
-    client: client
+    render: modalRender
 };
 
 export default modal.render;
