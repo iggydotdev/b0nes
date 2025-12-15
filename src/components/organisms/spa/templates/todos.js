@@ -1,6 +1,11 @@
+import { fromConfig } from '../../../framework/component.js';
+// ===================================
+// PATTERN 2: Dynamic Template (Function)
+// ===================================
 // src/components/organisms/spa/templates/todos.js
-// Templates can be functions that return configs!
 
+// ✅ Exports function that takes data and returns component config
+// Function gets preserved in compiled output, called with data at runtime
 export const components = (todos) => [
   {
     type: 'atom',
@@ -10,7 +15,7 @@ export const components = (todos) => [
         {
           type: 'atom',
           name: 'text',
-          props: { is: 'h1', slot: 'Todos' }
+          props: { is: 'h1', slot: 'My Todos' }
         },
         {
           type: 'atom',
@@ -28,17 +33,16 @@ export const components = (todos) => [
                     name: 'text',
                     props: {
                       is: 'label',
-                      attrs: `for="todo-${todo.id}"`,
                       slot: [
                         {
                           type: 'atom',
                           name: 'input',
                           props: {
                             type: 'checkbox',
-                            attrs: `${todo.done ? 'checked' : ''} data-action="toggle" data-id="${todo.id}" id="todo-${todo.id}"`
+                            attrs: `${todo.done ? 'checked' : ''} data-action="toggle" data-id="${todo.id}"`
                           }
                         },
-                        ` ${todo.text}`
+                        todo.done ? ` ✅ ${todo.text}` : ` ${todo.text}`
                       ]
                     }
                   },
@@ -47,7 +51,7 @@ export const components = (todos) => [
                     name: 'button',
                     props: {
                       attrs: `data-fsm-event="GOTO_TODO" data-param="${todo.id}"`,
-                      slot: 'View'
+                      slot: 'Details'
                     }
                   }
                 ]
@@ -60,10 +64,11 @@ export const components = (todos) => [
           name: 'button',
           props: {
             attrs: 'data-fsm-event="GOTO_HOME"',
-            slot: 'Back Home'
+            slot: '← Back Home'
           }
         }
       ]
     }
   }
 ];
+

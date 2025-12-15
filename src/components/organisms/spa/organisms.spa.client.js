@@ -35,6 +35,15 @@ export const client = async (root) => {
         }
     });
 
+    const getTodosTemplate = () => {
+        const todos = window.store.getState().todos;
+        // If template is a function, call it with data
+        const template = typeof templates.todos === 'function' 
+            ? templates.todos(todos)
+            : templates.todos;
+        console.log('Generated todos template with', todos.length, 'items', template);
+        return template;
+    };
     // Define routes using PRE-COMPILED templates
     const routes = [
         {
@@ -50,13 +59,7 @@ export const client = async (root) => {
             name: 'todos',
             url: '/todos',
             // Dynamic template - function that returns HTML
-            template: () => {
-                const todos = window.store.getState().todos;
-                // If template is a function, call it with data
-                return typeof templates.todos === 'function' 
-                    ? templates.todos(todos)
-                    : templates.todos;
-            },
+            template: `${getTodosTemplate()}`,
             onEnter: (context) => {
                 console.log('[SPA] Todos page loaded');
             }
