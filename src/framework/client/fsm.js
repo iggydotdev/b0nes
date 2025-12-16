@@ -80,7 +80,7 @@
  *   }
  * });
  */
-
+import { compose } from './compose.js';
 /**
  * Creates a finite state machine
  * @param {Object} config - FSM configuration
@@ -486,7 +486,7 @@ export const createRouterFSM = (routes) => {
  * @param {Array<Object>} routes - The original array of route definitions, containing `name`, `url`, and `template`.
  * @returns {Function} A cleanup function to unsubscribe and remove event listeners.
  */
-export const connectFSMtoDOM = (fsm, rootEl, routes) => {
+export const connectFSMtoDOM = async (fsm, rootEl, routes) => {
     if (!rootEl) {
         console.error('[FSM Connector] Root element not found.');
         return () => {}; // Return a no-op cleanup function
@@ -500,7 +500,7 @@ export const connectFSMtoDOM = (fsm, rootEl, routes) => {
      * Renders the template and updates the URL for a given state.
      * @param {string} stateName - The name of the state to render.
      */
-    const render = (stateName) => {
+    const render = async (stateName) => {
         const route = routeMap.get(stateName);
         if (!route) {
             console.error(`[FSM Connector] No route config found for state: ${stateName}`);
@@ -509,7 +509,10 @@ export const connectFSMtoDOM = (fsm, rootEl, routes) => {
 
         // Render template if it exists
         if (route.template) {
-            rootEl.innerHTML = route.template;
+            const template = await compose(Array.isArray(route.template) ? route.template : [route.template]);
+            console.log(`[FSM Connector] Rendering state: ${stateName}`, template);
+            rootEl.innerHTML = template;
+            
         }
 
         // Update URL if it exists and is different from current browser URL
@@ -534,22 +537,22 @@ export const connectFSMtoDOM = (fsm, rootEl, routes) => {
     rootEl.addEventListener('click', clickHandler);
 
     // Subscribe to FSM state changes to trigger renders
-    const unsubscribe = fsm.subscribe((transition) => {
-        render(transition.to);
+    const unsubscribe = fsm.subscribe(async(transition) => {
+        await render(transition.to);
     });
 
     // Initial render of the starting state
-    render(fsm.getState());
+    await render(fsm.getState());
 
     // Handle browser history navigation (back/forward buttons)
-    const handlePopState = (event) => {
+    const handlePopState = async (event) => {
         const newPath = window.location.pathname;
         const targetStateName = routeUrlMap.get(newPath);
 
         if (targetStateName) {
             // If the FSM is already in this state, just re-render (e.g., if context changed)
             if (fsm.is(targetStateName)) {
-                render(targetStateName);
+               await render(targetStateName);
             } else {
                 // Attempt to transition to the state from history via a GOTO event
                 const eventName = `GOTO_${targetStateName.toUpperCase()}`;
@@ -558,7 +561,7 @@ export const connectFSMtoDOM = (fsm, rootEl, routes) => {
                 } else {
                     console.warn(`[FSM Connector] Cannot transition to ${targetStateName} via popstate. Event ${eventName} not found.`);
                     // Fallback: just render the template if FSM can't transition
-                    render(targetStateName);
+                   await render(targetStateName);
                 }
             }
         } else {

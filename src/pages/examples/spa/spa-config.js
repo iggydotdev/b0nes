@@ -1,7 +1,6 @@
 // src/pages/examples/spa/index.js
 import { createStore } from '/client/store.js';
 
-
 // Import templates (now they're client-side only!)
 import * as homeComponents from './templates/home.js';
 import * as todosComponents from './templates/todos.js';

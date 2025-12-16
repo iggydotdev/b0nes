@@ -1,7 +1,7 @@
 // src/components/organisms/spa/organisms.spa.client.js
 import { createRouterFSM, connectFSMtoDOM } from '/client/fsm.js';
 
-export const client = (root) => {
+export const client = async (root) => {
     console.log(root);
     // Check for user config
     if (!window.spaConfig) {
@@ -19,7 +19,7 @@ export const client = (root) => {
     
     // Set up FSM router
     const { fsm } = createRouterFSM(routes);
-    const cleanup = connectFSMtoDOM(fsm, root, routes);
+    const cleanup = await connectFSMtoDOM(fsm, root, routes);
     
     // Wire up store if provided
     let storeUnsubscribe;
