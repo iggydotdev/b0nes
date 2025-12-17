@@ -2,10 +2,10 @@
 import { createStore } from '/client/store.js';
 
 // Import templates (now they're client-side only!)
-import * as homeComponents from './templates/home.js';
-import * as todosComponents from './templates/todos.js';
-import * as todoComponents from './templates/todo.js';
-import * as aboutComponents from './templates/about.js';
+import { components as homeComponents } from './templates/home.js';
+import { components as todosComponents } from './templates/todos.js';
+import { components as todoComponents } from './templates/todo.js';
+import { components as aboutComponents } from './templates/about.js';
 
 // NOW window exists because we're in the browser!
 console.log('[SPA] Setting up config...');

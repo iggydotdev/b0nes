@@ -23,6 +23,7 @@ export const compose = async (components = []) => {
             if (!componentCache.has(cacheKey)) {
                 try {
                     // Dynamic import the component
+                    console.log(`[compose] Loading component: /components/${type}s/${name}/index.js`);
                     const module = await import(`/components/${type}s/${name}/index.js`);
                     componentCache.set(cacheKey, module.default || module[name]);
                 } catch (error) {
