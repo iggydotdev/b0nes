@@ -2,40 +2,99 @@
 import { createRouterFSM, connectFSMtoDOM } from '/client/fsm.js';
 
 export const client = async (root) => {
-    console.log(root);
-    // Check for user config
-    if (!window.spaConfig) {
-        console.error('[SPA] No window.spaConfig found. Configure your SPA in the page file!');
-        root.innerHTML = '<p style="color:red;">SPA Error: Missing window.spaConfig</p>';
-        return;
-    }
+    // Helper to wait for config if it's not there yet (scripts might be loading)
+    const getSpaConfig = async (retries = 5, delay = 50) => {
+        for (let i = 0; i < retries; i++) {
+            if (window.spaConfig) return window.spaConfig;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        return null;
+    };
+
+    try {
+        const config = await getSpaConfig();
+        
+        // Check for user config
+        if (!config) {
+            console.error('[SPA] No window.spaConfig found after waiting. Configure your SPA in the page file!');
+            root.innerHTML = '<p style="color:red;">SPA Error: Missing window.spaConfig</p>';
+            return;
+        }
     
-    const { routes, store, onInit } = window.spaConfig;
+    const { routes, store, onInit } = config;
     
     if (!routes || routes.length === 0) {
         console.error('[SPA] No routes provided in window.spaConfig');
         return;
     }
     
+    // 🔗 Reactivity: Granular updates instead of full re-renders
+    const updateBindings = () => {
+        root.querySelectorAll('[data-b0nes-bind]').forEach(el => {
+            const bindings = el.dataset.b0nesBind.split(',');
+            
+            bindings.forEach(binding => {
+                const [path, targetProp] = binding.split(':');
+                let value = store.get(path);
+                
+                // Fallback to computed if needed
+                if (value === undefined && store.computed) {
+                    value = store.computed(path);
+                }
+
+                if (targetProp) {
+                    // Explicit property binding (e.g. path:value, path:checked)
+                    if (targetProp === 'checked') {
+                        el.checked = !!value;
+                    } else {
+                        // For other properties (value, disabled, etc)
+                        const newVal = value !== undefined ? String(value) : '';
+                        if (el[targetProp] !== newVal) el[targetProp] = newVal;
+                    }
+                } else {
+                    // Default smart binding
+                    if (el.type === 'checkbox' || el.type === 'radio') {
+                        el.checked = !!value;
+                    } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+                        const newVal = value !== undefined ? String(value) : '';
+                        if (el.value !== newVal) el.value = newVal;
+                    } else {
+                        const newText = String(value !== undefined ? value : '');
+                        if (el.textContent !== newText) el.textContent = newText;
+                    }
+                }
+            });
+        });
+    };
+
     // Set up FSM router
     const { fsm } = createRouterFSM(routes);
-    const cleanup = await connectFSMtoDOM(fsm, root, routes);
-    
+    const cleanup = await connectFSMtoDOM(fsm, root, routes, {
+        onRender: () => {
+            console.log('[SPA] Render complete, syncing bindings');
+            updateBindings();
+        }
+    });
+
     // Wire up store if provided
     let storeUnsubscribe;
     if (store) {
         storeUnsubscribe = store.subscribe(() => {
-            const current = fsm.getState();
-            fsm.send(`GOTO_${current.toUpperCase()}`);
+            console.log('[SPA] Store updated, applying granular updates...');
+            updateBindings();
+            
+            // Still allow FSM to react if there's a state change requested in the state?
+            // (Standard b0nes pattern: use actions to change state, but here we just update UI)
         });
     }
     
     // Generic event delegation
     const handleClick = (e) => {
         // Toggle action (if store exists)
-        if (e.target.matches('[data-action="toggle"]') && store) {
-            const id = Number(e.target.dataset.id);
-            const action = e.target.dataset.actionName || 'toggleTodo';
+        const toggleTarget = e.target.closest('[data-action="toggle"]');
+        if (toggleTarget && store) {
+            const id = Number(toggleTarget.dataset.id);
+            const action = toggleTarget.dataset.actionName || 'toggleTodo';
             store.dispatch(action, id);
         }
         
@@ -53,15 +112,16 @@ export const client = async (root) => {
         onInit({ fsm, store, root });
     }
     
-    console.log(`[SPA] Initialized with ${routes.length} routes`);
-    
     // Cleanup function
     return () => {
         cleanup();
         if (storeUnsubscribe) storeUnsubscribe();
         root.removeEventListener('click', handleClick);
-        console.log('[SPA] Cleanup complete');
     };
+    } catch (error) {
+        console.error('[SPA] Initialization failed:', error);
+        root.innerHTML = `<p style="color:red;">SPA Initialization Error: ${error.message}</p>`;
+    }
 };
 
 // // src/components/organisms/spa/organisms.spa.client.js

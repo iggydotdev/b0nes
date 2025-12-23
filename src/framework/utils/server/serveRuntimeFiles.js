@@ -1,22 +1,23 @@
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { CLIENT_BASE, ENV } from './getServerConfig.js';
+import { CLIENT_BASE, UTILS_BASE, ENV } from './getServerConfig.js';
 
 export const serveRuntimeFiles = async (req, res, url) => {
     // Server runtime files
     try {
+        let baseDir = CLIENT_BASE;
         let filename;
         
-        // Extract the filename from either path format
-        if (url.pathname.startsWith('/assets/js/')) {
-            // Prod path: /assets/js/client/store.js → store.js
+        // Extract the filename and determine base directory
+        if (url.pathname.includes('/utils/')) {
+            baseDir = UTILS_BASE;
             filename = path.basename(url.pathname);
         } else {
-            // Dev path: /client/store.js → store.js
+            // Default to client base
             filename = path.basename(url.pathname);
         }
         
-        const filePath = path.join(CLIENT_BASE, filename);
+        const filePath = path.join(baseDir, filename);
         
         console.log(`[Server] 📦 Serving runtime file: ${filename} from ${filePath}`);
         

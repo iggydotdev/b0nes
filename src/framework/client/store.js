@@ -71,7 +71,22 @@ export const createStore = ({ state: initialState, actions = {}, getters = {}, m
         
         const keys = path.split('.');
         let value = state;
+
+
         
+        // 🚀 Priority: Check if the first key is a computed getter
+        if (getters[keys[0]]) {
+            const result = computed(keys[0]);
+            // Continue path lookup on the computed value
+            let val = result;
+            for (let i = 1; i < keys.length; i++) {
+                if (val === null || val === undefined) break;
+                val = val[keys[i]];
+            }
+            return val;
+        }
+        
+        // Standard state path lookup
         for (const key of keys) {
             if (value === null || value === undefined) return undefined;
             value = value[key];

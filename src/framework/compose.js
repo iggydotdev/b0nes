@@ -70,7 +70,13 @@ const getComponent = (type, name) => {
  */
 const composeSlot = (slot, context) => {
     if (typeof slot === 'string') {
-        return slot;
+        // 🔗 Reactivity Hook: wrap {{path}} variables in reactive spans
+        // This allows granular updates without re-compositing the whole string
+        return slot.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
+            const cleanPath = path.trim();
+            // On the server, we don't have a store, so we keep the {{match}}
+            return `<span data-b0nes-bind="${cleanPath}">${match}</span>`;
+        });
     }
 
     if (!Array.isArray(slot)) {

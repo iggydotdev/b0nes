@@ -22,7 +22,7 @@ export const components = (todo) => [
                 name: 'text',
                 props: { 
                   is: 'strong', 
-                  slot: todo.text 
+                  slot: '{{currentTodoText}}' 
                 }
               }
             ]
@@ -33,7 +33,16 @@ export const components = (todo) => [
           name: 'text',
           props: {
             is: 'p',
-            slot: `Status: ${todo.done ? 'Done ✅' : 'Not done'}`
+            slot: 'Status: {{currentStatus}}'
+          }
+        },
+        {
+          type: 'atom',
+          name: 'input',
+          props: {
+            type: 'checkbox',
+            attrs: `data-action="toggle" data-id="${todo.id}"`,
+            checked: '{{currentTodo.done}}'
           }
         },
         {
@@ -56,3 +65,5 @@ export const components = (todo) => [
     }
   }
 ];
+
+export default components;

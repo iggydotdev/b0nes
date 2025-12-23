@@ -1,21 +1,26 @@
-// src/pages/examples/spa/index.js
-import { createStore } from '/client/store.js';
+import { createStore, loggerMiddleware } from '/client/store.js';
+import { compose } from '/client/compose.js'; // Client-side compose for dynamic templates
 
-// Import templates (now they're client-side only!)
-import { components as homeComponents } from './templates/home.js';
-import { components as todosComponents } from './templates/todos.js';
-import { components as todoComponents } from './templates/todo.js';
-import { components as aboutComponents } from './templates/about.js';
+// 🎯 Import templates individually
+// In Dev: these are component configs (arrays)
+// In Prod: these are pre-compiled HTML strings
+import home from './templates/home.js';
+import todos from './templates/todos.js';
+import todo from './templates/todo.js';
+import about from './templates/about.js';
 
-// NOW window exists because we're in the browser!
-console.log('[SPA] Setting up config...');
+console.log('[SPA] Setting up config with individual templates...');
+
 window.spaConfig = {
     store: createStore({
+        middleware: [loggerMiddleware],
         state: { 
             user: 'Grok', 
+            selectedId: null,
             todos: [
                 { id: 1, text: 'Learn b0nes', done: true },
-                { id: 2, text: 'Build SPA', done: false }
+                { id: 2, text: 'Build SPA', done: false },
+                { id: 3, text: 'Ship it', done: false }
             ]
         },
         actions: {
@@ -23,7 +28,19 @@ window.spaConfig = {
                 todos: state.todos.map(t => 
                     t.id === id ? { ...t, done: !t.done } : t
                 )
-            })
+            }),
+            selectTodo: (state, id) => ({ selectedId: id })
+        },
+        getters: {
+            currentTodo: (state) => state.todos.find(t => t.id === state.selectedId) || {},
+            currentTodoText: (state) => {
+                const todo = state.todos.find(t => t.id === state.selectedId);
+                return todo ? todo.text : '';
+            },
+            currentStatus: (state) => {
+                const todo = state.todos.find(t => t.id === state.selectedId);
+                return todo ? (todo.done ? 'Done ✅' : 'Not done') : 'Unknown';
+            }
         }
     }),
     
@@ -31,30 +48,43 @@ window.spaConfig = {
         {
             name: 'home',
             url: '/',
-            template: homeComponents
+            template: home
         },
         {
             name: 'todos',
             url: '/todos',
-            template: () => todosComponents(window.spaConfig.store.getState().todos)
+            template: () => {
+                const todosData = window.spaConfig.store.getState().todos;
+                return typeof todos === 'function' ? todos(todosData) : todos;
+            }
         },
         {
             name: 'todo',
             url: '/todos/:id',
             template: (params) => {
-                const todo = window.spaConfig.store.getState()
+                const todoData = window.spaConfig.store.getState()
                     .todos.find(t => t.id == params.id);
-                return todo ? todoComponents(todo) : [
-                    { type: 'atom', name: 'text', props: { is: 'p', slot: 'Todo not found' } }
-                ];
+                
+                if (!todoData) {
+                    return [{
+                        type: 'atom',
+                        name: 'text',
+                        props: { is: 'h1', slot: 'Todo not found' }
+                    }];
+                }
+                
+                return typeof todo === 'function' ? todo(todoData) : todo;
+            },
+            onEnter: (context, data) => {
+                window.spaConfig.store.dispatch('selectTodo', Number(data.id));
             }
         },
         {
             name: 'about',
             url: '/about',
-            template: aboutComponents
+            template: about
         }
     ]
 };
 
-console.log('[SPA] Config loaded!');
+console.log('[SPA] Config loaded with', window.spaConfig.routes.length, 'routes!');

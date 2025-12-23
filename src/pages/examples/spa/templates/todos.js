@@ -21,7 +21,7 @@ export const components = (todos) => [
           name: 'box',
           props: {
             is: 'ul',
-            slot: todos.map(todo => ({
+            slot: todos.map((todo, index) => ({
               type: 'atom',
               name: 'box',
               props: {
@@ -38,10 +38,11 @@ export const components = (todos) => [
                           name: 'input',
                           props: {
                             type: 'checkbox',
-                            attrs: `${todo.done ? 'checked' : ''} data-action="toggle" data-id="${todo.id}"`
+                            attrs: `data-action="toggle" data-id="${todo.id}"`,
+                            checked: `{{todos.${index}.done}}`
                           }
                         },
-                        todo.done ? ` ✅ ${todo.text}` : ` ${todo.text}`
+                        ` {{todos.${index}.text}}`
                       ]
                     }
                   },
@@ -70,4 +71,6 @@ export const components = (todos) => [
     }
   }
 ];
+
+export default components;
 

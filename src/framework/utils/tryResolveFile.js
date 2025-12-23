@@ -46,8 +46,22 @@ export async function tryResolveFile(pathname) {
 
 
     for (const baseDir of allowedBases) {
-        // --- LOGIC ADDED: Attempt to resolve the path directly ---
-        const validation = validateAndSanitizePath(pathname, baseDir);
+        let lookupPath = pathname;
+
+        // Strip logical prefixes if they match the current base directory
+        // Robust handling for both /prefix/ and prefix/
+        if (baseDir === COMPONENTS_BASE) {
+            if (lookupPath.startsWith('/components/')) lookupPath = lookupPath.slice(12);
+            else if (lookupPath.startsWith('components/')) lookupPath = lookupPath.slice(11);
+        } else if (baseDir === CLIENT_BASE) {
+            if (lookupPath.startsWith('/client/')) lookupPath = lookupPath.slice(8);
+            else if (lookupPath.startsWith('client/')) lookupPath = lookupPath.slice(7);
+        } else if (baseDir === PAGES_BASE) {
+            if (lookupPath.startsWith('/pages/')) lookupPath = lookupPath.slice(7);
+            else if (lookupPath.startsWith('pages/')) lookupPath = lookupPath.slice(6);
+        }
+
+        const validation = validateAndSanitizePath(lookupPath, baseDir);
         if (validation.safe) {
             for (const suffix of candidateSuffixes) {
                 const candidatePath = validation.sanitized + suffix;

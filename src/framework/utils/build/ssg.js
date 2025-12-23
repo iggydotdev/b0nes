@@ -346,72 +346,99 @@ export const build = async (outputDir = 'public', options = {}) => {
     
     console.log('🦴 b0nes SSG Build Starting...\n');
     
-    // ✨ COMPILE SPA TEMPLATES FIRST (before anything else!)
+        
+    // ============================================
+    // STEP 1: Clean output directory
+    // ============================================
+    if (clean) {
+        if (fs.existsSync(outputDir)) {
+            fs.rmSync(outputDir, { recursive: true, force: true });
+        }
+    }
+    
+    // ============================================
+    // STEP 2: Ensure output directory exists
+    // ============================================
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    // ============================================
+    // STEP 3: 🎯 COMPILE SPA TEMPLATES (RECURSIVE)
+    // ============================================
     console.log('📦 Compiling SPA templates...\n');
     try {
-        const spaComponentPath = path.resolve(__dirname, '../../../components/organisms/spa');
-        const compiledOutputPath = path.join(outputDir, 'assets', 'js', 'spa-templates.js');
+        const pagesDir = path.resolve(process.cwd(), 'src/pages');
         
-        // Make sure the directory exists
-        const compiledDir = path.dirname(compiledOutputPath);
-        if (!fs.existsSync(compiledDir)) {
-            fs.mkdirSync(compiledDir, { recursive: true });
+        /**
+         * Recursively find all 'templates' directories
+         */
+        const findTemplateDirs = (dir) => {
+            let results = [];
+            if (!fs.existsSync(dir)) return results;
+            
+            const list = fs.readdirSync(dir);
+            for (const file of list) {
+                const fullPath = path.join(dir, file);
+                const stat = fs.statSync(fullPath);
+                
+                if (stat && stat.isDirectory()) {
+                    if (file === 'templates') {
+                        results.push(dir);
+                    } else {
+                        results = results.concat(findTemplateDirs(fullPath));
+                    }
+                }
+            }
+            return results;
+        };
+
+        const templateDirs = findTemplateDirs(pagesDir);
+        
+        if (templateDirs.length === 0) {
+            console.log('   ℹ️  No SPA templates found to compile.\n');
+        } else {
+            for (const spaDir of templateDirs) {
+                const relativePath = path.relative(pagesDir, spaDir);
+                // Output to public/path/to/spa/templates
+                const compiledOutputPath = path.join(outputDir, relativePath, 'templates');
+                
+                if (verbose) {
+                    console.log(`   📂 Found SPA templates in: ${relativePath}`);
+                }
+
+                await generateCompiledTemplates(spaDir, compiledOutputPath, { 
+                    verbose, 
+                    mode: 'individual' 
+                });
+            }
+            console.log(`✅ ${templateDirs.length} SPA template directory(s) compiled!\n`);
         }
-        
-        await generateCompiledTemplates(spaComponentPath, compiledOutputPath);
-        console.log('✅ Templates compiled!\n');
     } catch (error) {
         console.error('❌ Failed to compile SPA templates:', error.message);
         if (!continueOnError) throw error;
     }
-    
 
-
-    if (verbose && buildCache) {
-        const stats = buildCache.getStats();
-        console.log(`📊 Cache: ${stats.totalRoutes} routes cached, ${(stats.cacheSize / 1024).toFixed(2)} KB\n`);
-    }
-    
-    // Clean output directory if requested
-    if (clean) {
-        try {
-            if (fs.existsSync(outputDir)) {
-                fs.rmSync(outputDir, { recursive: true, force: true });
-                if (verbose) console.log(`🗑️  Cleaned ${outputDir}\n`);
-            }
-        } catch (error) {
-            console.error('❌ Failed to clean output directory:', error.message);
-            if (!continueOnError) throw error;
-        }
-    }
-    
-    // Ensure output directory exists
-    try {
-        if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir, { recursive: true });
-        }
-    } catch (error) {
-        console.error('❌ Failed to create output directory:', error.message);
-        throw error; // Can't continue without output dir
-    }
-
-    // Get routes from auto-discovery
+    // ============================================
+    // STEP 4: Get routes from auto-discovery
+    // ============================================
     const routes = getRoutes();
     
     if (routes.length === 0) {
         console.warn('⚠️  No routes found. Check your pages/ directory.');
-        return {
-            success: true,
-            generated: [],
+        return { success: true, generated: [],
             skipped: [],
             ssrRoutes: [],
             errors: [],
-            duration: 0
-        };
+            duration: 0 };
     }
     
     console.log(`📦 Found ${routes.length} route(s)\n`);
     
+
+    // ============================================
+    // STEP 5: Build routes (parallel or sequential)
+    // ============================================
     // Build routes (co-located assets are copied per-route in safeBuildRoute)
     const routeTasks = routes.map(route => async () => {
         const result = await safeBuildRoute(
@@ -452,75 +479,42 @@ export const build = async (outputDir = 'public', options = {}) => {
         
         return result;
     });
-    
-   
-    
-    // Copy framework runtime files
-    console.log('📋 Copying framework runtime files...\n');
-    try {
-        await copyFrameworkRuntime(outputDir, { verbose });
-    } catch (error) {
-        console.error('❌ Build failed during runtime file copy');
-        if (!continueOnError) throw error;
-        errors.push({
-            route: 'framework-runtime',
-            error: 'Failed to copy runtime files'
-        });
-    }
 
-    // Copy component client behaviors
-    console.log('📋 Copying component client behaviors...\n');
-    try {
-        await copyComponentBehaviors(outputDir, { verbose });
-    } catch (error) {
-        console.error('❌ Build failed during component behaviors copy');
-        if (!continueOnError) throw error;
-        errors.push({
-            route: 'component-behaviors',
-            error: 'Failed to copy component behaviors'
-        });
-    }
-
-    // Execute builds (parallel or sequential)
+    // Execute builds
     if (parallel && routes.length > 5) {
-        console.log('⚡ Building routes in parallel...\n');
-        try {
-            await Promise.all(routeTasks.map(task => task()));
-        } catch (error) {
-            if (!continueOnError) {
-                console.error('❌ Build aborted due to error');
-                throw error;
-            }
-        }
+        await Promise.all(routeTasks.map(task => task()));
     } else {
         for (const task of routeTasks) {
-            try {
-                await task();
-            } catch (error) {
-                if (!continueOnError) {
-                    console.error('❌ Build aborted due to error');
-                    throw error;
-                }
-            }
+            await task();
         }
     }
+
+    // ============================================
+    // STEP 6: Copy framework runtime files
+    // ============================================
+    console.log('📋 Copying framework runtime files...\n');
+    await copyFrameworkRuntime(outputDir, { verbose });
     
-    // Generate SSR fallback pages (if enabled)
+    // ============================================
+    // STEP 7: Copy component client behaviors
+    // ============================================
+    console.log('📋 Copying component client behaviors...\n');
+    await copyComponentBehaviors(outputDir, { verbose });
+    
+    // ============================================
+    // STEP 8: Generate SSR fallback pages (if needed)
+    // ============================================
     if (generateSSRStubs && ssrRoutes.length > 0) {
         console.log('\n⚡ Generating SSR fallback pages...\n');
-        try {
-            for (const ssrRoute of ssrRoutes) {
-                await generateSSRFallback(ssrRoute.route, outputDir, { verbose });
-            }
-            if (verbose) {
-                console.log(`✅ Generated ${ssrRoutes.length} SSR fallback page(s)\n`);
-            }
-        } catch (error) {
-            console.error('❌ Failed to generate SSR fallbacks:', error.message);
-            if (!continueOnError) throw error;
+        for (const ssrRoute of ssrRoutes) {
+            await generateSSRFallback(ssrRoute.route, outputDir, { verbose });
         }
     }
     
+    // ============================================
+    // DONE! Print summary
+    // ============================================
+    console.log('\n📊 Build Summary');
     // Save cache
     if (buildCache) {
         try {

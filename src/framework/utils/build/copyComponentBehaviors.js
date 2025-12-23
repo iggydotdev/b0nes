@@ -30,7 +30,7 @@ export async function copyComponentBehaviors(outputDir, options = {}) {
                 const fullPath = path.join(dir, file.name);
                 if (file.isDirectory()) {
                     findClientFiles(fullPath, fileList);
-                } else if (file.name.endsWith('.client.js')) {
+                } else if (file.name.endsWith('.js')) {
                     fileList.push(fullPath);
                 }
             }
