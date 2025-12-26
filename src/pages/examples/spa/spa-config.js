@@ -1,5 +1,5 @@
 import { createStore, loggerMiddleware } from '/client/store.js';
-import { compose } from '/client/compose.js'; // Client-side compose for dynamic templates
+
 
 // 🎯 Import templates individually
 // In Dev: these are component configs (arrays)
@@ -87,4 +87,9 @@ window.spaConfig = {
     ]
 };
 
+
+
+
 console.log('[SPA] Config loaded with', window.spaConfig.routes.length, 'routes!');
+
+

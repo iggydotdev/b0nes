@@ -556,7 +556,11 @@ export const connectFSMtoDOM = (fsm, rootEl, routes, options = {}) => {
             }
             
             if (window.location.pathname !== targetUrl) {
-                window.history.pushState({ fsmState: stateName, data }, '', targetUrl);
+                // Sanitize data to ensure it is cloneable (exclude routes/functions)
+                const stateData = data ? { ...data } : {};
+                if (stateData.routes) delete stateData.routes;
+                
+                window.history.pushState({ fsmState: stateName, data: stateData }, '', targetUrl);
             }
         }
     };

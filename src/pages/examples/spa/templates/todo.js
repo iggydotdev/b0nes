@@ -41,7 +41,7 @@ export const components = (todo) => [
           name: 'input',
           props: {
             type: 'checkbox',
-            attrs: `data-action="toggle" data-id="${todo.id}"`,
+            attrs: `data-action="toggleTodo" data-id="${todo.id}" ${todo.done ? 'checked' : ''}`,
             checked: '{{currentTodo.done}}'
           }
         },
@@ -49,7 +49,7 @@ export const components = (todo) => [
           type: 'atom',
           name: 'button',
           props: {
-            attrs: `data-action="toggle" data-id="${todo.id}"`,
+            attrs: `data-action="toggleTodo" data-id="${todo.id}"`,
             slot: 'Toggle'
           }
         },

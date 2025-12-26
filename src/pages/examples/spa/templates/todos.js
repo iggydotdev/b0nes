@@ -38,7 +38,7 @@ export const components = (todos) => [
                           name: 'input',
                           props: {
                             type: 'checkbox',
-                            attrs: `data-action="toggle" data-id="${todo.id}"`,
+                            attrs: `data-action="toggleTodo" data-id="${todo.id}" ${todo.done ? 'checked' : ''}`,
                             checked: `{{todos.${index}.done}}`
                           }
                         },
