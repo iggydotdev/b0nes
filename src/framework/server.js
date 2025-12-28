@@ -5,7 +5,7 @@ import { PRINT_CURRENT_CONFIG, ENV } from './utils/server/getServerConfig.js';
 
 // Import handlers
 import { serveB0nes } from './utils/server/serveB0nes.js';
-import { serveClientFiles } from './utils/server/serveClientFiles.js';
+import { serveBehaviorFiles } from './utils/server/serveBehaviorFiles.js';
 import { serveStaticFiles } from './utils/server/staticFiles.js';
 import { serveTemplates } from './utils/server/serveTemplates.js';
 import { servePages } from './utils/server/servePages.js';
@@ -42,8 +42,8 @@ router.addPrefix('/templates/', serveTemplates);
 
 // 4. PATTERN MATCHES (dynamic routes)
 // Component behaviors (e.g., /atoms/button/atom.button.client.js)
-router.addPattern('/components/:type/:name/client.js', serveClientFiles);
-router.addPattern('/:type/:name/client.js', serveClientFiles);
+router.addPattern('/components/:type/:name/client.js', serveBehaviorFiles);
+router.addPattern('/:type/:name/client.js', serveBehaviorFiles);
 
 // 5. CATCH-ALL (pages from auto-discovery)
 router.addCatchAll(servePages);

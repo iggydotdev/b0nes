@@ -8,12 +8,15 @@ export const serveRuntimeFiles = async (req, res, url) => {
         let baseDir = CLIENT_BASE;
         let filename;
         
-        // Extract the filename and determine base directory
-        if (url.pathname.includes('/utils/')) {
+        // Extract the subpath and determine base directory
+        if (url.pathname.startsWith('/utils/')) {
             baseDir = UTILS_BASE;
-            filename = path.basename(url.pathname);
+            filename = url.pathname.slice(7); // Strip /utils/
+        } else if (url.pathname.startsWith('/client/')) {
+            baseDir = CLIENT_BASE;
+            filename = url.pathname.slice(8); // Strip /client/
         } else {
-            // Default to client base
+            // Default to client base and basename for others
             filename = path.basename(url.pathname);
         }
         

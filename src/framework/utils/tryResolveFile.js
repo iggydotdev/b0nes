@@ -3,7 +3,7 @@ import path from "path";
 import { readFile, stat } from "fs/promises";
 import { ENV } from "../config/envs.js";
 import { validateAndSanitizePath } from "./sanitizePaths.js";
-import { PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE } from "./server/getServerConfig.js";
+import { PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE, UTILS_BASE } from "./server/getServerConfig.js";
 
 /**
  * Updated tryResolveFile with security validation
@@ -11,8 +11,8 @@ import { PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE } from "./server/getServerConf
 export async function tryResolveFile(pathname) {
     // Define allowed base directories
     const allowedBases = ENV.isDev
-        ? [PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE].filter(Boolean)
-        : [CLIENT_BASE, COMPONENTS_BASE, PAGES_BASE].filter(Boolean);
+        ? [PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE, UTILS_BASE].filter(Boolean)
+        : [CLIENT_BASE, COMPONENTS_BASE, PAGES_BASE, UTILS_BASE].filter(Boolean);
  
     
  
@@ -49,7 +49,21 @@ export async function tryResolveFile(pathname) {
         let lookupPath = pathname;
 
         // Strip logical prefixes if they match the current base directory
-        // Robust handling for both /prefix/ and prefix/
+        // Robust handling for various asset URL formats - recursively strip assets/js/ etc.
+        let stripped;
+        do {
+            stripped = false;
+            for (const p of ['assets', 'js', 'styles', 'images']) {
+                if (lookupPath.startsWith(`/${p}/`)) {
+                    lookupPath = lookupPath.slice(p.length + 2);
+                    stripped = true;
+                } else if (lookupPath.startsWith(`${p}/`)) {
+                    lookupPath = lookupPath.slice(p.length + 1);
+                    stripped = true;
+                }
+            }
+        } while (stripped);
+
         if (baseDir === COMPONENTS_BASE) {
             if (lookupPath.startsWith('/components/')) lookupPath = lookupPath.slice(12);
             else if (lookupPath.startsWith('components/')) lookupPath = lookupPath.slice(11);
@@ -59,6 +73,9 @@ export async function tryResolveFile(pathname) {
         } else if (baseDir === PAGES_BASE) {
             if (lookupPath.startsWith('/pages/')) lookupPath = lookupPath.slice(7);
             else if (lookupPath.startsWith('pages/')) lookupPath = lookupPath.slice(6);
+        } else if (baseDir === UTILS_BASE) {
+            if (lookupPath.startsWith('/utils/')) lookupPath = lookupPath.slice(7);
+            else if (lookupPath.startsWith('utils/')) lookupPath = lookupPath.slice(6);
         }
 
         const validation = validateAndSanitizePath(lookupPath, baseDir);

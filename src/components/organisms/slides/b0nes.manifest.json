@@ -8,7 +8,7 @@
   "files": {
     "component": "./slides.js",
     "test": "./slides.test.js",
-    "client": "./organisms.slides.client.js"
+    "client": "./client.js"
   },
   "dependencies": [],
   "tags": [

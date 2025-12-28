@@ -5,5 +5,5 @@ export * from "./components/organisms/index.js";
 
 // Re-export utility functions
 export { compose } from './framework/compose.js';
-export { router } from './framework/router.js';
+export { router } from './framework/router/index.js';
 export { renderPage } from './framework/renderPage.js';

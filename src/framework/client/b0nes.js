@@ -131,7 +131,7 @@
                     }
                 } else {
                     // Lazy load component
-                    const behaviorPath = `/assets/js/behaviors/${type}/${name}/${type}.${name}.client.js`;
+                    const behaviorPath = `/assets/js/behaviors/${type}/${name}/client.js`;
                     
                     import(behaviorPath)
                         .then(component => {
@@ -155,7 +155,7 @@
                         .catch(error => {
                             // Fallback to dev path if production path fails
                             console.warn(`[b0nes] Production path failed, trying dev path...`);
-                            const devPath = `../../components/${type}/${name}/${type}.${name}.client.js`;
+                            const devPath = `../../components/${type}/${name}/client.js`;
                             
                             import(devPath)
                                 .then(component => {

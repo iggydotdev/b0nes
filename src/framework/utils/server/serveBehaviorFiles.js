@@ -2,7 +2,7 @@ import path from 'path';
 import { readFile } from 'fs/promises';
 import { COMPONENTS_BASE, ENV } from './getServerConfig.js';
 
-export const serveClientFiles = async (req, res, url) => {
+export const serveBehaviorFiles = async (req, res, url) => {
     // Client behavior files
     if (url.pathname.includes('client.js')) {
         try {

@@ -10,7 +10,7 @@ const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
 // Determine base paths based on environment
 const CLIENT_BASE = ENV.isDev 
     ? path.resolve(__dirname, '../../client')
-    : path.resolve(__dirname, '../../../../public/assets');
+    : path.resolve(__dirname, '../../../../public/assets/js/client');
 
 const COMPONENTS_BASE = ENV.isDev
     ? path.resolve(__dirname, '../../../components')
