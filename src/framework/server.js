@@ -1,11 +1,9 @@
+// src/framework/server.js
 import http from 'node:http';
-import path from 'node:path';
-import fs from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
-;
-import { PRINT_CURRENT_CONFIG, ENV  } from './utils/server/getServerConfig.js';
+import { createRouterWithDefaults } from './router/index.js';
+import { PRINT_CURRENT_CONFIG, ENV } from './utils/server/getServerConfig.js';
 
+// Import handlers
 import { serveB0nes } from './utils/server/serveB0nes.js';
 import { serveClientFiles } from './utils/server/serveClientFiles.js';
 import { serveStaticFiles } from './utils/server/staticFiles.js';
@@ -13,77 +11,52 @@ import { serveTemplates } from './utils/server/serveTemplates.js';
 import { servePages } from './utils/server/servePages.js';
 import { serveRuntimeFiles } from './utils/server/serveRuntimeFiles.js';
 
-import { createRouterWithDefaults } from './router.js';  // Our new functional router—enter the hero!
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-// Base paths: Unchanged, because why fix what ain't broke?
-
 PRINT_CURRENT_CONFIG();
 
-
-// Create the router—logging middleware included, no extra charge.
+// Create router
 const router = createRouterWithDefaults();
 
-// Register static routes—priority order: specific first, wildcards last.
+// ============================================
+// ROUTE REGISTRATION - Clear & Organized
+// ============================================
 
-// 1. b0nes.js runtime - works for both /client/b0nes.js (dev) and /assets/js/b0nes.js (prod)
-router.get(/\/(client\/b0nes\.js|assets\/js\/b0nes\.js)$/, async (req, res) => {
-    const host = req.headers.host || 'localhost';
-    const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
-    return serveB0nes(req, res, url);
-});
+// 1. EXACT MATCHES (highest priority - specific files)
+router.addExact('/client/b0nes.js', serveB0nes);
+router.addExact('/assets/js/b0nes.js', serveB0nes);
 
-// 2. Client/utils files - handle both direct and assets/ paths
-router.get(/^\/(client|utils|assets\/js\/(client|utils))\/.*\.js$/, async (req, res) => {
-    const host = req.headers.host || 'localhost';
-    const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
-    return serveRuntimeFiles(req, res, url);
-});
+// 2. EXTENSION MATCHES (fast lookup by file type)
+const staticExtensions = [
+    '.css', '.js', '.json',
+    '.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.ico',
+    '.woff', '.woff2', '.ttf', '.eot'
+];
+router.addExtension(staticExtensions, serveStaticFiles);
 
-// 3. Component client behaviors (e.g., /atoms/button/client.js)
-router.get(/client\.js$/, async (req, res) => {
-    const host = req.headers.host || 'localhost';
-    const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
-    return  serveClientFiles(req, res, url);
-});
+// 3. PREFIX MATCHES (directory-based routing)
+router.addPrefix('/assets/', serveStaticFiles);
+router.addPrefix('/styles/', serveStaticFiles);
+router.addPrefix('/images/', serveStaticFiles);
+router.addPrefix('/client/', serveRuntimeFiles);
+router.addPrefix('/utils/', serveRuntimeFiles);
+router.addPrefix('/templates/', serveTemplates);
 
+// 4. PATTERN MATCHES (dynamic routes)
+// Component behaviors (e.g., /atoms/button/atom.button.client.js)
+router.addPattern('/components/:type/:name/client.js', serveClientFiles);
+router.addPattern('/:type/:name/client.js', serveClientFiles);
 
-// 4. Static assets (styles, images, assets, or // 4. Static assets: This is a consolidated route for all static assets,
-// combining directory and file-extension matching into a single handler.
-router.get(/^\/(styles|images|assets)\/|.*\.(css|jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf|js)$/i, async (req, res) => {
-    const host = req.headers.host || 'localhost';
-    const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
-    console.log('[Server] Static asset request:', url.pathname);
-    return serveStaticFiles(req, res, url);
-});
+// 5. CATCH-ALL (pages from auto-discovery)
+router.addCatchAll(servePages);
 
-// 5. Templates? (This seems unused or duplicate—kept as-is, but check if needed)
-router.get(/^\/templates\/.*\.js$/, async (req, res) => {
-    const host = req.headers.host || 'localhost';
-    const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
-    return serveTemplates(req, res,url);
-});
-
-// 6. Dynamic page routes from autoRoutes.js
-router.get(/.*/, async (req, res) => {
-    const host = req.headers.host || 'localhost';
-    const url = new URL(req.url, `http${ENV.isDev ? '' : 's'}://${host}`);
-    return servePages(req, res, url);
-});
-
-// Debug: Print all routes for that warm fuzzy feeling.
+// Debug: Print route table
 router.printRoutes();
 
-// The server: Now powered by router.handle—simple as pie.
+// ============================================
+// CREATE SERVER
+// ============================================
+
 const server = http.createServer(router.handle);
 
-/**
- * Start the development server
- * @param {number} port - Port to listen on (default: 5000)
- * @param {string} host - Host to bind to (default: '0.0.0.0')
- * @returns {http.Server} Server instance
- */
 export function startServer(port = 5000, host = '0.0.0.0') {
     server.listen(port, host, () => {
         console.log(`\n🦴 b0nes development server running\n`);
@@ -95,7 +68,7 @@ export function startServer(port = 5000, host = '0.0.0.0') {
     return server;
 }
 
-// Auto-start server when run directly
+// Auto-start
 if (import.meta.url === `file://${process.argv[1]}`) {
     const PORT = process.env.PORT || 5000;
     const HOST = process.env.HOST || '0.0.0.0';
