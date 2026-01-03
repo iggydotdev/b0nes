@@ -2,6 +2,12 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
+import os from 'node:os';
+import { Worker } from 'node:worker_threads';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Fixed imports - use the auto-routes system
 import { getRoutes } from '../../server/handlers/autoRoutes.js';
@@ -127,7 +133,7 @@ const createBuildCache = (cacheDir = '.b0nes-cache') => {
  * @param {Object} route - The route object
  * @returns {boolean} - true if should be SSG, false if SSR
  */
-const shouldBeStatic = (page, route) => {
+export const shouldBeStatic = (page, route) => {
     // Check for explicit render mode in meta
     if (page.meta?.render === 'ssr') {
         return false; // Force SSR
@@ -506,8 +512,87 @@ export const build = async (outputDir = 'public', options = {}) => {
     });
 
     // Execute builds
-    if (parallel && routes.length > 5) {
-        await Promise.all(routeTasks.map(task => task()));
+    if (parallel && routes.length > 1) {
+        const cpuCount = os.cpus().length;
+        const workerCount = Math.min(cpuCount, routes.length);
+        console.log(`🚀 Using ${workerCount} worker threads for parallel build\n`);
+
+        const pool = [];
+        let routeIndex = 0;
+
+        const runWorker = (index) => {
+            return new Promise((resolve, reject) => {
+                const route = routes[index];
+                
+                // Skip routes that haven't changed (Cache Check in Main Thread)
+                const isClean = options.clean;
+                if (buildCache && !buildCache.hasChanged(route) && !isClean) {
+                    const routeKey = route.pattern?.pathname || 'unknown';
+                    const cached = buildCache.getCache().routes[routeKey];
+                    if (verbose) console.log(`⏭️  ${route.pattern.pathname} (cached)`);
+                    skipped.push({ success: true, skipped: true, route, result: cached.result });
+                    return resolve();
+                }
+
+                // Sanitize route object for worker (remove functions)
+                const workerRoute = {
+                    pattern: { pathname: route.pattern.pathname },
+                    params: route.params,
+                    filePath: route.filePath,
+                    meta: route.meta || {}
+                };
+
+                const worker = new Worker(path.join(__dirname, 'renderWorker.js'), {
+                    workerData: { route: workerRoute, outputDir, options }
+                });
+
+                worker.on('message', (result) => {
+                    if (result.success) {
+                        if (result.ssr) {
+                            ssrRoutes.push({
+                                pathname: result.route.pattern.pathname,
+                                reason: result.reason,
+                                route: result.route
+                            });
+                        } else if (result.results) {
+                            result.results.forEach(r => generated.push(r));
+                            if (buildCache) buildCache.update(result.route, result.results[0]);
+                        } else {
+                            generated.push(result.result);
+                            if (buildCache) buildCache.update(result.route, result.result);
+                        }
+                    } else {
+                        errors.push(result);
+                        if (onError) onError(result, result.route);
+                    }
+                    resolve();
+                });
+
+                worker.on('error', (err) => {
+                    console.error(`❌ Worker error for ${route.pattern.pathname}:`, err);
+                    errors.push({ success: false, route: route.pattern.pathname, error: err.message });
+                    resolve(); // Don't crash the whole build
+                });
+
+                worker.on('exit', (code) => {
+                    if (code !== 0) {
+                        // console.error(`Worker stopped with exit code ${code}`);
+                    }
+                });
+            });
+        };
+
+        // Simple worker pool
+        const queue = routes.map((_, i) => i);
+        const workers = Array(workerCount).fill(null).map(async () => {
+            while (queue.length > 0) {
+                const index = queue.shift();
+                await runWorker(index);
+            }
+        });
+
+        await Promise.all(workers);
+
     } else {
         for (const task of routeTasks) {
             await task();
