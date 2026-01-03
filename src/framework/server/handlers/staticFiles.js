@@ -1,7 +1,7 @@
-import { tryResolveFile } from "../tryResolveFile.js";
+import { tryResolveFile } from "../../shared/tryResolveFile.js";
 import { ENV } from "../../config/envs.js";
 import path from "path";
-import { getContentType } from "../getContentType.js";
+import { getContentType } from "../../shared/getContentType.js";
 
 export const serveStaticFiles = async (req, res, url) => {
     // Static files with collocated support

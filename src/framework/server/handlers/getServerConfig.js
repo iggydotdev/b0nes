@@ -19,7 +19,7 @@ const COMPONENTS_BASE = ENV.isDev
 const PAGES_BASE = path.resolve(__dirname, '../../../pages');
 
 const UTILS_BASE = ENV.isDev
-    ? path.resolve(__dirname, '../../utils')
+    ? path.resolve(__dirname, '../../shared')
     : path.resolve(__dirname, '../../../../public/assets/js/utils');
 
 const CERTS_DIR = path.resolve(__dirname, '../../.certs');

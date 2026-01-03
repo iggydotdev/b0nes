@@ -1,15 +1,15 @@
 // src/framework/server.js
 import http from 'node:http';
-import { createRouterWithDefaults } from './router/index.js';
-import { PRINT_CURRENT_CONFIG, ENV } from './utils/server/getServerConfig.js';
+import { createRouterWithDefaults } from '../core/router/index.js';
+import { PRINT_CURRENT_CONFIG, ENV } from './handlers/getServerConfig.js';
 
 // Import handlers
-import { serveB0nes } from './utils/server/serveB0nes.js';
-import { serveBehaviorFiles } from './utils/server/serveBehaviorFiles.js';
-import { serveStaticFiles } from './utils/server/staticFiles.js';
-import { serveTemplates } from './utils/server/serveTemplates.js';
-import { servePages } from './utils/server/servePages.js';
-import { serveRuntimeFiles } from './utils/server/serveRuntimeFiles.js';
+import { serveB0nes } from './handlers/serveB0nes.js';
+import { serveBehaviorFiles } from './handlers/serveBehaviorFiles.js';
+import { serveStaticFiles } from './handlers/staticFiles.js';
+import { serveTemplates } from './handlers/serveTemplates.js';
+import { servePages } from './handlers/servePages.js';
+import { serveRuntimeFiles } from './handlers/serveRuntimeFiles.js';
 
 PRINT_CURRENT_CONFIG();
 

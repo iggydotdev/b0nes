@@ -17,7 +17,7 @@ export async function copyFrameworkRuntime(outputDir, options = {}) {
                 dest: path.join(outputDir, 'assets', 'js', 'client')
             },
             {
-                src: path.join(FRAMEWORK_DIR, 'utils'),
+                src: path.join(FRAMEWORK_DIR, 'shared'), // NEW: shared replaces most of utils
                 dest: path.join(outputDir, 'assets', 'js', 'utils')
             }
         ];

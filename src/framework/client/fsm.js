@@ -21,7 +21,7 @@
  * });
  */
 import compose from './compose.js';
-import { URLPattern } from '../utils/urlPattern.js';
+import { URLPattern } from '../shared/urlPattern.js';
 /**
  * Creates a finite state machine
  * @param {Object} config - FSM configuration

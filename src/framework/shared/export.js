@@ -6,8 +6,8 @@ const page = store.getState().pages.home;
 const components = page.components.map(fromConfig).join('\n');
 
 const code = `
-import { renderPage } from 'b0nes/framework/renderPage.js';
-import { compose } from 'b0nes/framework/compose.js';
+import { renderPage } from 'b0nes/framework/core/render.js';
+import { compose } from 'b0nes/framework/core/compose.js';
 ${page.imports}
 
 export const components = [

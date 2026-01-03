@@ -1,7 +1,7 @@
 
 import path from 'path';
 
-import library from '../components/library.js';
+import library from '../../components/library.js';
 
 const componentLibrary = {
     atom: library.atoms,
@@ -9,8 +9,8 @@ const componentLibrary = {
     organism: library.organisms
 };
 
-import { createRenderCache } from "./utils/compose/createRenderCache.js";
-import { createErrorTracker } from "./utils/compose/errorTracker.js";
+import { createRenderCache } from "./compose_utils/createRenderCache.js";
+import { createErrorTracker } from "./compose_utils/errorTracker.js";
 
 const renderCache = createRenderCache(500);
 const errorTracker = createErrorTracker(100);

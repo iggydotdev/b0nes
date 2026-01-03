@@ -4,7 +4,7 @@
  * Zero regex soup. Maximum clarity.
  */
 
-import { URLPattern } from '../utils/urlPattern.js';
+import { URLPattern } from '../../shared/urlPattern.js';
 
 /**
  * Route types (in priority order)

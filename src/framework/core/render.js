@@ -1,7 +1,7 @@
-import { resolveVersionedAsset } from './utils/assetPath.js';
-import { generateStylesheetTag } from './utils/build/generateStylesheetTag.js';
-import { generateMetaTags } from './utils/build/generateMetaTags.js';
-import { resolveAssetPath } from './utils/server/resolveAssetPath.js';
+import { resolveVersionedAsset } from '../shared/assetPath.js';
+import { generateStylesheetTag } from '../build/pipeline/generateStylesheetTag.js';
+import { generateMetaTags } from '../build/pipeline/generateMetaTags.js';
+import { resolveAssetPath } from '../server/handlers/resolveAssetPath.js';
 
 /**
  * b0nes Page Renderer

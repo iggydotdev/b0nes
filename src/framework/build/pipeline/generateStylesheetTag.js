@@ -1,4 +1,4 @@
-import { resolveAssetPath } from '../server/resolveAssetPath.js';
+import { resolveAssetPath } from '../../server/handlers/resolveAssetPath.js';
 
 /**
  * Generate link tag for stylesheet

@@ -1,6 +1,6 @@
-import { renderPage } from '../../renderPage.js';
+import { renderPage } from '../../core/render.js';
 import { getRoutes } from './autoRoutes.js';
-import { compose } from '../../compose.js';
+import { compose } from '../../core/compose.js';
 
 /**
  * Serve pages based on route matching

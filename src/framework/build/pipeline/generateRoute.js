@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { buildPathname } from './buildPathName.js';
-import { compose } from '../../compose.js';
-import { renderPage } from '../../renderPage.js';
+import { compose } from '../../core/compose.js';
+import { renderPage } from '../../core/render.js';
 
 /**
  * Generate a static route to HTML file

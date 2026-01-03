@@ -1,6 +1,4 @@
-
-
-import library from '../components/library.js';
+import library from '../../../components/library.js';
 
 // Build component libraries
 const componentLibrary = {

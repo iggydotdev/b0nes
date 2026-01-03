@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { compose } from '../../compose.js';
+import { compose } from '../../core/compose.js';
 
 /**
  * Generates pre-compiled templates for SPA components

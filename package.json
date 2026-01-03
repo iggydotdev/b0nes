@@ -11,10 +11,10 @@
     "./molecules": "./src/components/molecules/index.js",
     "./organisms": "./src/components/organisms/index.js",
     "./framework": "./src/framework/index.js",
-    "./compose": "./src/framework/compose.js",
-    "./router": "./src/framework/router.js",
+    "./compose": "./src/framework/core/compose.js",
+    "./router": "./src/framework/core/router/index.js",
     "./utils": "./src/components/utils/index.js",
-    "./urlPattern": "./src/framework/utils/urlPattern.js"
+    "./urlPattern": "./src/framework/shared/urlPattern.js"
   },
   "bin": {
     "b0nes": "bin/create.js"

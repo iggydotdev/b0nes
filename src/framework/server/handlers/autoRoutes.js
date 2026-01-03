@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { URLPattern } from '../urlPattern.js';
+import { URLPattern } from '../../shared/urlPattern.js';
 import { PAGES_BASE } from './getServerConfig.js'; 
 
 const pagesDir = PAGES_BASE;

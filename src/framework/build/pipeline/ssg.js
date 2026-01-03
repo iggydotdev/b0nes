@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 
 // Fixed imports - use the auto-routes system
-import { getRoutes } from '../server/autoRoutes.js';
+import { getRoutes } from '../../server/handlers/autoRoutes.js';
 import { generateRoute } from './generateRoute.js';
 
 import { copyColocatedAssets } from './colocatedAssets.js';

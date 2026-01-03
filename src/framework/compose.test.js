@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { compose, clearCompositionCache, getCompositionCacheSize } from './compose.js';
+import { compose, clearCompositionCache, getCompositionCacheSize } from './core/compose.js';
 
 test('compose - basic component composition', () => {
     const result = compose([

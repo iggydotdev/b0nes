@@ -3,7 +3,7 @@ import path from "path";
 import { readFile, stat } from "fs/promises";
 import { ENV } from "../config/envs.js";
 import { validateAndSanitizePath } from "./sanitizePaths.js";
-import { PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE, UTILS_BASE } from "./server/getServerConfig.js";
+import { PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE, UTILS_BASE } from "../server/handlers/getServerConfig.js";
 
 /**
  * Updated tryResolveFile with security validation

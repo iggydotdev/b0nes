@@ -10,8 +10,8 @@
  *   node src/framework/cli.js clean
  */
 
-import { build, clearBuildCache } from './utils/build/ssg.js';
-import startServer from './server.js';
+import { build, clearBuildCache } from './pipeline/ssg.js';
+import startServer from '../server/index.js';
 import fs from 'node:fs';
 
 
