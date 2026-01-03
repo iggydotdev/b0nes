@@ -19,7 +19,7 @@ import { copyFrameworkRuntime } from './copyFrameworkRuntime.js';
 import { copyComponentBehaviors } from './copyComponentBehaviors.js';
 import { generateCompiledTemplates } from './compileTemplates.js';
 import { createPageBundle } from './bundle.js';
-import { compose } from '../../compose.js';
+import { compose } from '../../core/compose.js';
 
 
 /**
