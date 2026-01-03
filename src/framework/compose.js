@@ -68,7 +68,7 @@ const getComponent = (type, name) => {
  * @returns {string} Rendered HTML string
  * @private
  */
-const composeSlot = (slot, context) => {
+const composeSlot = (slot, context = {}) => {
     if (typeof slot === 'string') {
         // 🔗 Reactivity Hook: wrap {{path}} variables in reactive spans
         // This allows granular updates without re-compositing the whole string
@@ -169,6 +169,11 @@ export const compose = (components = [], context = {}) => {
 
         if (!type || !name) {
             return '';
+        }
+
+        // Track dependency if we have a dependencies set in context
+        if (context.dependencies instanceof Set) {
+            context.dependencies.add(`${type}:${name}`);
         }
 
         const comp = getComponent(type, name);

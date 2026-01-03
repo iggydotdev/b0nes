@@ -28,6 +28,7 @@ const flags = {
     port: parseInt(args.find(arg => arg.startsWith('--port='))?.split('=')[1]) || 5000,
     host: args.find(arg => arg.startsWith('--host='))?.split('=')[1] || '0.0.0.0',
     outputDir: args.find(arg => arg.startsWith('--output='))?.split('=')[1] || 'public',
+    production: args.includes('--production'),
     help: args.includes('--help') || args.includes('-h')
 };
 
@@ -51,6 +52,7 @@ BUILD OPTIONS:
   --clean             Clean output directory before build
   --parallel, -p      Build routes in parallel (faster)
   --no-cache          Disable build cache
+  --production        Enable production optimizations (bundling, etc)
 
 DEV OPTIONS:
   --port=<port>       Server port (default: 5000)
@@ -87,7 +89,8 @@ const runBuild = async () => {
         parallel: flags.parallel,
         verbose: flags.verbose,
         continueOnError: true,
-        generateSSRStubs: true
+        generateSSRStubs: true,
+        production: flags.production
     };
     
     if (flags.verbose) {

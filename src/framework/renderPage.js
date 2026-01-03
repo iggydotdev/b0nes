@@ -242,6 +242,16 @@ export const renderPage = (content, meta = {}) => {
         '<div id="app"></div>',
         `<div id="app">\n        ${content}\n    </div>${additionalScripts}${b0nesScriptTag}`
     );
+
+    // Bundle injection (for production)
+    if (meta.bundlePath) {
+        const bundleTag = `\n    <script type="module" defer src="${meta.bundlePath}"></script>`;
+        html = html.replace('</body>', `${bundleTag}\n</body>`);
+        
+        // If we have a bundle, we might want to flag the runtime to skip lazy loading
+        // for components already in the bundle. 
+        // For now, the bundle will just window.b0nes.register them which takes precedence.
+    }
     
     return html;
 };

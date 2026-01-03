@@ -12,6 +12,8 @@ import { generateSSRFallback } from './ssrFallback.js';
 import { copyFrameworkRuntime } from './copyFrameworkRuntime.js';
 import { copyComponentBehaviors } from './copyComponentBehaviors.js';
 import { generateCompiledTemplates } from './compileTemplates.js';
+import { createPageBundle } from './bundle.js';
+import { compose } from '../../compose.js';
 
 
 /**
@@ -259,6 +261,9 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
         } 
         // Static route with static components array
         else {
+            // Collect dependencies during composition
+            const dependencies = new Set();
+            
             // Convert auto-route format to generateRoute format
             const staticRoute = {
                 pattern: route.pattern,
@@ -266,7 +271,26 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
                 meta: page.meta || {}
             };
             
-            const result = await generateRoute(staticRoute, outputDir);
+            // Create a special context for composition that includes our dependency tracker
+            const context = { route, dependencies };
+            
+            // Compose components to HTML
+            const content = compose(staticRoute.components, context);
+            
+            // Create production bundle if requested
+            let bundlePath = null;
+            if (options.production) {
+                const pageName = route.pattern.pathname === '/' ? 'index' : route.pattern.pathname.substring(1).replace(/\//g, '-');
+                bundlePath = await createPageBundle(pageName, dependencies, outputDir, { verbose });
+            }
+
+            // Sync meta with bundlePath
+            const finalMeta = {
+                ...staticRoute.meta,
+                bundlePath: bundlePath || staticRoute.meta.bundlePath
+            };
+
+            const result = await generateRoute({ ...staticRoute, meta: finalMeta, components: staticRoute.components }, outputDir);
             
             if (!result) {
                 throw new Error(`Route "${route.pattern.pathname}" generated no output`);
@@ -332,6 +356,7 @@ export const build = async (outputDir = 'public', options = {}) => {
         verbose = false,
         continueOnError = true,
         generateSSRStubs = true,
+        production = false,
         onError = null
     } = options;
     
@@ -445,7 +470,7 @@ export const build = async (outputDir = 'public', options = {}) => {
             route, 
             buildCache, 
             outputDir, 
-            { verbose, continueOnError }
+            { verbose, continueOnError, production }
         );
         
         if (result.success) {

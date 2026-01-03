@@ -27,7 +27,7 @@
     "build:verbose": "node src/framework/cli.js build --verbose",
     "build:clean": "node src/framework/cli.js build --clean",
     "build:fast": "node src/framework/cli.js build --parallel",
-    "build:production": "node src/framework/cli.js build --clean --parallel",
+    "build:production": "node src/framework/cli.js build --clean --parallel --production",
     "clean": "node src/framework/cli.js clean",
     "serve": "npx serve public",
     "generate": "node src/components/utils/generator/index.js",
