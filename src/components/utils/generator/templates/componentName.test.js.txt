@@ -1,7 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert';
 import componentName from './index.js';
 
-export const test = () => {
+test('componentName rendering', () => {
     const actual = componentName({ /* props go here */  });
     const expected = '...expected value goes here...';
-    return actual === expected? true : console.error({actual, expected}) || false;
-};
+    assert.strictEqual(actual, expected);
+});

@@ -26,7 +26,7 @@ export const createComponent = (componentType, componentName) => {
     const files = ['index.js', 'componentName.js', 'componentName.test.js'];
 
     files.forEach(file => {
-        const content = fs.readFileSync(path.join(componentDir, file), 'utf8');
+        const content = fs.readFileSync(path.join(componentDir, file + '.txt'), 'utf8');
         const updatedContent = content.replace(/componentName/g, componentName).replace(/componentType/g,componentType);
         fs.writeFileSync(path.join(targetDir, file.replace('componentName', componentName)), updatedContent);
     });

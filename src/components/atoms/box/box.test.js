@@ -1,7 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert';
 import box from './index.js';
 
-export const test = () => {
+test('box rendering', () => {
     const actual = box({slot: 'Content', className: 'customClass'});
     const expected = '<div class="box customClass">Content</div>';
-    return actual === expected? true : console.error({actual, expected}) || false;
-};
+    assert.strictEqual(actual, expected);
+});

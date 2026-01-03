@@ -1,12 +1,8 @@
-// src/components/organisms/slides/slides.test.js
+import test from 'node:test';
+import assert from 'node:assert';
 import slides from './index.js';
 
-/**
- * Test suite for slides component
- */
-
-// Test 1: Basic slides rendering with multiple slides
-const testBasicSlides = () => {
+test('slides - basic slides rendering with multiple slides', () => {
     const actual = slides({
         slides: [
             { title: 'Slide 1', content: '<h1>First Slide</h1>' },
@@ -15,60 +11,31 @@ const testBasicSlides = () => {
         ]
     });
     
-    const hasContainer = actual.includes('class="slides"');
-    const hasSlidesContainer = actual.includes('slides-container');
-    const hasSlideElements = actual.includes('data-slide="0"') && 
-                            actual.includes('data-slide="1"') && 
-                            actual.includes('data-slide="2"');
-    const hasControls = actual.includes('slides-controls');
-    const hasIndicator = actual.includes('3 / 3');
-    const hasContent = actual.includes('First Slide') && 
-                      actual.includes('Second Slide') && 
-                      actual.includes('Third Slide');
-    
-    if (!hasContainer || !hasSlidesContainer || !hasSlideElements || !hasControls || !hasIndicator || !hasContent) {
-        console.error('testBasicSlides failed:', {
-            hasContainer,
-            hasSlidesContainer,
-            hasSlideElements,
-            hasControls,
-            hasIndicator,
-            hasContent,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('class="slides"'));
+    assert.ok(actual.includes('slides-container'));
+    assert.ok(actual.includes('data-slide="0"') && 
+              actual.includes('data-slide="1"') && 
+              actual.includes('data-slide="2"'));
+    assert.ok(actual.includes('slides-controls'));
+    assert.ok(actual.includes('3 / 3'));
+    assert.ok(actual.includes('First Slide') && 
+              actual.includes('Second Slide') && 
+              actual.includes('Third Slide'));
+});
 
-// Test 2: Single slide rendering
-const testSingleSlide = () => {
+test('slides - single slide rendering', () => {
     const actual = slides({
         slides: [
             { title: 'Only Slide', content: '<h1>Solo</h1>' }
         ]
     });
     
-    const hasSingleSlide = actual.includes('data-slide="0"');
-    const hasCorrectCount = actual.includes('1 / 1');
-    const hasContent = actual.includes('Solo');
-    
-    if (!hasSingleSlide || !hasCorrectCount || !hasContent) {
-        console.error('testSingleSlide failed:', {
-            hasSingleSlide,
-            hasCorrectCount,
-            hasContent,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('data-slide="0"'));
+    assert.ok(actual.includes('1 / 1'));
+    assert.ok(actual.includes('Solo'));
+});
 
-// Test 3: First slide is active
-const testFirstSlideActive = () => {
+test('slides - first slide is active', () => {
     const actual = slides({
         slides: [
             { title: 'Slide 1', content: '<h1>First</h1>' },
@@ -76,22 +43,10 @@ const testFirstSlideActive = () => {
         ]
     });
     
-    // First slide should have 'active' class
-    const hasActiveOnFirst = actual.includes('class="slide active"');
-    
-    if (!hasActiveOnFirst) {
-        console.error('testFirstSlideActive failed:', {
-            hasActiveOnFirst,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('class="slide active"'));
+});
 
-// Test 4: Slide with background color
-const testSlideWithBackground = () => {
+test('slides - slide with background color', () => {
     const actual = slides({
         slides: [
             { 
@@ -102,21 +57,10 @@ const testSlideWithBackground = () => {
         ]
     });
     
-    const hasBackground = actual.includes('style="background: #ff0000"');
-    
-    if (!hasBackground) {
-        console.error('testSlideWithBackground failed:', {
-            hasBackground,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('style="background: #ff0000"'));
+});
 
-// Test 5: Slide with array content
-const testSlideWithArrayContent = () => {
+test('slides - slide with array content', () => {
     const actual = slides({
         slides: [
             { 
@@ -126,23 +70,11 @@ const testSlideWithArrayContent = () => {
         ]
     });
     
-    const hasPart1 = actual.includes('Part 1');
-    const hasPart2 = actual.includes('Part 2');
-    
-    if (!hasPart1 || !hasPart2) {
-        console.error('testSlideWithArrayContent failed:', {
-            hasPart1,
-            hasPart2,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('Part 1'));
+    assert.ok(actual.includes('Part 2'));
+});
 
-// Test 6: Custom className
-const testCustomClassName = () => {
+test('slides - custom className', () => {
     const actual = slides({
         className: 'custom-slides dark-theme',
         slides: [
@@ -150,23 +82,11 @@ const testCustomClassName = () => {
         ]
     });
     
-    const hasBaseClass = actual.includes('class="slides');
-    const hasCustomClass = actual.includes('custom-slides') && actual.includes('dark-theme');
-    
-    if (!hasBaseClass || !hasCustomClass) {
-        console.error('testCustomClassName failed:', {
-            hasBaseClass,
-            hasCustomClass,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('class="slides'));
+    assert.ok(actual.includes('custom-slides') && actual.includes('dark-theme'));
+});
 
-// Test 7: Custom attributes
-const testCustomAttributes = () => {
+test('slides - custom attributes', () => {
     const actual = slides({
         attrs: 'id="presentation" data-theme="dark"',
         slides: [
@@ -174,44 +94,21 @@ const testCustomAttributes = () => {
         ]
     });
     
-    const hasId = actual.includes('id="presentation"');
-    const hasDataAttr = actual.includes('data-theme="dark"');
-    
-    if (!hasId || !hasDataAttr) {
-        console.error('testCustomAttributes failed:', {
-            hasId,
-            hasDataAttr,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('id="presentation"'));
+    assert.ok(actual.includes('data-theme="dark"'));
+});
 
-// Test 8: b0nes initialization attribute
-const testB0nesAttribute = () => {
+test('slides - b0nes initialization attribute', () => {
     const actual = slides({
         slides: [
             { title: 'Slide 1', content: '<h1>B0nes</h1>' }
         ]
     });
     
-    const hasB0nesAttr = actual.includes('data-b0nes="organisms:slides"');
-    
-    if (!hasB0nesAttr) {
-        console.error('testB0nesAttribute failed:', {
-            hasB0nesAttr,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('data-b0nes="organisms:slides"'));
+});
 
-// Test 9: Navigation controls exist
-const testNavigationControls = () => {
+test('slides - navigation controls exist', () => {
     const actual = slides({
         slides: [
             { title: 'Slide 1', content: '<h1>One</h1>' },
@@ -219,25 +116,12 @@ const testNavigationControls = () => {
         ]
     });
     
-    const hasPrevBtn = actual.includes('data-action="prev"') && actual.includes('← Prev');
-    const hasNextBtn = actual.includes('data-action="next"') && actual.includes('Next →');
-    const hasIndicator = actual.includes('slide-indicator');
-    
-    if (!hasPrevBtn || !hasNextBtn || !hasIndicator) {
-        console.error('testNavigationControls failed:', {
-            hasPrevBtn,
-            hasNextBtn,
-            hasIndicator,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('data-action="prev"') && actual.includes('← Prev'));
+    assert.ok(actual.includes('data-action="next"') && actual.includes('Next →'));
+    assert.ok(actual.includes('slide-indicator'));
+});
 
-// Test 10: Accessibility attributes
-const testAccessibilityAttributes = () => {
+test('slides - accessibility attributes', () => {
     const actual = slides({
         slides: [
             { title: 'Title Slide', content: '<h1>Welcome</h1>' },
@@ -245,29 +129,14 @@ const testAccessibilityAttributes = () => {
         ]
     });
     
-    const hasRolePresentation = actual.includes('role="presentation"');
-    const hasRoleRegion = actual.includes('role="region"');
-    const hasAriaLabel = actual.includes('aria-label="Slide');
-    const hasAriaLive = actual.includes('aria-live="polite"');
-    const hasAriaAtomic = actual.includes('aria-atomic="true"');
-    
-    if (!hasRolePresentation || !hasRoleRegion || !hasAriaLabel || !hasAriaLive || !hasAriaAtomic) {
-        console.error('testAccessibilityAttributes failed:', {
-            hasRolePresentation,
-            hasRoleRegion,
-            hasAriaLabel,
-            hasAriaLive,
-            hasAriaAtomic,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('role="presentation"'));
+    assert.ok(actual.includes('role="region"'));
+    assert.ok(actual.includes('aria-label="Slide'));
+    assert.ok(actual.includes('aria-live="polite"'));
+    assert.ok(actual.includes('aria-atomic="true"'));
+});
 
-// Test 11: Correct slide numbering
-const testSlideNumbering = () => {
+test('slides - slide numbering', () => {
     const actual = slides({
         slides: [
             { title: 'Slide 1', content: '<h1>1</h1>' },
@@ -278,82 +147,14 @@ const testSlideNumbering = () => {
         ]
     });
     
-    const hasSlideNumbers = actual.includes('slide-number') && actual.includes('5 / 5');
-    const countMatches = (actual.match(/data-slide="/g) || []).length === 5;
-    
-    if (!hasSlideNumbers || !countMatches) {
-        console.error('testSlideNumbering failed:', {
-            hasSlideNumbers,
-            countMatches,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('slide-number') && actual.includes('5 / 5'));
+    assert.strictEqual((actual.match(/data-slide="/g) || []).length, 5);
+});
 
-// Test 12: Empty slides array warning (edge case)
-const testEmptySlides = () => {
+test('slides - empty slides array warning (edge case)', () => {
     const actual = slides({
         slides: []
     });
     
-    // Should return empty string when no slides
-    const isEmpty = actual === '';
-    
-    if (!isEmpty) {
-        console.error('testEmptySlides failed:', {
-            isEmpty,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
-
-// ============================================
-// Main test export
-// ============================================
-
-export const test = () => {
-    const tests = [
-        { name: 'testBasicSlides', fn: testBasicSlides },
-        { name: 'testSingleSlide', fn: testSingleSlide },
-        { name: 'testFirstSlideActive', fn: testFirstSlideActive },
-        { name: 'testSlideWithBackground', fn: testSlideWithBackground },
-        { name: 'testSlideWithArrayContent', fn: testSlideWithArrayContent },
-        { name: 'testCustomClassName', fn: testCustomClassName },
-        { name: 'testCustomAttributes', fn: testCustomAttributes },
-        { name: 'testB0nesAttribute', fn: testB0nesAttribute },
-        { name: 'testNavigationControls', fn: testNavigationControls },
-        { name: 'testAccessibilityAttributes', fn: testAccessibilityAttributes },
-        { name: 'testSlideNumbering', fn: testSlideNumbering },
-        { name: 'testEmptySlides', fn: testEmptySlides }
-    ];
-    
-    let passed = 0;
-    let failed = 0;
-    
-    console.log('\n📊 Slides Component Tests\n');
-    
-    for (const test of tests) {
-        try {
-            if (test.fn()) {
-                passed++;
-                console.log(`  ✓ ${test.name}`);
-            } else {
-                failed++;
-                console.log(`  ✗ ${test.name}`);
-            }
-        } catch (error) {
-            failed++;
-            console.log(`  ✗ ${test.name} - ${error.message}`);
-        }
-    }
-    
-    console.log(`\nSlides Component Tests: ${passed} passed, ${failed} failed\n`);
-    
-    return failed === 0;
-};
+    assert.strictEqual(actual, '');
+});

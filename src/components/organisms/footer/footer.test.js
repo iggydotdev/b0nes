@@ -1,7 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert';
 import footer from './index.js';
 
-export const test = () => {
+test('footer rendering', () => {
     const actual = footer({ attrs: 'data-test="footer"', className: 'custom-footer', slot: '<p class="footer-text">This is the footer</p>' });
     const expected = '<footer class="footer custom-footer" data-test="footer"><p class="footer-text">This is the footer</p></footer>';
-    return actual === expected? true : console.error({actual, expected}) || false;
-};
+    assert.strictEqual(actual, expected);
+});

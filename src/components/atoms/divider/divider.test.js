@@ -1,7 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert';
 import divider from './index.js';
 
-export const test = () => {
+test('divider rendering', () => {
     const actual = divider({});
     const expected = '<hr class="divider"/>';
-    return actual === expected? true : console.error({actual, expected}) || false;
-};
+    assert.strictEqual(actual, expected);
+});

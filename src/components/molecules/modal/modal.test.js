@@ -1,26 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert';
 import { button } from '../../atoms/index.js';
 import modal from './index.js';
 
-export const test = () => {
+test('modal rendering', () => {
     const actualModal = modal({ id: 'test-modal', title: 'Test', slot: 'Content' });
     const actualTrigger = button({ attrs: 'data-modal-open="test-modal"', slot: 'Open' });
     
-    const hasModalDataAttr = actualModal.includes('data-b0nes="molecules:modal"');
-    const hasModalId = actualModal.includes('id="test-modal"');
-    const hasTitle = actualModal.includes('Test');
-    const hasTriggerDataAttr = actualTrigger.includes('data-modal-open="test-modal"');
-    
-    if (!hasModalDataAttr || !hasModalId || !hasTitle || !hasTriggerDataAttr) {
-        console.error({
-            hasModalDataAttr,
-            hasModalId,
-            hasTitle,
-            hasTriggerDataAttr,
-            actualModal,
-            actualTrigger
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actualModal.includes('data-b0nes="molecules:modal"'), 'Modal should have data-b0nes attribute');
+    assert.ok(actualModal.includes('id="test-modal"'), 'Modal should have correct ID');
+    assert.ok(actualModal.includes('Test'), 'Modal should include title');
+    assert.ok(actualTrigger.includes('data-modal-open="test-modal"'), 'Trigger should have correct data attribute');
+});

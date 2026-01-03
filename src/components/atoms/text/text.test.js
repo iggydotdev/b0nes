@@ -1,7 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert';
 import text from './index.js';
 
-export const test = () => {
+test('text rendering', () => {
     const actual = text({is: 'p', slot: 'Hello, World!', className: 'custom-text', attrs: 'id="greeting"'});
     const expected = `<p class="text custom-text" id="greeting">Hello, World!</p>`;
-    return actual === expected? true : console.error({actual, expected}) || false;
-};
+    assert.strictEqual(actual, expected);
+});

@@ -20,17 +20,15 @@
     "b0nes": "bin/create.js"
   },
   "scripts": {
-    "test": "node src/components/utils/tester.js",
+    "test": "node --test 'src/**/*.test.js'",
     "dev": "NODE_ENV=development node src/framework/server.js",
     "dev:watch": "NODE_ENV=development node --watch src/framework/server.js",
-    
     "build": "node src/framework/cli.js build",
     "build:verbose": "node src/framework/cli.js build --verbose",
     "build:clean": "node src/framework/cli.js build --clean",
     "build:fast": "node src/framework/cli.js build --parallel",
     "build:production": "node src/framework/cli.js build --clean --parallel",
     "clean": "node src/framework/cli.js clean",
-    
     "serve": "npx serve public",
     "generate": "node src/components/utils/generator/index.js",
     "install-component": "node src/scripts/install-component.js",

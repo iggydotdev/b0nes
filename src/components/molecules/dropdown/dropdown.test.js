@@ -1,23 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert';
 import dropdown from './index.js';
 
-export const test = () => {
+test('dropdown rendering', () => {
     const actual = dropdown({ trigger: 'Click me', slot: '<a href="#">Item</a>' });
     
-    const hasDataAttribute = actual.includes('data-b0nes="molecules:dropdown"');
-    const hasTrigger = actual.includes('Click me');
-    const hasMenu = actual.includes('dropdown-menu');
-    const hasHidden = actual.includes('hidden');
-    
-    if (!hasDataAttribute || !hasTrigger || !hasMenu || !hasHidden) {
-        console.error({
-            hasDataAttribute,
-            hasTrigger,
-            hasMenu,
-            hasHidden,
-            actual
-        });
-        return false;
-    }
-    
-    return true;
-};
+    assert.ok(actual.includes('data-b0nes="molecules:dropdown"'), 'Should have data-b0nes attribute');
+    assert.ok(actual.includes('Click me'), 'Should include trigger text');
+    assert.ok(actual.includes('dropdown-menu'), 'Should include dropdown menu class');
+    assert.ok(actual.includes('hidden'), 'Should be hidden by default');
+});

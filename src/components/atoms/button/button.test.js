@@ -1,12 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert';
 import button from './index.js';
 
-/**
- * Test suite for button component
- * Tests basic rendering, attributes, and edge cases
- */
-
-// Test 1: Basic button with submit type
-const testSubmitButton = () => {
+test('button - basic button with submit type', () => {
     const actual = button({
         type: 'submit', 
         slot: 'Click Me', 
@@ -14,95 +10,57 @@ const testSubmitButton = () => {
         attrs: 'id="my-button" onclick="()=>{alert(`hello`)}"'
     });
     const expected = '<button type="submit" class="btn custom-button" id="my-button" onclick="()=>{alert(`hello`)}">Click Me</button>';
-    return actual === expected ? true : console.error('testSubmitButton failed:', {actual, expected}) || false;
-};
+    assert.strictEqual(actual, expected);
+});
 
-// Test 2: Default button (no type specified)
-const testDefaultButton = () => {
+test('button - default button (no type specified)', () => {
     const actual = button({
         slot: 'Default Button'
     });
     const expected = '<button type="button" class="btn">Default Button</button>';
-    return actual === expected ? true : console.error('testDefaultButton failed:', {actual, expected}) || false;
-};
+    assert.strictEqual(actual, expected);
+});
 
-// Test 3: Button with disabled attribute
-const testDisabledButton = () => {
+test('button - button with disabled attribute', () => {
     const actual = button({
         slot: 'Disabled',
         attrs: 'disabled'
     });
     const expected = '<button type="button" class="btn" disabled>Disabled</button>';
-    return actual === expected ? true : console.error('testDisabledButton failed:', {actual, expected}) || false;
-};
+    assert.strictEqual(actual, expected);
+});
 
-// Test 4: Button with aria-label
-const testAriaButton = () => {
+test('button - button with aria-label', () => {
     const actual = button({
         slot: 'Submit',
         attrs: 'aria-label="Submit form"'
     });
     const expected = '<button type="button" class="btn" aria-label="Submit form">Submit</button>';
-    return actual === expected ? true : console.error('testAriaButton failed:', {actual, expected}) || false;
-};
+    assert.strictEqual(actual, expected);
+});
 
-// Test 5: Button with multiple classes
-const testMultipleClasses = () => {
+test('button - button with multiple classes', () => {
     const actual = button({
         slot: 'Primary',
         className: 'primary large'
     });
     const expected = '<button type="button" class="btn primary large">Primary</button>';
-    return actual === expected ? true : console.error('testMultipleClasses failed:', {actual, expected}) || false;
-};
+    assert.strictEqual(actual, expected);
+});
 
-// Test 6: Reset button type
-const testResetButton = () => {
+test('button - reset button type', () => {
     const actual = button({
         type: 'reset',
         slot: 'Reset Form'
     });
     const expected = '<button type="reset" class="btn">Reset Form</button>';
-    return actual === expected ? true : console.error('testResetButton failed:', {actual, expected}) || false;
-};
+    assert.strictEqual(actual, expected);
+});
 
-// Test 7: Button with array slot (nested content)
-const testArraySlot = () => {
+test('button - button with array slot (nested content)', () => {
     const actual = button({
         slot: ['Click ', '<strong>Me</strong>']
     });
     const expected = '<button type="button" class="btn">Click <strong>Me</strong></button>';
-    return actual === expected ? true : console.error('testArraySlot failed:', {actual, expected}) || false;
-};
-
-// Main test export - runs all tests
-export const test = () => {
-    const tests = [
-        testSubmitButton,
-        testDefaultButton,
-        testDisabledButton,
-        testAriaButton,
-        testMultipleClasses,
-        testResetButton,
-        testArraySlot
-    ];
-    
-    let passed = 0;
-    let failed = 0;
-    
-    for (const testFn of tests) {
-        if (testFn()) {
-            passed++;
-        } else {
-            failed++;
-        }
-    }
-    
-    // Summary
-    if (failed > 0) {
-        console.error(`\nButton tests: ${passed} passed, ${failed} failed`);
-        return false;
-    }
-    
-    return true;
-};
+    assert.strictEqual(actual, expected);
+});
