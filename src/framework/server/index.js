@@ -57,20 +57,39 @@ router.printRoutes();
 
 const server = http.createServer(router.handle);
 
-export function startServer(port = 5000, host = '0.0.0.0') {
-    server.listen(port, host, () => {
-        console.log(`\n🦴 b0nes development server running\n`);
-        console.log(`   Local:   http://localhost:${port}`);
-        console.log(`   Network: http://${host}:${port}\n`);
-        console.log('   Press Ctrl+C to stop\n');
-    });
-    
+export function startServer(port = 3000, host = '0.0.0.0') {
+    const maxRetries = 10;
+    let attempt = 0;
+
+    function tryListen(currentPort) {
+        attempt++;
+        server.listen(currentPort, host, () => {
+            console.log(`\n🦴 b0nes development server running\n`);
+            console.log(`   Local:   http://localhost:${currentPort}`);
+            console.log(`   Network: http://${host}:${currentPort}\n`);
+            console.log('   Press Ctrl+C to stop\n');
+        });
+
+        server.once('error', (err) => {
+            if (err.code === 'EADDRINUSE' && attempt < maxRetries) {
+                const nextPort = currentPort + 1;
+                console.warn(`   Port ${currentPort} in use, trying ${nextPort}...`);
+                server.removeAllListeners('error');
+                tryListen(nextPort);
+            } else {
+                console.error(`Failed to start server: ${err.message}`);
+                process.exit(1);
+            }
+        });
+    }
+
+    tryListen(Number(port));
     return server;
 }
 
 // Auto-start
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 3000;
     const HOST = process.env.HOST || '0.0.0.0';
     startServer(PORT, HOST);
 }
