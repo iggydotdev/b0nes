@@ -73,48 +73,44 @@ router.printRoutes();
 
 let activeServer = null;
 
-function wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+function tryListen(port, host) {
+    return new Promise((resolve, reject) => {
+        const s = http.createServer(router.handle);
+        s.once('error', (err) => {
+            s.close();
+            reject(err);
+        });
+        s.listen(port, host, () => resolve(s));
+    });
 }
 
 export async function startServer(port = 5000, host = '0.0.0.0') {
-    const MAX_RETRIES = 5;
-    const RETRY_DELAY = 1000; // 1 second between retries
-
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        try {
-            const server = await new Promise((resolve, reject) => {
-                const s = http.createServer(router.handle);
-                s.once('error', (err) => {
-                    s.close();
-                    reject(err);
-                });
-                s.listen(port, host, () => resolve(s));
-            });
-
-            activeServer = server;
-            console.log(`\n   b0nes development server running\n`);
-            console.log(`   Local:   http://localhost:${port}`);
-            console.log(`   Network: http://${host}:${port}\n`);
-            console.log('   Press Ctrl+C to stop\n');
-
-            if (ENV.isDev && startWatcher) {
-                startWatcher();
-                console.log(`   Inspector: http://localhost:${port}/_inspector\n`);
-            }
-
-            return server;
-        } catch (err) {
-            if (err.code === 'EADDRINUSE') {
-                console.warn(`   Port ${port} in use, retrying in ${RETRY_DELAY}ms... (attempt ${attempt + 1}/${MAX_RETRIES})`);
-                await wait(RETRY_DELAY);
-            } else {
-                throw err;
-            }
+    let server;
+    try {
+        server = await tryListen(port, host);
+    } catch (err) {
+        if (err.code === 'EADDRINUSE') {
+            console.warn(`   Port ${port} in use, requesting free port from OS...`);
+            server = await tryListen(0, host);
+        } else {
+            throw err;
         }
     }
 
-    throw new Error(`Port ${port} still in use after ${MAX_RETRIES} attempts.`);
+    activeServer = server;
+    const actualPort = server.address().port;
+
+    console.log(`\n   b0nes development server running\n`);
+    console.log(`   Local:   http://localhost:${actualPort}`);
+    console.log(`   Network: http://${host}:${actualPort}\n`);
+    console.log('   Press Ctrl+C to stop\n');
+
+    if (ENV.isDev && startWatcher) {
+        startWatcher();
+        console.log(`   Inspector: http://localhost:${actualPort}/_inspector\n`);
+    }
+
+    return server;
 }
 
 // Graceful shutdown
