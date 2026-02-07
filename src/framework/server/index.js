@@ -84,17 +84,31 @@ function tryListen(port, host) {
     });
 }
 
-export async function startServer(port = 5000, host = '0.0.0.0') {
+const FALLBACK_PORTS = [3000, 3001, 4000, 5000, 5001, 8080, 0];
+
+export async function startServer(port, host = '0.0.0.0') {
+    // Build ordered list: requested port first, then fallbacks
+    const portsToTry = port != null
+        ? [Number(port), ...FALLBACK_PORTS.filter(p => p !== Number(port))]
+        : FALLBACK_PORTS;
+
     let server;
-    try {
-        server = await tryListen(port, host);
-    } catch (err) {
-        if (err.code === 'EADDRINUSE') {
-            console.warn(`   Port ${port} in use, requesting free port from OS...`);
-            server = await tryListen(0, host);
-        } else {
+    for (const p of portsToTry) {
+        try {
+            console.log(`[v0] Trying port ${p}...`);
+            server = await tryListen(p, host);
+            break;
+        } catch (err) {
+            if (err.code === 'EADDRINUSE') {
+                console.warn(`   Port ${p} in use, skipping...`);
+                continue;
+            }
             throw err;
         }
+    }
+
+    if (!server) {
+        throw new Error('Could not bind to any port.');
     }
 
     activeServer = server;
@@ -125,8 +139,9 @@ process.on('SIGINT', shutdown);
 
 // Auto-start
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || undefined;
     const HOST = process.env.HOST || '0.0.0.0';
+    console.log(`[v0] process.env.PORT=${process.env.PORT}, using PORT=${PORT}`);
     startServer(PORT, HOST).catch((err) => {
         console.error('Failed to start server:', err.message);
         process.exit(1);
