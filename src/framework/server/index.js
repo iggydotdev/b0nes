@@ -73,47 +73,48 @@ router.printRoutes();
 
 let activeServer = null;
 
-function createServer() {
-    return http.createServer(router.handle);
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function startServer(port = 5000, host = '0.0.0.0', retries = 3) {
-    return new Promise((resolve, reject) => {
-        // Create a fresh server instance for each attempt
-        const server = createServer();
+export async function startServer(port = 5000, host = '0.0.0.0') {
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY = 1000; // 1 second between retries
 
-        const onError = (err) => {
-            if (err.code === 'EADDRINUSE') {
-                console.warn(`   Port ${port} is in use, trying ${Number(port) + 1}...`);
-                server.close();
-                if (retries > 0) {
-                    resolve(startServer(Number(port) + 1, host, retries - 1));
-                } else {
-                    reject(new Error(`Could not find an available port after retries.`));
-                }
-            } else {
-                reject(err);
-            }
-        };
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+            const server = await new Promise((resolve, reject) => {
+                const s = http.createServer(router.handle);
+                s.once('error', (err) => {
+                    s.close();
+                    reject(err);
+                });
+                s.listen(port, host, () => resolve(s));
+            });
 
-        server.once('error', onError);
-
-        server.listen(port, host, () => {
             activeServer = server;
             console.log(`\n   b0nes development server running\n`);
             console.log(`   Local:   http://localhost:${port}`);
             console.log(`   Network: http://${host}:${port}\n`);
             console.log('   Press Ctrl+C to stop\n');
 
-            // Start file watcher for inspector hot reload (dev only)
             if (ENV.isDev && startWatcher) {
                 startWatcher();
                 console.log(`   Inspector: http://localhost:${port}/_inspector\n`);
             }
 
-            resolve(server);
-        });
-    });
+            return server;
+        } catch (err) {
+            if (err.code === 'EADDRINUSE') {
+                console.warn(`   Port ${port} in use, retrying in ${RETRY_DELAY}ms... (attempt ${attempt + 1}/${MAX_RETRIES})`);
+                await wait(RETRY_DELAY);
+            } else {
+                throw err;
+            }
+        }
+    }
+
+    throw new Error(`Port ${port} still in use after ${MAX_RETRIES} attempts.`);
 }
 
 // Graceful shutdown
@@ -121,7 +122,7 @@ function shutdown() {
     if (activeServer) {
         activeServer.close(() => process.exit(0));
     }
-    setTimeout(() => process.exit(1), 2000);
+    setTimeout(() => process.exit(1), 1000);
 }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
