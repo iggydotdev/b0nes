@@ -71,81 +71,42 @@ router.printRoutes();
 // CREATE SERVER
 // ============================================
 
-let activeServer = null;
+const server = http.createServer(router.handle);
 
-function tryListen(port, host) {
-    return new Promise((resolve, reject) => {
-        const s = http.createServer(router.handle);
-        s.once('error', (err) => {
-            s.close();
-            reject(err);
-        });
-        s.listen(port, host, () => resolve(s));
-    });
-}
+export function startServer(port = 3000, host = '0.0.0.0') {
+    server.listen(port, host, () => {
+        console.log(`\n   b0nes development server running\n`);
+        console.log(`   Local:   http://localhost:${port}`);
+        console.log(`   Network: http://${host}:${port}\n`);
+        console.log('   Press Ctrl+C to stop\n');
 
-const FALLBACK_PORTS = [3000, 3001, 4000, 5000, 5001, 8080, 0];
-
-export async function startServer(port, host = '0.0.0.0') {
-    // Build ordered list: requested port first, then fallbacks
-    const portsToTry = port != null
-        ? [Number(port), ...FALLBACK_PORTS.filter(p => p !== Number(port))]
-        : FALLBACK_PORTS;
-
-    let server;
-    for (const p of portsToTry) {
-        try {
-            console.log(`[v0] Trying port ${p}...`);
-            server = await tryListen(p, host);
-            break;
-        } catch (err) {
-            if (err.code === 'EADDRINUSE') {
-                console.warn(`   Port ${p} in use, skipping...`);
-                continue;
-            }
-            throw err;
+        if (ENV.isDev && startWatcher) {
+            startWatcher();
+            console.log(`   Inspector: http://localhost:${port}/_inspector\n`);
         }
-    }
+    });
 
-    if (!server) {
-        throw new Error('Could not bind to any port.');
-    }
-
-    activeServer = server;
-    const actualPort = server.address().port;
-
-    console.log(`\n   b0nes development server running\n`);
-    console.log(`   Local:   http://localhost:${actualPort}`);
-    console.log(`   Network: http://${host}:${actualPort}\n`);
-    console.log('   Press Ctrl+C to stop\n');
-
-    if (ENV.isDev && startWatcher) {
-        startWatcher();
-        console.log(`   Inspector: http://localhost:${actualPort}/_inspector\n`);
-    }
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`Port ${port} is already in use.`);
+        } else {
+            console.error('Server error:', err);
+        }
+        process.exit(1);
+    });
 
     return server;
 }
 
 // Graceful shutdown
-function shutdown() {
-    if (activeServer) {
-        activeServer.close(() => process.exit(0));
-    }
-    setTimeout(() => process.exit(1), 1000);
-}
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+process.on('SIGTERM', () => server.close(() => process.exit(0)));
+process.on('SIGINT', () => server.close(() => process.exit(0)));
 
 // Auto-start
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const PORT = process.env.PORT || undefined;
+    const PORT = process.env.PORT || 3000;
     const HOST = process.env.HOST || '0.0.0.0';
-    console.log(`[v0] process.env.PORT=${process.env.PORT}, using PORT=${PORT}`);
-    startServer(PORT, HOST).catch((err) => {
-        console.error('Failed to start server:', err.message);
-        process.exit(1);
-    });
+    startServer(PORT, HOST);
 }
 
 export default startServer;
