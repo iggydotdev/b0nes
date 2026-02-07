@@ -73,28 +73,59 @@ router.printRoutes();
 
 const server = http.createServer(router.handle);
 
-export function startServer(port = 5000, host = '0.0.0.0') {
-    server.listen(port, host, () => {
-        console.log(`\n🦴 b0nes development server running\n`);
-        console.log(`   Local:   http://localhost:${port}`);
-        console.log(`   Network: http://${host}:${port}\n`);
-        console.log('   Press Ctrl+C to stop\n');
+export function startServer(port = 5000, host = '0.0.0.0', retries = 3) {
+    return new Promise((resolve, reject) => {
+        const onError = (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.warn(`   Port ${port} is in use, trying ${Number(port) + 1}...`);
+                server.removeListener('error', onError);
+                if (retries > 0) {
+                    resolve(startServer(Number(port) + 1, host, retries - 1));
+                } else {
+                    reject(new Error(`Could not find an available port after retries.`));
+                }
+            } else {
+                reject(err);
+            }
+        };
+
+        server.on('error', onError);
+
+        server.listen(port, host, () => {
+            server.removeListener('error', onError);
+            console.log(`\n🦴 b0nes development server running\n`);
+            console.log(`   Local:   http://localhost:${port}`);
+            console.log(`   Network: http://${host}:${port}\n`);
+            console.log('   Press Ctrl+C to stop\n');
+
+            // Start file watcher for inspector hot reload (dev only)
+            if (ENV.isDev && startWatcher) {
+                startWatcher();
+                console.log(`   Inspector: http://localhost:${port}/_inspector\n`);
+            }
+
+            resolve(server);
+        });
     });
-    
-    return server;
 }
+
+// Graceful shutdown
+function shutdown() {
+    console.log('\n   Shutting down...');
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 3000);
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 // Auto-start
 if (import.meta.url === `file://${process.argv[1]}`) {
     const PORT = process.env.PORT || 5000;
     const HOST = process.env.HOST || '0.0.0.0';
-    startServer(PORT, HOST);
-    
-    // Start file watcher for inspector hot reload (dev only)
-    if (ENV.isDev && startWatcher) {
-        startWatcher();
-        console.log(`\n   Inspector: http://localhost:${PORT}/_inspector\n`);
-    }
+    startServer(PORT, HOST).catch((err) => {
+        console.error('Failed to start server:', err.message);
+        process.exit(1);
+    });
 }
 
 export default startServer;
