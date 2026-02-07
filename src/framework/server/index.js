@@ -11,6 +11,16 @@ import { serveTemplates } from './handlers/serveTemplates.js';
 import { servePages } from './handlers/servePages.js';
 import { serveRuntimeFiles } from './handlers/serveRuntimeFiles.js';
 
+// Dev-only: Inspector imports (conditionally loaded)
+let serveInspector = null;
+let startWatcher = null;
+if (ENV.isDev) {
+    const inspectorHandler = await import('./handlers/serveInspector.js');
+    const watcher = await import('../dev/watcher.js');
+    serveInspector = inspectorHandler.serveInspector;
+    startWatcher = watcher.startWatcher;
+}
+
 PRINT_CURRENT_CONFIG();
 
 // Create router
@@ -31,6 +41,12 @@ const staticExtensions = [
     '.woff', '.woff2', '.ttf', '.eot'
 ];
 router.addExtension(staticExtensions, serveStaticFiles);
+
+// 2b. DEV-ONLY: Inspector routes (before prefix/extension catches them)
+if (ENV.isDev && serveInspector) {
+    router.addExact('/_inspector', serveInspector);
+    router.addPrefix('/_inspector/', serveInspector);
+}
 
 // 3. PREFIX MATCHES (directory-based routing)
 router.addPrefix('/assets/', serveStaticFiles);
@@ -73,6 +89,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const PORT = process.env.PORT || 5000;
     const HOST = process.env.HOST || '0.0.0.0';
     startServer(PORT, HOST);
+    
+    // Start file watcher for inspector hot reload (dev only)
+    if (ENV.isDev && startWatcher) {
+        startWatcher();
+        console.log(`\n   Inspector: http://localhost:${PORT}/_inspector\n`);
+    }
 }
 
 export default startServer;
