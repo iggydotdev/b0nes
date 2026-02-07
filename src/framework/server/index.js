@@ -71,14 +71,21 @@ router.printRoutes();
 // CREATE SERVER
 // ============================================
 
-const server = http.createServer(router.handle);
+let activeServer = null;
+
+function createServer() {
+    return http.createServer(router.handle);
+}
 
 export function startServer(port = 5000, host = '0.0.0.0', retries = 3) {
     return new Promise((resolve, reject) => {
+        // Create a fresh server instance for each attempt
+        const server = createServer();
+
         const onError = (err) => {
             if (err.code === 'EADDRINUSE') {
                 console.warn(`   Port ${port} is in use, trying ${Number(port) + 1}...`);
-                server.removeListener('error', onError);
+                server.close();
                 if (retries > 0) {
                     resolve(startServer(Number(port) + 1, host, retries - 1));
                 } else {
@@ -89,11 +96,11 @@ export function startServer(port = 5000, host = '0.0.0.0', retries = 3) {
             }
         };
 
-        server.on('error', onError);
+        server.once('error', onError);
 
         server.listen(port, host, () => {
-            server.removeListener('error', onError);
-            console.log(`\n🦴 b0nes development server running\n`);
+            activeServer = server;
+            console.log(`\n   b0nes development server running\n`);
             console.log(`   Local:   http://localhost:${port}`);
             console.log(`   Network: http://${host}:${port}\n`);
             console.log('   Press Ctrl+C to stop\n');
@@ -111,9 +118,10 @@ export function startServer(port = 5000, host = '0.0.0.0', retries = 3) {
 
 // Graceful shutdown
 function shutdown() {
-    console.log('\n   Shutting down...');
-    server.close(() => process.exit(0));
-    setTimeout(() => process.exit(1), 3000);
+    if (activeServer) {
+        activeServer.close(() => process.exit(0));
+    }
+    setTimeout(() => process.exit(1), 2000);
 }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
