@@ -11,6 +11,16 @@ import { serveTemplates } from './handlers/serveTemplates.js';
 import { servePages } from './handlers/servePages.js';
 import { serveRuntimeFiles } from './handlers/serveRuntimeFiles.js';
 
+// Dev-only: Inspector imports (conditionally loaded)
+let serveInspector = null;
+let startWatcher = null;
+if (ENV.isDev) {
+    const inspectorHandler = await import('./handlers/serveInspector.js');
+    const watcher = await import('../dev/watcher.js');
+    serveInspector = inspectorHandler.serveInspector;
+    startWatcher = watcher.startWatcher;
+}
+
 PRINT_CURRENT_CONFIG();
 
 // Create router
@@ -31,6 +41,12 @@ const staticExtensions = [
     '.woff', '.woff2', '.ttf', '.eot'
 ];
 router.addExtension(staticExtensions, serveStaticFiles);
+
+// 2b. DEV-ONLY: Inspector routes (before prefix/extension catches them)
+if (ENV.isDev && serveInspector) {
+    router.addExact('/_inspector', serveInspector);
+    router.addPrefix('/_inspector/', serveInspector);
+}
 
 // 3. PREFIX MATCHES (directory-based routing)
 router.addPrefix('/assets/', serveStaticFiles);
@@ -57,20 +73,38 @@ router.printRoutes();
 
 const server = http.createServer(router.handle);
 
-export function startServer(port = 5000, host = '0.0.0.0') {
+export function startServer(port = 3000, host = '0.0.0.0') {
     server.listen(port, host, () => {
-        console.log(`\n🦴 b0nes development server running\n`);
+        console.log(`\n   b0nes development server running\n`);
         console.log(`   Local:   http://localhost:${port}`);
         console.log(`   Network: http://${host}:${port}\n`);
         console.log('   Press Ctrl+C to stop\n');
+
+        if (ENV.isDev && startWatcher) {
+            startWatcher();
+            console.log(`   Inspector: http://localhost:${port}/_inspector\n`);
+        }
     });
-    
+
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`Port ${port} is already in use.`);
+        } else {
+            console.error('Server error:', err);
+        }
+        process.exit(1);
+    });
+
     return server;
 }
 
+// Graceful shutdown
+process.on('SIGTERM', () => server.close(() => process.exit(0)));
+process.on('SIGINT', () => server.close(() => process.exit(0)));
+
 // Auto-start
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 3000;
     const HOST = process.env.HOST || '0.0.0.0';
     startServer(PORT, HOST);
 }
