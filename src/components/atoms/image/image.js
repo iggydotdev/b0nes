@@ -1,6 +1,6 @@
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Image component - An HTML img element for displaying images
@@ -80,11 +80,10 @@ export const image = ({
     
     // Validate prop types
     validatePropTypes(
-        { src, alt, attrs, className },
+        { src, alt, className },
         { 
             src: 'string',
             alt: 'string',
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'image', componentType: 'atom' }
@@ -116,11 +115,11 @@ export const image = ({
         );
     }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Normalize and escape classes
     const classes = normalizeClasses(['image', className]);
     
-    return `<img src="${src}" class="${classes}" alt="${alt}"${attrs}/>`;
+    return `<img src="${src}" class="${classes}" alt="${alt}"${attrsStr}/>`;
 };

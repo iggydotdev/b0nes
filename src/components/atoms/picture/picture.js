@@ -1,7 +1,7 @@
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Picture component - An HTML picture element for responsive images
@@ -95,9 +95,8 @@ export const picture = ({
     
     // Validate prop types
     validatePropTypes(
-        { attrs, className },
+        { className },
         { 
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'picture', componentType: 'atom' }
@@ -139,8 +138,8 @@ export const picture = ({
         );
     }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Normalize and escape classes
     const classes = normalizeClasses(['picture', className]);
@@ -148,5 +147,5 @@ export const picture = ({
     // Process slot content (source and img elements)
     const slotContent = processSlotTrusted(slot);
     
-    return `<picture class="${classes}"${attrs}>${slotContent}</picture>`;
+    return `<picture class="${classes}"${attrsStr}>${slotContent}</picture>`;
 };

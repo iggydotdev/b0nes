@@ -1,7 +1,7 @@
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Link component - An HTML anchor element for navigation
@@ -77,10 +77,9 @@ export const link = ({
     
     // Validate prop types
     validatePropTypes(
-        { url, attrs, className },
+        { url, className },
         { 
             url: 'string',
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'link', componentType: 'atom' }
@@ -94,8 +93,8 @@ export const link = ({
         );
     }
       
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Normalize and escape classes
     const classes = normalizeClasses(['link', className]);
@@ -103,5 +102,5 @@ export const link = ({
     // Process slot content (trust component-rendered HTML)
     const slotContent = processSlotTrusted(slot);
         
-    return `<a href="${url}" class="${classes}"${attrs}>${slotContent}</a>`;
+    return `<a href="${url}" class="${classes}"${attrsStr}>${slotContent}</a>`;
 };

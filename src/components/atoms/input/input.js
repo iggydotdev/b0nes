@@ -1,6 +1,6 @@
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Input component - An HTML input element for form data collection
@@ -80,10 +80,9 @@ export const input = ({
 }) => {
     // Validate prop types
     validatePropTypes(
-        { type, attrs, className },
+        { type, className },
         { 
             type: 'string',
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'input', componentType: 'atom' }
@@ -105,11 +104,11 @@ export const input = ({
         );
     }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Normalize and escape classes
     const classes = normalizeClasses(['input', className]);
     
-    return `<input type="${type}" class="${classes}"${attrs}/>`;
+    return `<input type="${type}" class="${classes}"${attrsStr}/>`;
 };

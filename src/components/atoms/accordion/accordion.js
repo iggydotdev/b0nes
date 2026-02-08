@@ -1,7 +1,7 @@
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Accordion component - An HTML details/summary element for collapsible content
@@ -91,9 +91,8 @@ export const accordion = ({
     
     // Validate prop types
     validatePropTypes(
-        { attrs, className },
+        { className },
         { 
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'accordion', componentType: 'atom' }
@@ -115,8 +114,8 @@ export const accordion = ({
         );
     }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Normalize and escape classes
     const classes = normalizeClasses(['accordion', className]);
@@ -127,5 +126,5 @@ export const accordion = ({
     // Process details slot (the collapsible content)
     const detailsContent = processSlotTrusted(detailsSlot);
     
-    return `<details class="${classes}"${attrs}><summary>${titleContent}</summary>${detailsContent}</details>`;
+    return `<details class="${classes}"${attrsStr}><summary>${titleContent}</summary>${detailsContent}</details>`;
 };

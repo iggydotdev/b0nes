@@ -1,4 +1,5 @@
 import { processSlot } from '../../utils/processSlot.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Tabs component - Interactive tabbed interface
@@ -23,7 +24,7 @@ export const tabs = ({ tabs = [], className, attrs }) => {
         return '';
     }
 
-    attrs = attrs ? ` ${attrs}` : '';
+    const attrsStr = attrsToString(attrs);
     className = className ? ` ${className}` : '';
 
     // Generate tab buttons
@@ -52,7 +53,7 @@ export const tabs = ({ tabs = [], className, attrs }) => {
         >${content}</div>`;
     }).join('');
 
-    return `<div class="tabs${className}" data-b0nes="molecules:tabs" role="tablist"${attrs}>
+    return `<div class="tabs${className}" data-b0nes="molecules:tabs" role="tablist"${attrsStr}>
     <div class="tab-buttons">
         ${tabButtons}
     </div>

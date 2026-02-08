@@ -2,6 +2,7 @@ import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 import { box } from '../../atoms/index.js';
 
 /**
@@ -141,9 +142,8 @@ export const cta = ({
     
     // Validate prop types
     validatePropTypes(
-        { attrs, className },
+        { className },
         { 
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'cta', componentType: 'organism' }
@@ -180,8 +180,8 @@ export const cta = ({
         );
     }
     
-    // Process attributes
-    const escapedAttrs = attrs ? ` ${escapeAttr(attrs)}` : '';
+    // Process attributes (supports string or object)
+    const escapedAttrs = attrsToString(attrs);
     
     // Add id attribute if provided
     const idAttr = id ? ` id="${escapeAttr(id)}"` : '';

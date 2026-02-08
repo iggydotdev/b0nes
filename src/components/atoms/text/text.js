@@ -1,7 +1,7 @@
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Text component - A flexible text container element
@@ -86,10 +86,9 @@ export const text = ({
     
     // Validate prop types
     validatePropTypes(
-        { is, attrs, className },
+        { is, className },
         { 
             is: 'string',
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'text', componentType: 'atom' }
@@ -121,8 +120,8 @@ export const text = ({
         );
     }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
         
     // Normalize and escape classes
     const classes = normalizeClasses(['text', className]);
@@ -130,5 +129,5 @@ export const text = ({
     // Process slot content (trust component-rendered HTML)
     const slotContent = processSlotTrusted(slot);
         
-    return `<${is} class="${classes}"${attrs}>${slotContent}</${is}>`;
+    return `<${is} class="${classes}"${attrsStr}>${slotContent}</${is}>`;
 };

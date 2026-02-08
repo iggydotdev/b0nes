@@ -1,5 +1,6 @@
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validatePropTypes } from '../../utils/componentError.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Divider component - An HTML hr element for visual content separation
@@ -60,19 +61,18 @@ export const divider = ({
 } = {}) => {
     // Validate prop types
     validatePropTypes(
-        { attrs, className },
+        { className },
         { 
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'divider', componentType: 'atom' }
     );
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Normalize and escape classes
     const classes = normalizeClasses(['divider', className]);
     
-    return `<hr class="${classes}"${attrs}/>`;
+    return `<hr class="${classes}"${attrsStr}/>`;
 };

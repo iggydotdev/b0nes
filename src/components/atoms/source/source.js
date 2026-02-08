@@ -1,6 +1,6 @@
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Source component - An HTML source element for media resources
@@ -96,10 +96,9 @@ export const source = ({
     
     // Validate prop types
     validatePropTypes(
-        { type, attrs, className },
+        { type, className },
         { 
             type: 'string',
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'source', componentType: 'atom' }
@@ -128,8 +127,8 @@ export const source = ({
         );
     }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Determine the source attribute based on type
     // Note: HTML spec uses 'srcset' for picture sources, but for simplicity
@@ -148,5 +147,5 @@ export const source = ({
     // Normalize and escape classes
     const classes = normalizeClasses([baseClass, className]);
     
-    return `<source${sourceAttr} class="${classes}"${attrs}/>`;
+    return `<source${sourceAttr} class="${classes}"${attrsStr}/>`;
 };
