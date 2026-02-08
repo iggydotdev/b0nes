@@ -82,9 +82,11 @@ function sendHTML(res, status, html) {
  * @param {URL} url
  */
 export async function serveInspector(req, res, url) {
-    // Extract the sub-path after /_inspector
+    // Extract the sub-path after /_inspector, normalize trailing slashes
     const fullPath = url.pathname;
-    const subPath = fullPath.replace(/^\/_inspector/, '') || '/';
+    const raw = fullPath.replace(/^\/_inspector/, '');
+    const subPath = raw === '' || raw === '/' ? '/' : raw.replace(/\/+$/, '');
+    console.log(`[v0] serveInspector: fullPath=${fullPath} raw=${raw} subPath=${subPath} method=${req.method}`);
     
     try {
         // Route: GET / -> Inspector UI
