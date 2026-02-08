@@ -1,7 +1,7 @@
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validatePropTypes, createComponentError } from '../../utils/componentError.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Video component - An HTML video element for embedding video content
@@ -83,9 +83,8 @@ export const video = ({
 }) => {
     // Validate prop types
     validatePropTypes(
-        { attrs, className },
+        { className },
         { 
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'video', componentType: 'atom' }
@@ -99,8 +98,8 @@ export const video = ({
         );
     }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
         
     // Normalize and escape classes
     const classes = normalizeClasses(['video', className]);
@@ -108,5 +107,5 @@ export const video = ({
     // Process slot content (source elements, track elements, fallback text)
     const slotContent = processSlotTrusted(slot);
     
-    return `<video class="${classes}"${attrs}>${slotContent}</video>`;
+    return `<video class="${classes}"${attrsStr}>${slotContent}</video>`;
 };

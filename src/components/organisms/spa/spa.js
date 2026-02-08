@@ -1,6 +1,7 @@
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 import { box } from '../../atoms/index.js';
 
 
@@ -18,9 +19,8 @@ export const spa = ({
     
     // Validate prop types
     validatePropTypes(
-        { attrs, className },
+        { className },
         { 
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'spa', componentType: 'organism' }
@@ -34,8 +34,8 @@ export const spa = ({
         );
     }
        
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Normalize classes - hero class plus any custom classes
     const classes = normalizeClasses(['spa', className]);
@@ -44,7 +44,7 @@ export const spa = ({
     const slotContent = processSlotTrusted(slot);
     
     // Combine all attributes for box
-    const boxAttrs = `data-b0nes='organisms:spa' ${attrs}`.trim();
+    const boxAttrs = `data-b0nes='organisms:spa'${attrsStr}`.trim();
     
     // Use box component as the base
     return box({

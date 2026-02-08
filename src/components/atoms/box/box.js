@@ -1,7 +1,7 @@
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Box component - A flexible container element
@@ -81,10 +81,9 @@ export const box = ({
 }) => {
     // Validate prop types
     validatePropTypes(
-        { is, attrs, className },
+        { is, className },
         { 
             is: 'string',
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'box', componentType: 'atom' }
@@ -124,8 +123,8 @@ export const box = ({
         );
     }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Normalize and escape classes
     const classes = normalizeClasses(['box', className]);
@@ -133,5 +132,5 @@ export const box = ({
     // Process slot content (trust component-rendered HTML)
     const slotContent = processSlotTrusted(slot);
     
-    return `<${is} class="${classes}"${attrs}>${slotContent}</${is}>`;
+    return `<${is} class="${classes}"${attrsStr}>${slotContent}</${is}>`;
 };

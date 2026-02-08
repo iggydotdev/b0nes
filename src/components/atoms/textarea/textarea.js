@@ -1,7 +1,7 @@
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { escapeHtml } from '../../utils/escapeHtml.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 /**
  * Textarea component - An HTML textarea element for multi-line text input
  * 
@@ -66,16 +66,15 @@ export const textarea = ({
 }) => {
     // Validate prop types
     validatePropTypes(
-        { attrs, className },
+        { className },
         { 
-            attrs: 'string',
             className: 'string',
         },
         { componentName: 'textarea', componentType: 'atom' }
     );
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
         
     // Normalize and escape classes
     const classes = normalizeClasses(['textarea', className]);
@@ -85,5 +84,5 @@ export const textarea = ({
     // Important: textarea content must be HTML-escaped to prevent XSS
     // const escapedValue = escapeHtml(value);
     //return `<textarea class="${classes}"${attrs}>${escapedValue}</textarea>`;    
-    return `<textarea class="${classes}"${attrs}/>`;
+    return `<textarea class="${classes}"${attrsStr}/>`;
 };

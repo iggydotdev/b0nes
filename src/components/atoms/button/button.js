@@ -1,7 +1,7 @@
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Button component - A clickable button element
@@ -68,10 +68,9 @@ export const button = ({
     
     // Validate prop types
     validatePropTypes(
-        { type, attrs, className, slot },
+        { type, className, slot },
         { 
             type: 'string',
-            attrs: 'string',
             className: 'string',
             // slot can be string or array
         },
@@ -86,8 +85,8 @@ export const button = ({
         );
     }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
 
     // Normalize classes
     const classes = normalizeClasses(['btn', className]);
@@ -95,5 +94,5 @@ export const button = ({
     // Process slot content (trust component-rendered HTML)
     const slotContent = processSlotTrusted(slot);
     
-    return `<button type="${type}" class="${classes}"${attrs}>${slotContent}</button>`;
+    return `<button type="${type}" class="${classes}"${attrsStr}>${slotContent}</button>`;
 };

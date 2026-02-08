@@ -1,6 +1,7 @@
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Header component - A semantic header element for page/section headers
@@ -108,9 +109,8 @@ export const header = ({
     
     // Validate prop types
     validatePropTypes(
-        { attrs, className },
+        { className },
         { 
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'header', componentType: 'organism' }
@@ -134,8 +134,8 @@ export const header = ({
         );
     }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Normalize and escape classes
     const classes = normalizeClasses(['header', className]);
@@ -143,5 +143,5 @@ export const header = ({
     // Process slot content
     const slotContent = processSlotTrusted(slot);
     
-    return `<header class="${classes}"${attrs}>${slotContent}</header>`;
+    return `<header class="${classes}"${attrsStr}>${slotContent}</header>`;
 };

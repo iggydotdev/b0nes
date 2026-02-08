@@ -2,6 +2,7 @@
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 import { box } from '../../atoms/index.js';
 
 /**
@@ -54,10 +55,9 @@ export const slides = ({
     
     // Validate prop types
     validatePropTypes(
-        { className, attrs },
+        { className },
         { 
-            className: 'string',
-            attrs: 'string'
+            className: 'string'
         },
         { componentName: 'slides', componentType: 'organism' }
     );
@@ -88,13 +88,13 @@ export const slides = ({
     </div>`;
     }).join('');
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Normalize classes
     const classes = normalizeClasses(['slides', className]);
     
-    return `<div class="${classes}" data-b0nes="organisms:slides" role="presentation"${attrs}>
+    return `<div class="${classes}" data-b0nes="organisms:slides" role="presentation"${attrsStr}>
     <div class="slides-container">
         ${slideElements}
     </div>

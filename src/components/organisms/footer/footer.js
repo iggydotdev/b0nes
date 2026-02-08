@@ -1,6 +1,7 @@
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Footer component - A semantic footer element for page/section footers
@@ -127,9 +128,8 @@ export const footer = ({
     
     // Validate prop types
     validatePropTypes(
-        { attrs, className },
+        { className },
         { 
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'footer', componentType: 'organism' }
@@ -154,8 +154,8 @@ export const footer = ({
     //     );
     // }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
         
     // Normalize and escape classes
     const classes = normalizeClasses(['footer', className]);
@@ -163,5 +163,5 @@ export const footer = ({
     // Process slot content
     const slotContent = processSlotTrusted(slot);
     
-    return `<footer class="${classes}"${attrs}>${slotContent}</footer>`;
+    return `<footer class="${classes}"${attrsStr}>${slotContent}</footer>`;
 };

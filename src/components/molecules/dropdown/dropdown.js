@@ -1,4 +1,5 @@
 import { processSlot } from '../../utils/processSlot.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Dropdown component - Click to toggle menu
@@ -23,13 +24,13 @@ export const dropdown = ({ trigger, slot, className, attrs }) => {
         return '';
     }
 
-    attrs = attrs ? ` ${attrs}` : '';
+    const attrsStr = attrsToString(attrs);
     className = className ? ` ${className}` : '';
     const triggerContent = processSlot(trigger) ?? 'Dropdown';
     const menuContent = processSlot(slot) ?? '';
 
     // IMPORTANT: Add data-b0nes-type="molecule" to help runtime find the component
-    return `<div class="dropdown${className}" data-b0nes="molecules:dropdown" data-b0nes-type="molecule"${attrs}>
+    return `<div class="dropdown${className}" data-b0nes="molecules:dropdown" data-b0nes-type="molecule"${attrsStr}>
     <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
         ${triggerContent}
     </button>

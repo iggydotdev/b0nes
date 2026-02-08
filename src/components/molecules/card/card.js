@@ -3,6 +3,7 @@ import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validatePropTypes } from '../../utils/componentError.js';
 import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Card component - A flexible content container molecule
@@ -109,9 +110,8 @@ export const card = ({
 }) => {
     // Validate prop types
     validatePropTypes(
-        { attrs, className },
+        { className },
         { 
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'card', componentType: 'molecule' }
@@ -137,8 +137,8 @@ export const card = ({
         );
     }
     
-    // Process attributes
-    const escapedAttrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const escapedAttrs = attrsToString(attrs);
     
     // Add id attribute if provided
     const idAttr = id ? ` id="${escapeAttr(id)}"` : '';

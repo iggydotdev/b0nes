@@ -1,7 +1,7 @@
 // src/components/atoms/progress/progress.js
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
-import { escapeAttr } from '../../utils/escapeAttr.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 /**
  * Progress component - An HTML progress element for showing completion
@@ -73,11 +73,10 @@ export const progress = ({
 }) => {
     // Validate prop types
     validatePropTypes(
-        { value, max, attrs, className },
+        { value, max, className },
         { 
             value: 'number',
             max: 'number',
-            attrs: 'string',
             className: 'string'
         },
         { componentName: 'progress', componentType: 'atom' }
@@ -108,8 +107,8 @@ export const progress = ({
         );
     }
     
-    // Process attributes
-    attrs = attrs ? ` ${attrs}` : '';
+    // Process attributes (supports string or object)
+    const attrsStr = attrsToString(attrs);
     
     // Normalize and escape classes
     const classes = normalizeClasses(['progress', className]);
@@ -128,5 +127,5 @@ export const progress = ({
         fallbackText = `${value} of ${max}`;
     }
     
-    return `<progress class="${classes}" value="${value}" max="${max}"${attrs}>${fallbackText}</progress>`;
+    return `<progress class="${classes}" value="${value}" max="${max}"${attrsStr}>${fallbackText}</progress>`;
 };
