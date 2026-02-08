@@ -16,10 +16,11 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pathToFileURL } from 'node:url';
-import { getRegistry, flattenRegistry, getCacheTimestamp } from '../../dev/introspect.js';
+import { getRegistry, flattenRegistry, getCacheTimestamp, buildPageTrees } from '../../dev/introspect.js';
 import { addSSEClient, getWatcherStatus } from '../../dev/watcher.js';
 import { compose } from '../../core/compose.js';
 import { getInspectorPageHTML } from '../../dev/inspector-ui.js';
+import { getVisualizerPageHTML } from '../../dev/visualizer-ui.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const COMPONENTS_ROOT = path.resolve(__dirname, '../../../components');
@@ -89,6 +90,16 @@ export async function serveInspector(req, res, url) {
         // Route: GET / -> Inspector UI
         if (subPath === '/' && req.method === 'GET') {
             return handleUIPage(req, res);
+        }
+        
+        // Route: GET /visualizer -> Visualizer UI
+        if (subPath === '/visualizer' && req.method === 'GET') {
+            return handleVisualizerPage(req, res);
+        }
+        
+        // Route: GET /api/pages -> Page composition trees
+        if (subPath === '/api/pages' && req.method === 'GET') {
+            return handleGetPages(req, res);
         }
         
         // Route: GET /api/components -> Registry JSON
@@ -246,6 +257,30 @@ async function handleShowcase(req, res, subPath) {
 function handleSSE(req, res) {
     addSSEClient(res);
     // Response stays open -- watcher.js manages the connection
+}
+
+/**
+ * GET /visualizer -> Serve the composition visualizer page
+ */
+function handleVisualizerPage(req, res) {
+    const html = getVisualizerPageHTML();
+    sendHTML(res, 200, html);
+}
+
+/**
+ * GET /api/pages -> Return page composition trees
+ * 
+ * Loads all discovered routes, extracts their component arrays,
+ * and recursively walks slot nesting to build composition trees.
+ */
+async function handleGetPages(req, res) {
+    try {
+        const pages = await buildPageTrees();
+        sendJSON(res, 200, { pages, total: pages.length });
+    } catch (err) {
+        console.error('[inspector] Failed to build page trees:', err);
+        sendJSON(res, 500, { error: 'Failed to build page trees', message: err.message });
+    }
 }
 
 /**

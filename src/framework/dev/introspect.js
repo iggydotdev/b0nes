@@ -363,6 +363,7 @@ export function getRegistry(force = false) {
 export function invalidateRegistry() {
     _registryCache = null;
     _cacheTimestamp = 0;
+    _pageTreeCache = null;
 }
 
 /**
@@ -371,4 +372,139 @@ export function invalidateRegistry() {
  */
 export function getCacheTimestamp() {
     return _cacheTimestamp;
+}
+
+// ============================================
+// PAGE COMPOSITION TREE BUILDER
+// ============================================
+
+/**
+ * Recursively walk a component config to build a tree node.
+ * Children are extracted from props.slot when slot is an array
+ * containing objects with { type, name, props }.
+ *
+ * @param {Object} config - { type, name, props }
+ * @param {number} depth - current nesting depth
+ * @returns {Object} tree node
+ */
+function walkComponentConfig(config, depth = 0) {
+    if (!config || typeof config !== 'object' || !config.type || !config.name) {
+        return null;
+    }
+
+    const children = [];
+    const propsDisplay = {};
+
+    if (config.props && typeof config.props === 'object') {
+        for (const [key, value] of Object.entries(config.props)) {
+            if (key === 'slot' && Array.isArray(value)) {
+                // Walk slot children that are component configs
+                for (const item of value) {
+                    if (item && typeof item === 'object' && item.type && item.name) {
+                        const child = walkComponentConfig(item, depth + 1);
+                        if (child) children.push(child);
+                    } else {
+                        // Primitive slot content (string)
+                        propsDisplay.slot = typeof item === 'string'
+                            ? (item.length > 60 ? item.slice(0, 60) + '...' : item)
+                            : String(item);
+                    }
+                }
+                if (children.length > 0) {
+                    propsDisplay.slot = `[${children.length} children]`;
+                }
+            } else if (key === 'slot' && typeof value === 'string') {
+                propsDisplay.slot = value.length > 60 ? value.slice(0, 60) + '...' : value;
+            } else if (typeof value === 'string') {
+                propsDisplay[key] = value.length > 80 ? value.slice(0, 80) + '...' : value;
+            } else if (Array.isArray(value)) {
+                propsDisplay[key] = `[${value.length} items]`;
+            } else {
+                propsDisplay[key] = String(value);
+            }
+        }
+    }
+
+    return {
+        type: config.type,
+        name: config.name,
+        props: propsDisplay,
+        propCount: config.props ? Object.keys(config.props).length : 0,
+        children,
+        depth
+    };
+}
+
+let _pageTreeCache = null;
+
+/**
+ * Build full page composition trees for all discovered routes.
+ *
+ * Uses autoRoutes to discover pages, loads each page module, and
+ * recursively walks the exported `components` array to build trees.
+ *
+ * @returns {Promise<Array<Object>>} Array of page tree objects
+ */
+export async function buildPageTrees() {
+    if (_pageTreeCache) return _pageTreeCache;
+
+    // Lazy-import autoRoutes to avoid circular dependency at module load
+    const { getRoutes } = await import('../server/handlers/autoRoutes.js');
+    const routes = getRoutes();
+    const pages = [];
+
+    for (const route of routes) {
+        try {
+            const mod = await route.load();
+            const components = mod.components || mod.default?.components || [];
+            const meta = mod.meta || mod.default?.meta || {};
+
+            const tree = [];
+            if (Array.isArray(components)) {
+                for (const config of components) {
+                    const node = walkComponentConfig(config, 0);
+                    if (node) tree.push(node);
+                }
+            }
+
+            pages.push({
+                route: route.pattern.pathname,
+                title: meta.title || route.pattern.pathname,
+                description: meta.description || '',
+                filePath: route.filePath
+                    ? path.relative(path.resolve(__dirname, '../..'), route.filePath)
+                    : '',
+                tree,
+                componentCount: countNodes(tree)
+            });
+        } catch (err) {
+            console.warn(`[introspect] Failed to load page ${route.pattern.pathname}:`, err.message);
+            pages.push({
+                route: route.pattern.pathname,
+                title: route.pattern.pathname,
+                description: '',
+                filePath: '',
+                tree: [],
+                componentCount: 0,
+                error: err.message
+            });
+        }
+    }
+
+    _pageTreeCache = pages;
+    return pages;
+}
+
+/**
+ * Count total nodes in a tree (recursive)
+ * @param {Array} nodes
+ * @returns {number}
+ */
+function countNodes(nodes) {
+    let count = 0;
+    for (const node of nodes) {
+        count += 1;
+        if (node.children) count += countNodes(node.children);
+    }
+    return count;
 }

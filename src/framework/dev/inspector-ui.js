@@ -38,6 +38,9 @@ export function getInspectorPageHTML() {
                 </div>
             </div>
             <div class="header-right">
+                <a href="/_inspector/visualizer" class="header-btn" title="Composition Visualizer" style="text-decoration:none;display:inline-flex;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v4"/><path d="M8.5 16.5 12 12"/><path d="M15.5 16.5 12 12"/></svg>
+                </a>
                 <div id="connection-status" class="status-dot status-connecting" title="Connecting..."></div>
                 <button id="btn-compose-mode" class="header-btn" title="Toggle Composition Mode">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
