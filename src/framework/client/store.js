@@ -142,8 +142,7 @@ export const createStore = ({ state: initialState, actions = {}, getters = {}, m
      * @returns {Object} Updated state
      */
     const dispatch = (actionName, payload) => {
-        const action = actions[actionName];
-        console.log('action', actionName, payload)
+        const action = actions[actionName];
         if (!action) {
             console.error(`[Store] Action "${actionName}" not found`);
             return state;
