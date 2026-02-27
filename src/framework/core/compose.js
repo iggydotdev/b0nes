@@ -3,6 +3,8 @@ import path from 'path';
 
 import library from '../../components/library.js';
 
+import { errorFallbackRenderer } from './compose_utils/errorFallbackRenderer.js'
+
 const componentLibrary = {
     atom: library.atoms,
     molecule: library.molecules,
