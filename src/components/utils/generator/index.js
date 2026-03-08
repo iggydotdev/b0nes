@@ -7,13 +7,11 @@ const __dirname = dirname(__filename);
 const validTypes = ['atom', 'molecule', 'organism'];
 export const createComponent = (componentType, componentName) => {
     if (!validTypes.includes(componentType)) {
-        console.error(`Invalid component type. Use: ${validTypes.join(', ')}`);
-        process.exit(1);
+        throw new Error(`Invalid component type: "${componentType}". Use: ${validTypes.join(', ')}`);
     }
     
     if (!componentName || /[^a-z0-9-]/.test(componentName)) {
-        console.error('Component name must use lowercase letters, numbers and hyphens');
-        process.exit(1);
+        throw new Error('Component name must use lowercase letters, numbers and hyphens');
     }
     
     const componentDir = path.join(__dirname, 'templates');
@@ -30,11 +28,15 @@ export const createComponent = (componentType, componentName) => {
         const updatedContent = content.replace(/componentName/g, componentName).replace(/componentType/g,componentType);
         fs.writeFileSync(path.join(targetDir, file.replace('componentName', componentName)), updatedContent);
     });
+
+    return { type: componentType, name: componentName, path: targetDir };
 }
 
-const args= process.argv.slice(2);
-if (args.length !== 2) {
-    console.log(`
+// CLI entrypoint — only runs when file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+    const args = process.argv.slice(2);
+    if (args.length !== 2) {
+        console.log(`
 Component Generator
 
 Usage: 
@@ -49,11 +51,16 @@ Example:
   node generator.js atom button
   node generator.js molecule card
     `);
-    process.exit(0);
+        process.exit(0);
+    }
+
+    const componentType = args[0];
+    const componentName = args[1];
+
+    try {
+        createComponent(componentType, componentName);
+    } catch (err) {
+        console.error(err.message);
+        process.exit(1);
+    }
 }
-
-const componentType = args[0];
-const componentName = args[1];
-
-createComponent(componentType, componentName);
-

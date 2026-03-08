@@ -11,14 +11,16 @@ import { serveTemplates } from './handlers/serveTemplates.js';
 import { servePages } from './handlers/servePages.js';
 import { serveRuntimeFiles } from './handlers/serveRuntimeFiles.js';
 
-// Dev-only: Inspector imports (conditionally loaded)
+// Dev-only: Inspector + HMR imports (conditionally loaded)
 let serveInspector = null;
 let startWatcher = null;
+let addSSEClient = null;
 if (ENV.isDev) {
     const inspectorHandler = await import('./handlers/serveInspector.js');
     const watcher = await import('../dev/watcher.js');
     serveInspector = inspectorHandler.serveInspector;
     startWatcher = watcher.startWatcher;
+    addSSEClient = watcher.addSSEClient;
 }
 
 PRINT_CURRENT_CONFIG();
@@ -46,6 +48,13 @@ router.addExtension(staticExtensions, serveStaticFiles);
 if (ENV.isDev && serveInspector) {
     router.addExact('/_inspector', serveInspector);
     router.addPrefix('/_inspector/', serveInspector);
+}
+
+// 2c. DEV-ONLY: HMR SSE endpoint
+if (ENV.isDev && addSSEClient) {
+    router.addExact('/_hmr/events', (req, res) => {
+        addSSEClient(res);
+    });
 }
 
 // 3. PREFIX MATCHES (directory-based routing)

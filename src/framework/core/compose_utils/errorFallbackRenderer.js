@@ -2,7 +2,7 @@
  * Default error fallback renderer
  * Override this for custom error UI
  */
-let errorFallbackRenderer = (error, component) => {
+export let errorFallbackRenderer = (error, component) => {
     const isDev = process.env.NODE_ENV === 'development';
     
     if (isDev) {

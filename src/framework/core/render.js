@@ -253,6 +253,40 @@ export const renderPage = (content, meta = {}) => {
         // For now, the bundle will just window.b0nes.register them which takes precedence.
     }
     
+    // HMR client injection (dev only)
+    if (process.env.NODE_ENV === 'development') {
+        const hmrScript = `
+    <script>
+    /* b0nes HMR client */
+    (function() {
+        let retryDelay = 500;
+        const MAX_DELAY = 5000;
+        function connectHMR() {
+            const es = new EventSource('/_hmr/events');
+            es.addEventListener('connected', function() {
+                retryDelay = 500;
+                console.log('[b0nes] HMR connected');
+            });
+            es.addEventListener('component-changed', function(e) {
+                console.log('[b0nes] Component changed:', JSON.parse(e.data).component);
+                location.reload();
+            });
+            es.addEventListener('registry-changed', function() {
+                location.reload();
+            });
+            es.onerror = function() {
+                es.close();
+                console.log('[b0nes] HMR disconnected, retrying in ' + retryDelay + 'ms');
+                setTimeout(connectHMR, retryDelay);
+                retryDelay = Math.min(retryDelay * 1.5, MAX_DELAY);
+            };
+        }
+        connectHMR();
+    })();
+    </script>`;
+        html = html.replace('</body>', `${hmrScript}\n</body>`);
+    }
+
     return html;
 };
 

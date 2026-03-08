@@ -14,7 +14,8 @@
     "./compose": "./src/framework/core/compose.js",
     "./router": "./src/framework/core/router/index.js",
     "./utils": "./src/components/utils/index.js",
-    "./urlPattern": "./src/framework/shared/urlPattern.js"
+    "./urlPattern": "./src/framework/shared/urlPattern.js",
+    "./mcp": "./src/mcp/server.js"
   },
   "bin": {
     "b0nes": "bin/create.js"
@@ -33,6 +34,7 @@
     "generate": "node src/components/utils/generator/index.js",
     "install-component": "node src/scripts/install-component.js",
     "create": "node create/index.js",
+    "mcp": "node src/mcp/server.js",
     "prepublishOnly": "npm run test"
   },
   "keywords": [
