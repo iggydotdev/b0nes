@@ -125,7 +125,7 @@ export const components = [
                         name: 'text',
                         props: {
                             is: 'p',
-                            slot: ['© 2025 b0nes Framework. All rights reserved.']
+                            slot: ['© 2026 b0nes Framework. All rights reserved.']
                         }
                     }
                 ]

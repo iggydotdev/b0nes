@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { URLPattern } from '../../shared/urlPattern.js';
-import { PAGES_BASE } from './getServerConfig.js'; 
+import { PAGES_BASE, ENV } from './getServerConfig.js'; 
 
 const pagesDir = PAGES_BASE;
 
@@ -46,7 +46,11 @@ function buildRoutes() {
         
         routes.push({ 
           pattern: new URLPattern({ pathname }), 
-          load: () => import(pathToFileURL(fullPath).href), 
+          load: () => {
+              const url = pathToFileURL(fullPath).href;
+              const cacheBuster = ENV.isDev ? `?t=${Date.now()}` : '';
+              return import(url + cacheBuster);
+          }, 
           filePath: fullPath
         });
       }
@@ -85,6 +89,11 @@ export function getRoutes() {
     }
   }
   return ROUTES_CACHE;
+}
+
+export function invalidateRoutes() {
+  ROUTES_CACHE = null;
+  console.log('[b0nes] Routes cache invalidated');
 }
 
 // Clear cache for development hot-reloading.

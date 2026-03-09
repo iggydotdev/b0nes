@@ -17,9 +17,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { invalidateRegistry } from './introspect.js';
+import { invalidateRoutes } from '../server/handlers/autoRoutes.js';
+import { clearCompositionCache } from '../core/compose.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const COMPONENTS_ROOT = path.resolve(__dirname, '../../components');
+const PAGES_ROOT = path.resolve(__dirname, '../../pages');
 
 /**
  * Active SSE client connections
@@ -46,10 +49,11 @@ const pendingChanges = new Set();
 let heartbeatInterval = null;
 
 /**
- * fs.watch() handle
+ * fs.watch() handles
  * @type {fs.FSWatcher|null}
  */
 let watcher = null;
+let pagesWatcher = null;
 
 /** Debounce delay in ms */
 const DEBOUNCE_MS = 150;
@@ -80,12 +84,20 @@ function identifyComponent(filePath) {
     const category = parts[0]; // atoms, molecules, organisms
     const name = parts[1];     // button, card, hero, etc.
     
-    const typeMap = { atoms: 'atom', molecules: 'molecule', organisms: 'organism' };
+    const typeMap = { 
+        atoms: 'atom', 
+        molecules: 'molecule', 
+        organisms: 'organism',
+        pages: 'page' 
+    };
     const type = typeMap[category];
     
     if (!type) return null;
     
-    return { category, type, name };
+    // For pages, the 'name' is just the filename/path
+    const actualName = type === 'page' ? normalized.replace(/^pages\//, '') : name;
+    
+    return { category, type, name: actualName };
 }
 
 /**
@@ -120,8 +132,15 @@ function flushChanges() {
     const changes = [...pendingChanges];
     pendingChanges.clear();
     
-    // Invalidate introspection cache
+    // Invalidate introspection cache, routes cache, and composition cache
     invalidateRegistry();
+    clearCompositionCache();
+    try {
+        invalidateRoutes();
+    } catch (err) {
+        // Might fail if autoRoutes isn't fully loaded yet in some contexts
+        console.warn(`[watcher] Failed to invalidate routes: ${err.message}`);
+    }
     
     // Identify unique components that changed
     const changedComponents = new Map();
@@ -144,7 +163,8 @@ function flushChanges() {
             timestamp: Date.now()
         });
         
-        console.log(`[watcher] Component changed: ${key}`);
+        const label = component.type === 'page' ? 'Page' : 'Component';
+        console.log(`[watcher] ${label} changed: ${component.name}`);
     }
     
     // Also broadcast a general refresh event
@@ -227,6 +247,29 @@ export function startWatcher() {
             debounceTimer = setTimeout(flushChanges, DEBOUNCE_MS);
         });
         
+        // Watch pages directory too
+        if (fs.existsSync(PAGES_ROOT)) {
+            pagesWatcher = fs.watch(PAGES_ROOT, { recursive: true }, (eventType, filename) => {
+                if (!filename) return;
+                
+                if (!filename.endsWith('.js') && 
+                    !filename.endsWith('.json') && 
+                    !filename.endsWith('.css')) {
+                    return;
+                }
+                
+                if (filename.includes('node_modules') || filename.includes('.test.')) {
+                    return;
+                }
+                
+                pendingChanges.add(`pages/${filename}`);
+                
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(flushChanges, DEBOUNCE_MS);
+            });
+            console.log(`[watcher] Watching ${PAGES_ROOT} for changes`);
+        }
+        
         // Heartbeat to keep SSE connections alive
         heartbeatInterval = setInterval(() => {
             for (const client of clients) {
@@ -259,6 +302,11 @@ export function stopWatcher() {
         watcher = null;
     }
     
+    if (pagesWatcher) {
+        pagesWatcher.close();
+        pagesWatcher = null;
+    }
+    
     if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
         heartbeatInterval = null;
@@ -288,6 +336,7 @@ export function stopWatcher() {
 export function getWatcherStatus() {
     return {
         active: watcher !== null,
+        watchingPages: pagesWatcher !== null,
         clients: clients.size,
         pendingChanges: pendingChanges.size
     };

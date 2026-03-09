@@ -15,7 +15,7 @@ export const serveB0nes = async (req, res, url) => {
         const content = await readFile(filePath, 'utf-8');
         res.writeHead(200, { 
             'content-type': 'application/javascript',
-            'cache-control': ENV.isDev ? 'no-cache' : 'public, max-age=3600'
+            'cache-control': ENV.isDev ? 'no-store, no-cache, must-revalidate, proxy-revalidate' : 'public, max-age=3600'
         });
         res.end(content);
         return;

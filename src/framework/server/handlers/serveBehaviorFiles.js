@@ -26,7 +26,7 @@ export const serveBehaviorFiles = async (req, res, url) => {
             const content = await readFile(componentPath, 'utf-8');
             res.writeHead(200, { 
                 'content-type': 'application/javascript',
-                'cache-control': 'no-cache'
+                'cache-control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
             });
             res.end(content);
             return;
