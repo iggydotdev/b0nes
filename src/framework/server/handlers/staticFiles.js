@@ -38,7 +38,7 @@ export const serveStaticFiles = async (req, res, url) => {
             console.log(`[Server] ✅ Serving static file from: ${result.path}`);
             res.writeHead(200, { 
                 'content-type': getContentType(assetPath),
-                'cache-control': ENV.isDev ? 'no-cache' : 'public, max-age=3600'
+                'cache-control': ENV.isDev ? 'no-store, no-cache, must-revalidate, proxy-revalidate' : 'public, max-age=3600'
             });
             res.end(result.content);
             return true;

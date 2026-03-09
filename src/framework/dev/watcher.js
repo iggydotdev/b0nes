@@ -17,6 +17,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { invalidateRegistry } from './introspect.js';
+import { invalidateRoutes } from '../server/handlers/autoRoutes.js';
+import { clearCompositionCache } from '../core/compose.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const COMPONENTS_ROOT = path.resolve(__dirname, '../../components');
@@ -82,12 +84,20 @@ function identifyComponent(filePath) {
     const category = parts[0]; // atoms, molecules, organisms
     const name = parts[1];     // button, card, hero, etc.
     
-    const typeMap = { atoms: 'atom', molecules: 'molecule', organisms: 'organism' };
+    const typeMap = { 
+        atoms: 'atom', 
+        molecules: 'molecule', 
+        organisms: 'organism',
+        pages: 'page' 
+    };
     const type = typeMap[category];
     
     if (!type) return null;
     
-    return { category, type, name };
+    // For pages, the 'name' is just the filename/path
+    const actualName = type === 'page' ? normalized.replace(/^pages\//, '') : name;
+    
+    return { category, type, name: actualName };
 }
 
 /**
@@ -122,8 +132,15 @@ function flushChanges() {
     const changes = [...pendingChanges];
     pendingChanges.clear();
     
-    // Invalidate introspection cache
+    // Invalidate introspection cache, routes cache, and composition cache
     invalidateRegistry();
+    clearCompositionCache();
+    try {
+        invalidateRoutes();
+    } catch (err) {
+        // Might fail if autoRoutes isn't fully loaded yet in some contexts
+        console.warn(`[watcher] Failed to invalidate routes: ${err.message}`);
+    }
     
     // Identify unique components that changed
     const changedComponents = new Map();
@@ -146,7 +163,8 @@ function flushChanges() {
             timestamp: Date.now()
         });
         
-        console.log(`[watcher] Component changed: ${key}`);
+        const label = component.type === 'page' ? 'Page' : 'Component';
+        console.log(`[watcher] ${label} changed: ${component.name}`);
     }
     
     // Also broadcast a general refresh event

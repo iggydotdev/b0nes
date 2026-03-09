@@ -59,7 +59,7 @@ export const servePages = async (req, res, url) => {
             
             res.writeHead(200, { 
                 'content-type': 'text/html',
-                'cache-control': 'no-cache'
+                'cache-control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
             });
             res.end(html);
             return;
