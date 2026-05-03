@@ -14,22 +14,32 @@ export const createComponent = (componentType, componentName) => {
         throw new Error('Component name must use lowercase letters, numbers and hyphens');
     }
     
+    // String helpers
+    const kebabCase = componentName;
+    const camelCase = componentName.replace(/-([a-z0-9])/g, (g) => g[1].toUpperCase());
+    const pascalCase = camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
+
     const componentDir = path.join(__dirname, 'templates');
-    const targetDir = path.join(__dirname, `../../${componentType}s`, componentName);
-    console.log(`Creating component ${componentName} of type ${componentType} at ${targetDir}`);
+    const targetDir = path.join(__dirname, `../../${componentType}s`, kebabCase);
+    console.log(`Creating component ${kebabCase} of type ${componentType} at ${targetDir}`);
     if (!fs.existsSync(targetDir)){
         fs.mkdirSync(targetDir, {recursive: true});
     }
 
-    const files = ['index.js', 'componentName.js', 'componentName.test.js'];
+    const files = ['index.js.txt', 'componentName.js.txt', 'componentName.test.js.txt'];
 
     files.forEach(file => {
-        const content = fs.readFileSync(path.join(componentDir, file + '.txt'), 'utf8');
-        const updatedContent = content.replace(/componentName/g, componentName).replace(/componentType/g,componentType);
-        fs.writeFileSync(path.join(targetDir, file.replace('componentName', componentName)), updatedContent);
+        const content = fs.readFileSync(path.join(componentDir, file), 'utf8');
+        const updatedContent = content
+            .replace(/componentName/g, camelCase) // Function names and references
+            .replace(/componentType/g, componentType);
+            
+        // We use kebabCase for filenames
+        const outFileName = file.replace('componentName', kebabCase).replace('.txt', '');
+        fs.writeFileSync(path.join(targetDir, outFileName), updatedContent);
     });
 
-    return { type: componentType, name: componentName, path: targetDir };
+    return { type: componentType, name: kebabCase, path: targetDir };
 }
 
 // CLI entrypoint — only runs when file is executed directly

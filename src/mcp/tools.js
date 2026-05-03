@@ -83,11 +83,25 @@ export const tools = [
     },
     {
         name: 'list_components',
-        description: 'Lists all available b0nes components across atoms, molecules, and organisms. Returns component names, types, prop schemas, and descriptions.',
+        description: 'Lists all available b0nes components. Returns a summary and the full array of component schemas. Use this to discover available UI elements.',
         inputSchema: {
             type: 'object',
             properties: {},
             required: []
+        }
+    },
+    {
+        name: 'get_component_schema',
+        description: 'Gets the exact schema and props for a specific component. Use this before composing to ensure you generate the correct JSON structure for the component.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                componentName: {
+                    type: 'string',
+                    description: 'The exact name of the component (e.g. "button", "hero")'
+                }
+            },
+            required: ['componentName']
         }
     },
     {
@@ -152,6 +166,8 @@ export async function handleToolCall(name, args = {}) {
             return handleComposePage(args);
         case 'list_components':
             return handleListComponents(args);
+        case 'get_component_schema':
+            return handleGetComponentSchema(args);
         case 'install_component':
             return handleInstallComponent(args);
         default:
@@ -202,6 +218,27 @@ async function handleListComponents() {
         return ok(JSON.stringify(summary, null, 2));
     } catch (error) {
         return err(`Failed to list components: ${error.message}`);
+    }
+}
+
+async function handleGetComponentSchema({ componentName }) {
+    if (!componentName) {
+        return err('Missing required "componentName" parameter');
+    }
+    
+    try {
+        const introspection = await getIntrospection();
+        const registry = introspection.getRegistry();
+        const flat = introspection.flattenRegistry(registry);
+        
+        const component = flat.find(c => c.name === componentName);
+        if (!component) {
+            return err(`Component "${componentName}" not found. Try running list_components to see available components.`);
+        }
+        
+        return ok(JSON.stringify(component, null, 2));
+    } catch (error) {
+        return err(`Failed to get component schema: ${error.message}`);
     }
 }
 

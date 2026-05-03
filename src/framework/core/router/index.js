@@ -136,19 +136,20 @@ export function createRouter() {
      */
     
     function addPatternWithConstraints(pattern, handler, constraints) {
-        router.addPattern(pattern, async (req, res, url) => {
-        // Check constraints
-        for (const [param, validator] of Object.entries(constraints)) {
-            if (!validator(req.params[param])) {
-                res.writeHead(400, { 'content-type': 'text/plain' });
-                res.end(`Invalid ${param}`);
-                return;
+        addPattern(pattern, async (req, res, url) => {
+            // Check constraints
+            for (const [param, validator] of Object.entries(constraints)) {
+                if (!validator(req.params[param])) {
+                    res.writeHead(400, { 'content-type': 'text/plain' });
+                    res.end(`Invalid ${param}`);
+                    return;
+                }
             }
-        }
-        
-        return handler(req, res, url);
-    });
-}
+            
+            return handler(req, res, url);
+        });
+        return this;
+    }
 
     /**
      * Register catch-all fallback route
