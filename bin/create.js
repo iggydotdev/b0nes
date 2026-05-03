@@ -5,8 +5,8 @@
  * Creates new b0nes projects with zero dependencies
  * 
  * Usage:
- *   npx create-b0nes-app my-app
- *   npx create-b0nes-app my-blog --template blog
+ *   npx b0nes my-app
+ *   npx b0nes my-blog --template blog
  */
 
 import fs from 'node:fs';
@@ -87,10 +87,10 @@ function parseArgs() {
  */
 function showHelp() {
   console.log(`
-${colors.bright}${colors.cyan}create-b0nes-app${colors.reset} - Zero-dependency web framework
+${colors.bright}${colors.cyan}b0nes${colors.reset} - Zero-dependency web framework
 
 ${colors.bright}Usage:${colors.reset}
-  npx create-b0nes-app <project-name> [options]
+  npx b0nes <project-name> [options]
 
 ${colors.bright}Options:${colors.reset}
   --template <name>    Use a specific template (basic, blog, docs)
@@ -98,9 +98,9 @@ ${colors.bright}Options:${colors.reset}
   -h, --help          Show this help message
 
 ${colors.bright}Examples:${colors.reset}
-  npx create-b0nes-app my-site
-  npx create-b0nes-app my-blog --template blog
-  npx create-b0nes-app my-docs --template docs --skip-git
+  npx b0nes my-site
+  npx b0nes my-blog --template blog
+  npx b0nes my-docs --template docs --skip-git
 
 ${colors.bright}Available Templates:${colors.reset}
 ${Object.entries(TEMPLATES).map(([key, t]) => 

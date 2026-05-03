@@ -1,17 +1,20 @@
-# create-b0nes-app
+# b0nes Framework
 
-[![npm version](https://badge.fury.io/js/create-b0nes-app.svg)](https://www.npmjs.com/package/create-b0nes-app)
+[![npm version](https://badge.fury.io/js/b0nes.svg)](https://www.npmjs.com/package/b0nes)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
 
-**The Disappearing Framework.**
+**The framework that fits in your head and disappearing in your codebase.**
 
-b0nes is a complete web development toolkit built for humans and **AI Agents**. Build modern websites with components, routing, state management, and an MCP server—all in pure JavaScript, with **zero dependencies**.
+b0nes is a complete web development toolkit with **zero dependencies**, built for humans and **AI Agents**. Build modern websites with components, routing, state management, progressive enhancement, and an MCP server—all in pure JavaScript.
 
 ```javascript
 // Everything you need, nothing you don't
 ✅ Components (atoms → molecules → organisms)
 ✅ Server-Side Rendering (SSR) & Static Site Generation (SSG)
+✅ State Management (built-in Store)
+✅ State Machines (built-in FSM + SPA Router)
+✅ Client-side Interactivity
 ✅ AI-Native MCP Server Built-in
 ✅ HMR (Live Reload via SSE)
 ✅ Zero npm dependencies
@@ -34,7 +37,7 @@ npm run build                   # 500KB+ JavaScript bundle
 
 ```bash
 # b0nes setup:
-npx create-b0nes-app my-site   # 0 packages, <1 MB
+npx b0nes my-site   # 0 packages, <1 MB
 cd my-site
 npm run dev                    # Start building immediately
 

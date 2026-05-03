@@ -1,5 +1,5 @@
 {
-  "name": "create-b0nes-app",
+  "name": "b0nes",
   "version": "0.2.1",
   "type": "module",
   "description": "Zero-dependency component library and SSR/SSG framework",
@@ -18,7 +18,7 @@
     "./mcp": "./src/mcp/server.js"
   },
   "bin": {
-    "create-b0nes-app": "bin/create.js"
+    "b0nes": "bin/create.js"
   },
   "scripts": {
     "test": "node --test 'src/**/*.test.js'",
