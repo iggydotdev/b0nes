@@ -1,21 +1,19 @@
-# b0nes Framework
+# create-b0nes-app
 
-[![npm version](https://badge.fury.io/js/b0nes.svg)](https://www.npmjs.com/package/b0nes)
+[![npm version](https://badge.fury.io/js/create-b0nes-app.svg)](https://www.npmjs.com/package/create-b0nes-app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
 
-**The framework that fits in your head.**
+**The Disappearing Framework.**
 
-b0nes is a complete web development toolkit with **zero dependencies**. Build modern websites with components, routing, state management, and progressive enhancement—all in pure JavaScript.
+b0nes is a complete web development toolkit built for humans and **AI Agents**. Build modern websites with components, routing, state management, and an MCP server—all in pure JavaScript, with **zero dependencies**.
 
 ```javascript
 // Everything you need, nothing you don't
 ✅ Components (atoms → molecules → organisms)
-✅ Server-Side Rendering (SSR)
-✅ Static Site Generation (SSG)
-✅ State Management (built-in Store)
-✅ State Machines (built-in FSM + SPA Router)
-✅ Client-side Interactivity
+✅ Server-Side Rendering (SSR) & Static Site Generation (SSG)
+✅ AI-Native MCP Server Built-in
+✅ HMR (Live Reload via SSE)
 ✅ Zero npm dependencies
 ```
 
@@ -29,19 +27,22 @@ npx create-react-app my-app    # 847 packages, 412 MB
 npm install redux react-router # More dependencies...
 npm run build                   # 500KB+ JavaScript bundle
 
-# Junior dev: "I just wanted to build a website..." 😰
+# You: "I just wanted to build a website..." 😰
 ```
 
 ### The b0nes Solution
 
 ```bash
 # b0nes setup:
-git clone b0nes.git            # 0 packages, <1 MB
-cd b0nes
-node src/framework/index.js    # Start building immediately
+npx create-b0nes-app my-site   # 0 packages, <1 MB
+cd my-site
+npm run dev                    # Start building immediately
 
-# Junior dev: "This makes sense!" 🎉
+# You: "Wait, where is the node_modules folder?" 🎉
 ```
+
+**Because b0nes is a scaffolding tool, not a library, the framework code is copied directly into your `src/` folder. You own the code. It literally disappears into your codebase.**
+
 
 **Learn the entire framework in an afternoon. Use it for years.**
 

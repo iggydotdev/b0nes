@@ -261,11 +261,16 @@ export const renderPage = (content, meta = {}) => {
     (function() {
         let retryDelay = 500;
         const MAX_DELAY = 5000;
+        let isReconnect = false;
         function connectHMR() {
             const es = new EventSource('/_hmr/events');
             es.addEventListener('connected', function() {
-                retryDelay = 500;
                 console.log('[b0nes] HMR connected');
+                if (isReconnect) {
+                    // Server restarted (e.g. via node --watch), refresh to get new code!
+                    location.reload();
+                }
+                retryDelay = 500;
             });
             es.addEventListener('component-changed', function(e) {
                 console.log('[b0nes] Component changed:', JSON.parse(e.data).component);
@@ -276,6 +281,7 @@ export const renderPage = (content, meta = {}) => {
             });
             es.onerror = function() {
                 es.close();
+                isReconnect = true;
                 console.log('[b0nes] HMR disconnected, retrying in ' + retryDelay + 'ms');
                 setTimeout(connectHMR, retryDelay);
                 retryDelay = Math.min(retryDelay * 1.5, MAX_DELAY);

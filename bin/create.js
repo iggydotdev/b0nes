@@ -5,8 +5,8 @@
  * Creates new b0nes projects with zero dependencies
  * 
  * Usage:
- *   npx b0nes my-app
- *   npx b0nes my-blog --template blog
+ *   npx create-b0nes-app my-app
+ *   npx create-b0nes-app my-blog --template blog
  */
 
 import fs from 'node:fs';
@@ -87,10 +87,10 @@ function parseArgs() {
  */
 function showHelp() {
   console.log(`
-${colors.bright}${colors.cyan}b0nes${colors.reset} - Zero-dependency web framework
+${colors.bright}${colors.cyan}create-b0nes-app${colors.reset} - Zero-dependency web framework
 
 ${colors.bright}Usage:${colors.reset}
-  npx b0nes <project-name> [options]
+  npx create-b0nes-app <project-name> [options]
 
 ${colors.bright}Options:${colors.reset}
   --template <name>    Use a specific template (basic, blog, docs)
@@ -98,9 +98,9 @@ ${colors.bright}Options:${colors.reset}
   -h, --help          Show this help message
 
 ${colors.bright}Examples:${colors.reset}
-  npx b0nes my-site
-  npx b0nes my-blog --template blog
-  npx b0nes my-docs --template docs --skip-git
+  npx create-b0nes-app my-site
+  npx create-b0nes-app my-blog --template blog
+  npx create-b0nes-app my-docs --template docs --skip-git
 
 ${colors.bright}Available Templates:${colors.reset}
 ${Object.entries(TEMPLATES).map(([key, t]) => 
@@ -178,14 +178,16 @@ function generatePackageJson(projectName) {
     type: 'module',
     description: `A b0nes project`,
     scripts: {
-      dev: 'node src/framework/server.js',
-      'dev:watch': 'node --watch src/framework/server.js',
-      build: 'node src/framework/utils/build/index.js public',
-      preview: 'npx serve public',
-      test: 'node src/components/utils/tester.js',
-      generate: 'node src/components/utils/generator/index.js',
+      "dev": "NODE_ENV=development node src/framework/server/index.js",
+      "dev:watch": "NODE_ENV=development node --watch src/framework/server/index.js",
+      "build": "node src/framework/build/cli.js build",
+      "build:production": "node src/framework/build/cli.js build --clean --parallel --production",
+      "clean": "node src/framework/build/cli.js clean",
+      "preview": "npx serve public",
+      "test": "node --test 'src/**/*.test.js'",
+      "generate": "node src/components/utils/generator/index.js",
       "install-component": "node src/scripts/install-component.js",
-      "create": "node create/index.js",
+      "mcp": "node src/mcp/server.js"
     },
     keywords: ['b0nes', 'website'],
     author: '',
@@ -319,16 +321,28 @@ async function main() {
   await fs.promises.cp(source, target, { recursive: true });
 
 
-  // 2. Override only userland pages (and routes if needed)
-  if (TEMPLATES[templateFlag]) {
-    const templatePath = path.join(sourceDir, 'src/pages/examples', TEMPLATES[templateFlag].pages);
+  // 2. Clear out the original pages folder so we don't leak dev examples
+  const targetPagesDir = path.join(targetDir, 'src/pages');
+  if (fs.existsSync(targetPagesDir)) {
+    await fs.promises.rm(targetPagesDir, { recursive: true, force: true });
+  }
+
+  // 3. Copy only the requested template pages
+  if (TEMPLATES[templateName]) {
+    const templatePath = path.join(sourceDir, 'src/pages/examples', TEMPLATES[templateName].pages);
     if (fs.existsSync(templatePath)) {
-      await fs.promises.cp(templatePath, path.join(targetDir, 'src/pages'), { 
+      await fs.promises.cp(templatePath, targetPagesDir, { 
         recursive: true,
         force: true  // overwrite
       });
-      console.log(`Applied template: ${templateFlag}`);
+      console.log(`Applied template: ${templateName}`);
+    } else {
+      // If template doesn't exist, just create an empty pages dir
+      await fs.promises.mkdir(targetPagesDir, { recursive: true });
     }
+  } else {
+    // If no template, just create an empty pages dir
+    await fs.promises.mkdir(targetPagesDir, { recursive: true });
   }
 
   // Copy root files
