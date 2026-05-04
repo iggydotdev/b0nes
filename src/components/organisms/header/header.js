@@ -124,10 +124,12 @@ export const header = ({
             `Headers should contain navigation, branding, or section titles.`
         );
     }
-    
+    const hasRoleBanner = typeof attrs === 'string' 
+    ? attrs.includes('role=') 
+    : false;
     // Info: Suggest using role="banner" for main site header
     const slotString = Array.isArray(slot) ? slot.join('') : slot;
-    if (slotString.includes('<nav') && !role) {
+    if (slotString.includes('<nav') && !hasRoleBanner) {
         console.info(
             `[b0nes Info] Main site header with navigation should have role="banner" ` +
             `for better accessibility.`

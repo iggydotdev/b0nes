@@ -28,8 +28,18 @@ const compositionCache = new Map();
  * @returns {string} Cache key
  * @private
  */
+// FIXED - only stringify non-slot props, use slot content hash
 const getCacheKey = (component) => {
-    return `${component.type}:${component.name}:${JSON.stringify(component.props)}`;
+    try {
+        const { slot, ...restProps } = component.props || {};
+        // slot is already resolved to a string by the time we cache
+        // so we can use it directly
+        const propsKey = JSON.stringify(restProps);
+        const slotKey = typeof slot === 'string' ? slot.length + slot.slice(0, 32) : '[]';
+        return `${component.type}:${component.name}:${propsKey}:${slotKey}`;
+    } catch {
+        return null; // uncacheable, that's fine
+    }
 };
 
 /**

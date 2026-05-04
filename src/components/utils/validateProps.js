@@ -1,3 +1,7 @@
+// @ts-check
+
+import { createComponentError } from './componentError.js';
+
 /**
  * Custom error class for component-related errors
  * Provides better context and debugging information
