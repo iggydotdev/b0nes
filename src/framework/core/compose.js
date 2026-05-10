@@ -223,8 +223,8 @@ export const compose = (components = [], context = {}) => {
 
         const cacheKey = getCacheKey(component);
 
-        if (compositionCache.has(cacheKey)) {
-            return compositionCache.get(cacheKey);
+        if (renderCache.has(cacheKey)) {
+            return renderCache.get(cacheKey);
         }
 
         let slotContent = '';
@@ -239,7 +239,7 @@ export const compose = (components = [], context = {}) => {
             type
         );
 
-        compositionCache.set(cacheKey, html);
+        renderCache.set(cacheKey, html);
         return html;
     }).filter(Boolean).join('\n');
 };
@@ -251,10 +251,10 @@ export const compose = (components = [], context = {}) => {
  * @returns {void}
  *
  * @example
- * clearCompositionCache();
+ * clearRenderCache();
  */
 export const clearCompositionCache = () => {
-    compositionCache.clear();
+    renderCache.clear();
 };
 
 /**
@@ -268,7 +268,7 @@ export const clearCompositionCache = () => {
  * console.log(`Cached ${cacheSize} compositions`);
  */
 export const getCompositionCacheSize = () => {
-    return compositionCache.size;
+    return renderCache.size;
 };
 
 

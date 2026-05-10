@@ -64,7 +64,8 @@ function buildRoutes() {
 let ROUTES_CACHE = null;
 
 export function getRoutes() {
-  if (!ROUTES_CACHE) {
+  if (!ROUTES_CACHE || process.env.NODE_ENV === 'development') {
+    ROUTES_CACHE = null; // Clear cache before rebuilding to ensure we start fresh
     const discoveredRoutes = buildRoutes();
     
     // --- NEW VALIDATION STEP ---

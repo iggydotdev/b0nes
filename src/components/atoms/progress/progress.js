@@ -116,7 +116,7 @@ export const progress = ({
     // Generate fallback text for browsers that don't support <progress>
     // or for screen readers
     let fallbackText = '';
-    if (value === 0 && max === 100) {
+    if (value === 0) {
         // Indeterminate progress
         fallbackText = 'Loading...';
     } else if (max === 100) {

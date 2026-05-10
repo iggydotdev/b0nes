@@ -84,5 +84,5 @@ export const textarea = ({
     // Important: textarea content must be HTML-escaped to prevent XSS
     // const escapedValue = escapeHtml(value);
     //return `<textarea class="${classes}"${attrs}>${escapedValue}</textarea>`;    
-    return `<textarea class="${classes}"${attrsStr}/>`;
+    return `<textarea class="${classes}"${attrsStr}></textarea>`;
 };
