@@ -223,7 +223,7 @@ export const compose = (components = [], context = {}) => {
 
         const cacheKey = getCacheKey(component);
 
-        if (renderCache.has(cacheKey)) {
+        if (renderCache.get(cacheKey)) {
             return renderCache.get(cacheKey);
         }
 
