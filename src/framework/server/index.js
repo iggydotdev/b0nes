@@ -15,12 +15,14 @@ import { serveRuntimeFiles } from './handlers/serveRuntimeFiles.js';
 let serveInspector = null;
 let startWatcher = null;
 let addSSEClient = null;
+let stopWatcher = null;
 if (ENV.isDev) {
     const inspectorHandler = await import('./handlers/serveInspector.js');
     const watcher = await import('../dev/watcher.js');
     serveInspector = inspectorHandler.serveInspector;
     startWatcher = watcher.startWatcher;
     addSSEClient = watcher.addSSEClient;
+    stopWatcher = watcher.stopWatcher;
 }
 
 PRINT_CURRENT_CONFIG();
@@ -107,9 +109,30 @@ export function startServer(port = 3000, host = '0.0.0.0') {
     return server;
 }
 
-// Graceful shutdown
-process.on('SIGTERM', () => server.close(() => process.exit(0)));
-process.on('SIGINT', () => server.close(() => process.exit(0)));
+// Replace the two process.on() lines at the bottom with:
+function shutdown() {
+    console.log('\n[b0nes] Shutting down...');
+
+    // Close SSE clients + clear the heartbeat interval FIRST — otherwise
+    // watcher.js's setInterval keeps the event loop alive on its own.
+    if (ENV.isDev && stopWatcher) {
+        stopWatcher();
+    }
+
+    // server.close() alone waits forever for long-lived connections
+    // (the SSE streams are *designed* to never close). Force them shut.
+    server.closeAllConnections();
+    server.close(() => process.exit(0));
+
+    // Safety net — if anything still refuses to die, don't hang the terminal.
+    setTimeout(() => {
+        console.warn('[b0nes] Forced shutdown after timeout');
+        process.exit(1);
+    }, 3000).unref();
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 // Auto-start
 if (import.meta.url === `file://${process.argv[1]}`) {
