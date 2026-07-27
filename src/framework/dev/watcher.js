@@ -209,7 +209,7 @@ export function addSSEClient(res) {
 /**
  * Start watching the components directory for changes
  * 
- * Uses fs.watch() with recursive option (Node 20+).
+ * Uses fs.watch() with recursive option (Node 24+).
  * Falls back to non-recursive watching if recursive is unsupported.
  */
 export function startWatcher() {

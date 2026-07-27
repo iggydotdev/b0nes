@@ -863,7 +863,7 @@ connectFSMtoDOM(fsm, document.getElementById('app'), routes);
 ## Version Info
 
 Current: v0.2.0
-Node: >=20.0.0
+Node: >=24.0.0
 License: MIT
 
 ## Links

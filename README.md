@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/b0nes.svg)](https://www.npmjs.com/package/b0nes)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen)](https://nodejs.org/)
 
 **The framework that fits in your head and disappearing in your codebase.**
 
@@ -70,7 +70,7 @@ npm run dev                    # Start building immediately
 ## Quick Start in 5 Minutes ⚡
 
 ### Prerequisites
-- Node.js v20+ installed
+- Node.js v24+ installed
 - A terminal
 - That's it!
 

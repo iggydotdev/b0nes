@@ -193,7 +193,7 @@ function generatePackageJson(projectName) {
     author: '',
     license: 'MIT',
     engines: {
-      node: '>=20.0.0'
+      node: '>=24.0.0'
     }
   };
 }
