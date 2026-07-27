@@ -35,14 +35,13 @@ export const componentName = ({attrs, className, slot}) => {
     
     // Validate prop types
     validatePropTypes(
-        { type, attrs, className, slot },
+        { attrs, className, slot },
         { 
-            type: 'string',
             attrs: 'string',
             className: 'string',
             // slot can be string or array
         },
-        { componentName: 'button', componentType: 'atom' }
+        { componentName: 'componentName', componentType: 'componentType' }
     );
     // Process attributes (supports string or object)
     const attrsStr = attrsToString(attrs);

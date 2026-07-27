@@ -219,12 +219,9 @@ export const compose = (components = [], context = {}) => {
 
         // Use the (potentially modified) finalProps for caching and rendering.
         const componentWithFinalProps = { type, name, props: finalProps };
-       
 
-        const cacheKey = getCacheKey(component);
-
-        if (renderCache.get(cacheKey)) {
-            return renderCache.get(cacheKey);
+        if (renderCache.get(componentWithFinalProps)) {
+            return renderCache.get(componentWithFinalProps);
         }
 
         let slotContent = '';
@@ -239,7 +236,7 @@ export const compose = (components = [], context = {}) => {
             type
         );
 
-        renderCache.set(cacheKey, html);
+        renderCache.set(componentWithFinalProps, html);
         return html;
     }).filter(Boolean).join('\n');
 };
@@ -268,7 +265,7 @@ export const clearCompositionCache = () => {
  * console.log(`Cached ${cacheSize} compositions`);
  */
 export const getCompositionCacheSize = () => {
-    return renderCache.size;
+    return renderCache.getStats().size;
 };
 
 

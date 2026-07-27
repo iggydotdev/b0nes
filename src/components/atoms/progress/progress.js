@@ -66,14 +66,17 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * // Returns: '<progress class="progress task-progress" value="3" max="10">3 of 10</progress>'
  */
 export const progress = ({
-    value = 0,
+    value,
     max = 100,
     attrs = '',
     className = ''
-}) => {
+} = {}) => {
+    const isIndeterminate = (value === undefined || value === null);
+    let numValue = isIndeterminate ? 0 : value;
+
     // Validate prop types
     validatePropTypes(
-        { value, max, className },
+        { value: numValue, max, className },
         { 
             value: 'number',
             max: 'number',
@@ -83,26 +86,26 @@ export const progress = ({
     );
     
     // Validate value is not negative
-    if (value < 0) {
+    if (numValue < 0) {
         console.warn(
             `[b0nes Warning] Progress value cannot be negative. ` +
-            `Got: ${value}. Setting to 0.`
+            `Got: ${numValue}. Setting to 0.`
         );
-        value = 0;
+        numValue = 0;
     }
     
     // Validate max is positive
     if (max <= 0) {
         throw createComponentError(
             `Max value must be greater than 0. Got: ${max}`,
-            { componentName: 'progress', componentType: 'atom', props: { value, max } }
+            { componentName: 'progress', componentType: 'atom', props: { value: numValue, max } }
         );
     }
     
     // Warn if value exceeds max
-    if (value > max) {
+    if (numValue > max) {
         console.warn(
-            `[b0nes Warning] Progress value (${value}) exceeds max (${max}). ` +
+            `[b0nes Warning] Progress value (${numValue}) exceeds max (${max}). ` +
             `This may cause unexpected rendering.`
         );
     }
@@ -116,16 +119,16 @@ export const progress = ({
     // Generate fallback text for browsers that don't support <progress>
     // or for screen readers
     let fallbackText = '';
-    if (value === 0) {
+    if (isIndeterminate) {
         // Indeterminate progress
         fallbackText = 'Loading...';
     } else if (max === 100) {
         // Percentage progress
-        fallbackText = `${Math.round((value / max) * 100)}%`;
+        fallbackText = `${Math.round((numValue / max) * 100)}%`;
     } else {
-        // Step progress (e.g., "2 of 5")
-        fallbackText = `${value} of ${max}`;
+        // Step progress (e.g., "2 of 5" or "0 of 10")
+        fallbackText = `${numValue} of ${max}`;
     }
     
-    return `<progress class="${classes}" value="${value}" max="${max}"${attrsStr}>${fallbackText}</progress>`;
+    return `<progress class="${classes}" value="${numValue}" max="${max}"${attrsStr}>${fallbackText}</progress>`;
 };

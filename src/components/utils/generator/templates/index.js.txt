@@ -1,4 +1,4 @@
-import {componentName as componentNameRender} from './componentName.js';
+import {componentName as componentNameRender} from './componentFileName.js';
 
 export const componentName = {
     render: componentNameRender

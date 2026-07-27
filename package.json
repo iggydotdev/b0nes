@@ -33,7 +33,7 @@
     "serve": "npx serve public",
     "generate": "node src/components/utils/generator/index.js",
     "install-component": "node src/scripts/install-component.js",
-    "create": "node create/index.js",
+    "create": "node bin/create.js",
     "mcp": "node src/mcp/server.js",
     "prepublishOnly": "npm run test"
   },

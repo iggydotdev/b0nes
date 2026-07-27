@@ -31,6 +31,7 @@ export const createComponent = (componentType, componentName) => {
     files.forEach(file => {
         const content = fs.readFileSync(path.join(componentDir, file), 'utf8');
         const updatedContent = content
+            .replace(/componentFileName/g, kebabCase)
             .replace(/componentName/g, camelCase) // Function names and references
             .replace(/componentType/g, componentType);
             

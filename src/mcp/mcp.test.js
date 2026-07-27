@@ -109,7 +109,7 @@ test('MCP: initialize handshake returns server info and capabilities', async () 
     assert.strictEqual(initResponse.result.serverInfo.name, 'b0nes-mcp');
 });
 
-test('MCP: tools/list returns all 4 tools', async () => {
+test('MCP: tools/list returns all 5 tools', async () => {
     const responses = await mcpSession([
         {
             jsonrpc: '2.0',
@@ -128,12 +128,13 @@ test('MCP: tools/list returns all 4 tools', async () => {
     const listResponse = responses.find(r => r.id === 2);
     assert.ok(listResponse, 'Should have tools/list response');
     assert.ok(Array.isArray(listResponse.result.tools), 'Should return tools array');
-    assert.strictEqual(listResponse.result.tools.length, 4, 'Should have 4 tools');
+    assert.strictEqual(listResponse.result.tools.length, 5, 'Should have 5 tools');
     
     const toolNames = listResponse.result.tools.map(t => t.name).sort();
     assert.deepStrictEqual(toolNames, [
         'compose_page',
         'generate_component',
+        'get_component_schema',
         'install_component',
         'list_components'
     ]);
