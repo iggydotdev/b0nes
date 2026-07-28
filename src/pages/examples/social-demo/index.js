@@ -13,7 +13,7 @@
 export const meta = {
   title: 'Timeline — b0nes × bear.css',
   description: 'A social feed shell with Store-driven interactions. No backend.',
-  stylesheets: ['../bear-demo/bear.css', '../bear-demo/theme.css']
+  stylesheets: ['./bear.css']
 };
 
 // Deterministic avatar colors from the accent family — no image pipeline,

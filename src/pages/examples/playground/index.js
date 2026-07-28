@@ -9,7 +9,7 @@
 export const meta = {
   title: 'Playground — b0nes × bear.css',
   description: 'Paste a b0nes compose() config and see the result instantly.',
-  stylesheets: ['../bear-demo/bear.css', '../bear-demo/theme.css'],
+  stylesheets: ['./bear.css'],
   scripts: ['./playground.js']
 };
 
