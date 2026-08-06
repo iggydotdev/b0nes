@@ -2,8 +2,9 @@
 
 /**
  * URLPattern compatibility layer for b0nes
- * Uses native URLPattern (Node 24+) with fallback
- * 
+ * Uses native URLPattern when available (Node 22+ experimental /
+ * Node 24+ stable on many builds) with a zero-dep polyfill fallback.
+ *
  * Zero dependencies, modern functional implementation
  */
 

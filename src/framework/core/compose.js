@@ -1,9 +1,16 @@
-
 import path from 'path';
 
 import library from '../../components/library.js';
-
-import { errorFallbackRenderer } from './compose_utils/errorFallbackRenderer.js'
+import { escapeHtml } from '../../components/utils/escapeHtml.js';
+import { escapeAttr } from '../../components/utils/escapeAttr.js';
+import {
+    renderErrorFallback as invokeErrorFallback,
+    setErrorFallbackRenderer,
+    resetErrorFallbackRenderer,
+    getErrorFallbackRenderer
+} from './compose_utils/errorFallbackRenderer.js';
+import { createRenderCache } from './compose_utils/createRenderCache.js';
+import { createErrorTracker } from './compose_utils/errorTracker.js';
 
 const componentLibrary = {
     atom: library.atoms,
@@ -11,61 +18,26 @@ const componentLibrary = {
     organism: library.organisms
 };
 
-import { createRenderCache } from "./compose_utils/createRenderCache.js";
-import { createErrorTracker } from "./compose_utils/errorTracker.js";
-
 const renderCache = createRenderCache(500);
 const errorTracker = createErrorTracker(100);
 
-const compositionCache = new Map();
-
-/**
- * Creates a cache key for a component composition
- * @param {Object} component - Component object
- * @param {string} component.type - Component type (atom, molecule, organism)
- * @param {string} component.name - Component name
- * @param {Object} component.props - Component props
- * @returns {string} Cache key
- * @private
- */
-// FIXED - only stringify non-slot props, use slot content hash
-const getCacheKey = (component) => {
-    try {
-        const { slot, ...restProps } = component.props || {};
-        // slot is already resolved to a string by the time we cache
-        // so we can use it directly
-        const propsKey = JSON.stringify(restProps);
-        const slotKey = typeof slot === 'string' ? slot.length + slot.slice(0, 32) : '[]';
-        return `${component.type}:${component.name}:${propsKey}:${slotKey}`;
-    } catch {
-        return null; // uncacheable, that's fine
-    }
-};
-
 /**
  * Renders a fallback error component when composition fails
- * @param {string} componentName - Name of the component that failed
- * @param {string} componentType - Type of the component (atom, molecule, organism)
- * @param {string} errorMessage - Error message describing what went wrong
- * @returns {string} HTML string with error message
+ * @param {string} componentName
+ * @param {string} componentType
+ * @param {string} errorMessage
+ * @returns {string}
  * @private
  */
 const renderErrorFallback = (componentName, componentType, errorMessage) => {
-    const sanitizedName = String(componentName).replace(/[<>"']/g, '');
-    const sanitizedType = String(componentType).replace(/[<>"']/g, '');
-    const sanitizedError = String(errorMessage).replace(/[<>"']/g, '');
-
-    return `<div style="border: 2px solid #ef4444; background-color: #fee2e2; color: #7f1d1d; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 12px;">
-  <strong>Component Error:</strong> ${sanitizedType}/${sanitizedName}<br>
-  <small>${sanitizedError}</small>
-</div>`;
+    return invokeErrorFallback(
+        { message: errorMessage || 'Unknown error' },
+        { type: componentType, name: componentName }
+    );
 };
 
 /**
  * Safely retrieves a component from the library
- * @param {string} type - Component type (atom, molecule, organism)
- * @param {string} name - Component name
- * @returns {Function|Object|null} Component render function or object, or null if not found
  * @private
  */
 const getComponent = (type, name) => {
@@ -75,20 +47,81 @@ const getComponent = (type, name) => {
 };
 
 /**
- * Recursively composes nested component slots
- * @param {Array|string} slot - Slot content (can be string or array of component objects)
- * @returns {string} Rendered HTML string
+ * Process a plain-text slot: escape HTML, preserve {{path}} bind markers.
+ * Trust boundary — untrusted strings enter here and leave safe.
+ * @param {string} text
+ * @returns {string}
+ * @private
+ */
+const processTextSlot = (text) => {
+    const parts = [];
+    let lastIndex = 0;
+    const re = /\{\{([^}]+)\}\}/g;
+    let match;
+
+    while ((match = re.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            parts.push(escapeHtml(text.slice(lastIndex, match.index)));
+        }
+
+        const cleanPath = match[1].trim();
+        // Bind wrapper is framework HTML; path goes in an attribute; placeholder is escaped text
+        parts.push(
+            `<span data-b0nes-bind="${escapeAttr(cleanPath)}">${escapeHtml(match[0])}</span>`
+        );
+        lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+        parts.push(escapeHtml(text.slice(lastIndex)));
+    }
+
+    // No bind markers — whole string is plain text
+    if (parts.length === 0) {
+        return escapeHtml(text);
+    }
+
+    return parts.join('');
+};
+
+/**
+ * Recursively composes nested component slots with escape-by-default.
+ *
+ * Slot node kinds:
+ * - string / number / boolean → escaped text ({{bind}} preserved)
+ * - { type, name, props }     → component node → compose (HTML trusted)
+ * - { html: '...' }           → explicit raw HTML opt-in
+ * - array                     → map each child
+ *
+ * @param {Array|string|Object|number|boolean|null} slot
+ * @param {Object} context
+ * @returns {string}
  * @private
  */
 const composeSlot = (slot, context = {}) => {
+    if (slot === null || slot === undefined) {
+        return '';
+    }
+
     if (typeof slot === 'string') {
-        // 🔗 Reactivity Hook: wrap {{path}} variables in reactive spans
-        // This allows granular updates without re-compositing the whole string
-        return slot.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
-            const cleanPath = path.trim();
-            // On the server, we don't have a store, so we keep the {{match}}
-            return `<span data-b0nes-bind="${cleanPath}">${match}</span>`;
-        });
+        return processTextSlot(slot);
+    }
+
+    if (typeof slot === 'number' || typeof slot === 'boolean') {
+        return String(slot);
+    }
+
+    // Single object (component node or raw html) — not an array
+    if (typeof slot === 'object' && !Array.isArray(slot)) {
+        // Explicit raw HTML opt-in
+        if (typeof slot.html === 'string' && !slot.type) {
+            return slot.html;
+        }
+        // Component node
+        if (slot.type && slot.name) {
+            return compose([slot], context);
+        }
+        return '';
     }
 
     if (!Array.isArray(slot)) {
@@ -96,11 +129,24 @@ const composeSlot = (slot, context = {}) => {
     }
 
     return slot.map(child => {
-        if (typeof child === 'string') {
-            return child;
+        if (child === null || child === undefined) {
+            return '';
         }
-        if (typeof child === 'object' && child !== null) {
-            return compose([child], context);
+        if (typeof child === 'string') {
+            return processTextSlot(child);
+        }
+        if (typeof child === 'number' || typeof child === 'boolean') {
+            return String(child);
+        }
+        if (typeof child === 'object') {
+            // Explicit raw HTML opt-in
+            if (typeof child.html === 'string' && !child.type) {
+                return child.html;
+            }
+            // Component node
+            if (child.type && child.name) {
+                return compose([child], context);
+            }
         }
         return '';
     }).filter(Boolean).join('\n');
@@ -108,11 +154,6 @@ const composeSlot = (slot, context = {}) => {
 
 /**
  * Safely executes a render function with error handling
- * @param {Function|Object} comp - Component (function or object with render method)
- * @param {Object} props - Props to pass to component
- * @param {string} componentName - Name of component (for error reporting)
- * @param {string} componentType - Type of component (for error reporting)
- * @returns {string} Rendered HTML or error fallback
  * @private
  */
 const safeRender = (comp, props, componentName, componentType) => {
@@ -129,6 +170,14 @@ const safeRender = (comp, props, componentName, componentType) => {
             `Failed to render ${componentType}/${componentName}:`,
             error
         );
+
+        errorTracker.track({
+            type: 'render_error',
+            component: `${componentType}/${componentName}`,
+            message: error.message,
+            stack: error.stack
+        });
+
         return renderErrorFallback(
             componentName,
             componentType,
@@ -138,38 +187,40 @@ const safeRender = (comp, props, componentName, componentType) => {
 };
 
 /**
+ * Rewrite relative asset paths (./foo.png) to route-based absolute paths.
+ * @private
+ */
+const rewriteAssetPaths = (props, context) => {
+    const finalProps = { ...props };
+
+    if (context.route?.pattern?.pathname) {
+        const routeBasePath = path.dirname(context.route.pattern.pathname);
+        const pathProps = ['src', 'href', 'poster'];
+
+        for (const prop of pathProps) {
+            if (typeof finalProps[prop] === 'string' && finalProps[prop].startsWith('./')) {
+                const newPath = path.join(routeBasePath, finalProps[prop].substring(2));
+                finalProps[prop] = newPath.replace(/\\/g, '/');
+            }
+        }
+    }
+
+    return finalProps;
+};
+
+/**
  * Composes an array of component objects into HTML
  *
  * Features:
- * - Caches rendered components to improve performance
- * - Handles nested slot composition recursively
- * - Provides graceful error handling with visual fallback
- * - Logs errors for debugging
+ * - Escape-by-default for plain-text slots (XSS-safe)
+ * - Nested component slots render as trusted HTML (no double-escape)
+ * - Explicit raw HTML via { html: '...' }
+ * - Caches rendered components
+ * - Graceful error handling with visual fallback
  *
  * @param {Array<Object>} components - Array of component objects to compose
- * @param {string} components[].type - Component type ('atom', 'molecule', 'organism')
- * @param {string} components[].name - Component name (must exist in library)
- * @param {Object} components[].props - Props to pass to component
- * @param {string|Array} [components[].props.slot] - Slot content (string or nested components)
+ * @param {Object} [context={}] - Compose context (route, dependencies, ...)
  * @returns {string} Rendered HTML string
- *
- * @example
- * const html = compose([
- *   {
- *     type: 'atom',
- *     name: 'text',
- *     props: { slot: 'Hello World' }
- *   },
- *   {
- *     type: 'molecule',
- *     name: 'card',
- *     props: {
- *       slot: [
- *         { type: 'atom', name: 'text', props: { slot: 'Card Title' } }
- *       ]
- *     }
- *   }
- * ]);
  */
 export const compose = (components = [], context = {}) => {
     return components.map(component => {
@@ -191,47 +242,27 @@ export const compose = (components = [], context = {}) => {
         const comp = getComponent(type, name);
 
         if (!comp) {
-            console.warn(
-                `Component not found: ${type}/${name}`
-            );
+            console.warn(`Component not found: ${type}/${name}`);
             return renderErrorFallback(name, type, 'Component not found in library');
         }
 
-                // --- NEW: PATH REWRITING LOGIC ---
-        // Create a mutable copy of props to allow for path rewriting.
-        const finalProps = { ...props };
-
-        // If we have a route context (from the build process), rewrite relative asset paths.
-        if (context.route && context.route.pattern && context.route.pattern.pathname) {
-            const routeBasePath = path.dirname(context.route.pattern.pathname);
-            const pathProps = ['src', 'href', 'poster']; // Props that might contain asset paths
-
-            for (const prop of pathProps) {
-                if (typeof finalProps[prop] === 'string' && finalProps[prop].startsWith('./')) {
-                    // Create a root-relative path, e.g., /examples/talk/qr-code.png
-                    const newPath = path.join(routeBasePath, finalProps[prop].substring(2));
-                    // Ensure forward slashes for URL compatibility
-                    finalProps[prop] = newPath.replace(/\\/g, '/');
-                }
-            }
-        }
-        // --- END OF NEW LOGIC ---
-
-        // Use the (potentially modified) finalProps for caching and rendering.
+        // Path rewriting — must apply to the props actually rendered
+        const finalProps = rewriteAssetPaths(props, context);
         const componentWithFinalProps = { type, name, props: finalProps };
 
-        if (renderCache.get(componentWithFinalProps)) {
-            return renderCache.get(componentWithFinalProps);
+        const cached = renderCache.get(componentWithFinalProps);
+        if (cached) {
+            return cached;
         }
 
         let slotContent = '';
-        if (props.slot !== undefined && props.slot !== null) {
-            slotContent = composeSlot(props.slot, context);
+        if (finalProps.slot !== undefined && finalProps.slot !== null) {
+            slotContent = composeSlot(finalProps.slot, context);
         }
 
         const html = safeRender(
             comp,
-            { ...props, slot: slotContent },
+            { ...finalProps, slot: slotContent },
             name,
             type
         );
@@ -243,12 +274,6 @@ export const compose = (components = [], context = {}) => {
 
 /**
  * Clears the composition cache
- * Useful for development/testing or when you need to force re-render
- *
- * @returns {void}
- *
- * @example
- * clearRenderCache();
  */
 export const clearCompositionCache = () => {
     renderCache.clear();
@@ -256,28 +281,25 @@ export const clearCompositionCache = () => {
 
 /**
  * Gets the current size of the composition cache
- * Useful for debugging performance
- *
- * @returns {number} Number of cached compositions
- *
- * @example
- * const cacheSize = getCompositionCacheSize();
- * console.log(`Cached ${cacheSize} compositions`);
+ * @returns {number}
  */
 export const getCompositionCacheSize = () => {
     return renderCache.getStats().size;
 };
 
-
 /**
  * Set custom error fallback renderer
- * @param {Function} renderer - Custom renderer function (error, component) => html
+ * @param {Function} renderer - (error, component) => html
  */
 export const setErrorFallback = (renderer) => {
-    if (typeof renderer !== 'function') {
-        throw new Error('[compose] Error fallback must be a function');
-    }
-    errorFallbackRenderer = renderer;
+    setErrorFallbackRenderer(renderer);
+};
+
+/**
+ * Reset error fallback to the default renderer
+ */
+export const resetErrorFallback = () => {
+    resetErrorFallbackRenderer();
 };
 
 /**
@@ -336,12 +358,12 @@ export const composeOne = (component, options) => {
 export const warmCache = (components) => {
     console.log(`[compose] Warming cache with ${components.length} components...`);
     const start = performance.now();
-    
+
     compose(components, { cache: true });
-    
+
     const end = performance.now();
     const stats = renderCache.getStats();
-    
+
     console.log(`[compose] Cache warmed in ${(end - start).toFixed(2)}ms`);
     console.log(`[compose] Cache stats:`, stats);
 };
@@ -353,5 +375,5 @@ export const composeBatch = (batches, options) => {
     return batches.map(batch => compose(batch, options));
 };
 
-// Export cache and error tracker instances for advanced use
-export { renderCache, errorTracker };
+// Export cache, error tracker, and slot processor for advanced use / testing
+export { renderCache, errorTracker, composeSlot, processTextSlot, getErrorFallbackRenderer };

@@ -1,27 +1,38 @@
+/**
+ * Tabs behavior - keyboard-accessible tab panels
+ * Returns a cleanup function so b0nes runtime can tear down listeners.
+ */
 export const client = (el) => {
     const buttons = el.querySelectorAll('.tab-button');
     const panels = el.querySelectorAll('.tab-panel');
 
-    buttons.forEach((button, index) => {
-        button.addEventListener('click', () => {
-            buttons.forEach(btn => {
-                btn.classList.remove('active');
-                btn.setAttribute('aria-selected', 'false');
-            });
-            panels.forEach(panel => {
-                panel.classList.remove('active');
-                panel.setAttribute('hidden', '');
-            });
-            button.classList.add('active');
-            button.setAttribute('aria-selected', 'true');
+    const handleButtonClick = (button, index) => () => {
+        buttons.forEach((btn) => {
+            btn.classList.remove('active');
+            btn.setAttribute('aria-selected', 'false');
+        });
+        panels.forEach((panel) => {
+            panel.classList.remove('active');
+            panel.setAttribute('hidden', '');
+        });
+        button.classList.add('active');
+        button.setAttribute('aria-selected', 'true');
+        if (panels[index]) {
             panels[index].classList.add('active');
             panels[index].removeAttribute('hidden');
-        });
+        }
+    };
+
+    const clickHandlers = [];
+    buttons.forEach((button, index) => {
+        const handler = handleButtonClick(button, index);
+        button.addEventListener('click', handler);
+        clickHandlers.push({ button, handler });
     });
 
-    el.addEventListener('keydown', (e) => {
+    const handleKeydown = (e) => {
         const currentButton = document.activeElement;
-        if (!currentButton.classList.contains('tab-button')) return;
+        if (!currentButton?.classList?.contains('tab-button')) return;
         const currentIndex = Array.from(buttons).indexOf(currentButton);
         let nextIndex;
         switch (e.key) {
@@ -43,6 +54,14 @@ export const client = (el) => {
         e.preventDefault();
         buttons[nextIndex].focus();
         buttons[nextIndex].click();
-    });
+    };
+
+    el.addEventListener('keydown', handleKeydown);
+
+    return () => {
+        clickHandlers.forEach(({ button, handler }) => {
+            button.removeEventListener('click', handler);
+        });
+        el.removeEventListener('keydown', handleKeydown);
+    };
 };
-                                                                                                                                                                        

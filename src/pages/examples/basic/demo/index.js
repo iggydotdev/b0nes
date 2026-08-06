@@ -163,7 +163,14 @@ export const components = [
                                 name: 'text',
                                 props: {
                                     is: 'ul',
-                                    slot: '<li>Overlay backdrop</li><li>Focus management</li><li>Escape key support</li><li>Accessible markup</li>'
+                                    // Nested component nodes (not raw HTML strings) —
+                                    // compose escapes text; structure stays real tags.
+                                    slot: [
+                                        { type: 'atom', name: 'text', props: { is: 'li', slot: 'Overlay backdrop' } },
+                                        { type: 'atom', name: 'text', props: { is: 'li', slot: 'Focus management' } },
+                                        { type: 'atom', name: 'text', props: { is: 'li', slot: 'Escape key support' } },
+                                        { type: 'atom', name: 'text', props: { is: 'li', slot: 'Accessible markup' } }
+                                    ]
                                 }
                             },
                             {

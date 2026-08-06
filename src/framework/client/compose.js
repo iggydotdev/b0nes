@@ -135,18 +135,96 @@ export const compose = async (components = []) => {
     return results.filter(Boolean).join('\n');
 };
 
+/**
+ * Escape HTML special characters (inline — client has no shared util import path).
+ * @param {string} unsafe
+ * @returns {string}
+ */
+const escapeHtml = (unsafe) => {
+    if (typeof unsafe !== 'string') return '';
+    return unsafe
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+};
+
+const escapeAttr = (value) => {
+    if (typeof value !== 'string') return '';
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+};
+
+/**
+ * Process plain-text slot: escape by default, preserve {{path}} binds.
+ * Store values are escaped when interpolated.
+ * @param {string} text
+ * @returns {string}
+ */
+const processTextSlot = (text) => {
+    const store = window.spaConfig?.store;
+    const parts = [];
+    let lastIndex = 0;
+    const re = /\{\{([^}]+)\}\}/g;
+    let match;
+
+    while ((match = re.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            parts.push(escapeHtml(text.slice(lastIndex, match.index)));
+        }
+
+        const cleanPath = match[1].trim();
+        const storeValue = store ? store.get(cleanPath) : undefined;
+        const content = storeValue !== undefined ? storeValue : match[0];
+        parts.push(
+            `<span data-b0nes-bind="${escapeAttr(cleanPath)}">${escapeHtml(String(content))}</span>`
+        );
+        lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+        parts.push(escapeHtml(text.slice(lastIndex)));
+    }
+
+    if (parts.length === 0) {
+        return escapeHtml(text);
+    }
+
+    return parts.join('');
+};
+
+/**
+ * Compose slot content with escape-by-default.
+ * - string → escaped text (+ binds)
+ * - { type, name } → component (trusted HTML after render)
+ * - { html: '...' } → explicit raw HTML opt-in
+ */
 async function composeSlot(slot) {
+    if (slot === null || slot === undefined) {
+        return '';
+    }
+
     if (typeof slot === 'string') {
-        // 🔗 Reactivity Hook: wrap {{path}} variables in reactive spans
-        return slot.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
-            const cleanPath = path.trim();
-            const store = window.spaConfig?.store;
-            let value = store ? store.get(cleanPath) : undefined;
-            
-            // If we have a value, use it. Otherwise keep the {{match}} for visibility
-            const content = value !== undefined ? value : match;
-            return `<span data-b0nes-bind="${cleanPath}">${content}</span>`;
-        });
+        return processTextSlot(slot);
+    }
+
+    if (typeof slot === 'number' || typeof slot === 'boolean') {
+        return String(slot);
+    }
+
+    if (typeof slot === 'object' && !Array.isArray(slot)) {
+        if (typeof slot.html === 'string' && !slot.type) {
+            return slot.html;
+        }
+        if (slot.type && slot.name) {
+            return await compose([slot]);
+        }
+        return '';
     }
 
     if (!Array.isArray(slot)) {
@@ -155,21 +233,22 @@ async function composeSlot(slot) {
 
     const results = await Promise.all(
         slot.map(async (child) => {
-            if (typeof child === 'string') {
-                // 🔗 Reactivity Hook: wrap {{path}} variables in reactive spans
-                // This allows granular updates without re-compositing the whole string
-                return child.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
-                    const cleanPath = path.trim();
-                    const store = window.spaConfig?.store;
-                    let value = store ? store.get(cleanPath) : undefined;
-                    
-                    // If we have a value, use it. Otherwise keep the {{match}} for visibility
-                    const content = value !== undefined ? value : match;
-                    return `<span data-b0nes-bind="${cleanPath}">${content}</span>`;
-                });
+            if (child === null || child === undefined) {
+                return '';
             }
-            if (typeof child === 'object' && child !== null && child.type && child.name) {
-                return await compose([child]);
+            if (typeof child === 'string') {
+                return processTextSlot(child);
+            }
+            if (typeof child === 'number' || typeof child === 'boolean') {
+                return String(child);
+            }
+            if (typeof child === 'object') {
+                if (typeof child.html === 'string' && !child.type) {
+                    return child.html;
+                }
+                if (child.type && child.name) {
+                    return await compose([child]);
+                }
             }
             return '';
         })

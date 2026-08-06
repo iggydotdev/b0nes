@@ -3,7 +3,7 @@
 > A zero-dependency SSG/SSR framework with built-in state management and component composition
 > GitHub: https://github.com/iggydotdev/b0nes
 > npm: https://www.npmjs.com/package/b0nes
-> Version: 0.2.0
+> Version: 0.2.1
 
 ## Core Philosophy
 
@@ -14,6 +14,8 @@ b0nes is a complete web development toolkit with zero npm dependencies. It provi
 - Built-in state machines (FSM) with SPA routing
 - Client-side progressive enhancement
 - Pure JavaScript + JSDoc for type safety
+- Escape-by-default composition (XSS-safe plain-text slots via `compose`)
+- AI-native MCP server for agents that emit component trees
 
 Perfect for: blogs, marketing sites, documentation, landing pages, e-commerce product pages, SaaS applications, SPAs
 
@@ -23,7 +25,15 @@ Perfect for: blogs, marketing sites, documentation, landing pages, e-commerce pr
 git clone https://github.com/iggydotdev/b0nes.git
 cd b0nes
 # No npm install needed!
+# Requires Node.js >= 22 (Active LTS)
 ```
+
+### Examples: git vs npm (for agents)
+
+- **Full demos** (`talk`, `spa`, `playground`, `social-demo`, …) live only in the **git repo** for local validation (`npm run dev`).
+- **npm package** ships framework + scaffold templates only: `basic`, `blog`, `documentation` (used by `npx b0nes`).
+- When generating a new site for a user, prefer `npx b0nes <name> --template basic|blog|docs` — do not assume talk/SPA demos exist in `node_modules/b0nes`.
+- To explore every example, clone the GitHub repo.
 
 ## Quick Start
 
@@ -88,11 +98,12 @@ ALL components follow this pattern:
 import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 
 export const componentName = ({
-    attrs = '',      // Raw HTML attributes string
+    attrs = '',      // Prefer object form: { id: 'x' }; string form is legacy
     className = '',  // CSS classes
-    slot,           // Content (string or array)
+    slot,            // Content — when called via compose(), already safe HTML
     // ... component-specific props
 }) => {
     // 1. Validate required props
@@ -102,20 +113,21 @@ export const componentName = ({
     });
     
     // 2. Validate prop types
-    validatePropTypes({ attrs, className }, { 
-        attrs: 'string',
+    validatePropTypes({ className }, { 
         className: 'string'
     }, { componentName: 'componentName', componentType: 'atom' });
     
     // 3. Process attributes and classes
-    attrs = attrs ? ` ${attrs}` : '';
+    const attrsStr = attrsToString(attrs); // object form escapes values
     const classes = normalizeClasses(['base-class', className]);
     
     // 4. Process slot content
+    // processSlotTrusted is correct HERE because compose() already escaped
+    // plain-text slots before calling the component. Do NOT re-escape.
     const slotContent = processSlotTrusted(slot);
     
     // 5. Return HTML string
-    return `<element class="${classes}"${attrs}>${slotContent}</element>`;
+    return `<element class="${classes}"${attrsStr}>${slotContent}</element>`;
 };
 ```
 
@@ -133,9 +145,11 @@ const html = button({
 // Returns: '<button type="submit" class="btn primary">Click Me</button>'
 ```
 
+**Important:** Direct atom/molecule calls bypass `compose`. Prefer `compose([...])` for page content and any untrusted input so escape-by-default applies.
+
 ### Composition Usage (in pages)
 ```javascript
-// src/framework/pages/home.js
+// Page modules export a component tree (JSON IR). compose() turns it into HTML.
 export const components = [
     {
         type: 'organism',
@@ -157,6 +171,108 @@ export const components = [
     }
 ];
 ```
+
+## Composition & Escape-by-Default (CRITICAL for agents)
+
+`compose` is the **trust boundary**. Always emit a **JSON component tree**, then call `compose`. Never inject raw HTML strings into slots unless you use the explicit `{ html }` opt-in.
+
+### Pipeline
+
+```text
+Any input (pages, MCP tools, helpers)
+        │
+        ▼
+   JSON component tree (IR)
+        │
+        ▼
+   compose(tree)   ← escape strings · render nodes · allow { html }
+        │
+        ▼
+   HTML string
+```
+
+### Slot kinds
+
+| Slot kind | Example | What compose does |
+|-----------|---------|-------------------|
+| Plain text | `'Hello <world>'` | Escapes → `Hello &lt;world&gt;` |
+| Component node | `{ type: 'atom', name: 'button', props: {…} }` | Renders real HTML (not re-escaped) |
+| Raw HTML opt-in | `{ html: '<em>…</em>' }` | Inserts as-is — author owns risk |
+| Bind marker | `'Hi {{user.name}}'` | Escapes text; keeps `<span data-b0nes-bind>` real |
+| number / boolean | `42` | `String(x)` (safe) |
+
+### CORRECT patterns for agents
+
+```javascript
+import { compose } from './framework/core/compose.js';
+
+// ✅ User/API text — always a plain string; compose escapes it
+compose([{
+    type: 'atom',
+    name: 'text',
+    props: { is: 'p', slot: userInput }
+}]);
+
+// ✅ Nested markup via STRUCTURE, not HTML strings
+compose([{
+    type: 'atom',
+    name: 'text',
+    props: {
+        is: 'p',
+        slot: [
+            'Hello ',
+            { type: 'atom', name: 'text', props: { is: 'strong', slot: 'world' } }
+        ]
+    }
+}]);
+// → <p class="text">Hello <strong class="text">world</strong></p>
+
+// ✅ Lists: nest li components, do not put <li> in a string
+compose([{
+    type: 'atom',
+    name: 'text',
+    props: {
+        is: 'ul',
+        slot: [
+            { type: 'atom', name: 'text', props: { is: 'li', slot: 'Item A' } },
+            { type: 'atom', name: 'text', props: { is: 'li', slot: 'Item B' } }
+        ]
+    }
+}]);
+
+// ⚠️ Trusted raw HTML only (markdown/CMS). Explicit and greppable.
+compose([{
+    type: 'atom',
+    name: 'box',
+    props: { slot: [{ html: renderMarkdown(post.body) }] }
+}]);
+```
+
+### INCORRECT patterns (do not do this)
+
+```javascript
+// ❌ HTML in a string slot — becomes visible escaped text, not tags
+{ type: 'atom', name: 'text', props: { is: 'p', slot: '<strong>bold</strong>' } }
+
+// ❌ Building pages by concatenating HTML strings outside compose
+const html = '<div>' + userContent + '</div>';
+
+// ❌ Relying on processSlotTrusted for untrusted user input at the page layer
+```
+
+### Attributes
+
+```javascript
+// ✅ Preferred — values escaped via attrsToString
+attrs: { id: 'main', 'aria-label': userLabel, 'data-param-id': id }
+
+// ⚠️ Legacy string — pass-through; only with fully trusted values
+attrs: `id="main" aria-label="${userLabel}"`
+```
+
+### Why processSlotTrusted exists in atoms
+
+Atoms use `processSlotTrusted(slot)` because when they are reached **through compose**, `slot` is already resolved safe HTML (escaped text + rendered children). Re-escaping there would turn real `<button>` output into `&lt;button&gt;`. Escape once, at compose. Components trust the result.
 
 ## Routing
 
@@ -461,8 +577,36 @@ const cleanup = connectFSMtoDOM(fsm, rootEl, routes);
 // Navigate programmatically
 fsm.send('GOTO_STEP2');
 
-// Cleanup when done
+// Cleanup when done (removes listeners — always call on teardown)
 cleanup();
+```
+
+#### FSM event data attributes (params)
+
+`connectFSMtoDOM` collects transition payload from data attributes. **No special-case heuristics** (e.g. no TODO-only param names).
+
+```html
+<!-- Named params: data-param-id → { id: "1" }; data-param-user-id → { userId: "x" } -->
+<button data-fsm-event="GOTO_TODO" data-param-id="1">Details</button>
+
+<!-- JSON blob merged into event data -->
+<button data-fsm-event="GOTO_TODO" data-fsm-data='{"id":"1","tab":"info"}'>Details</button>
+
+<!-- Legacy bare param → { param: "value" } -->
+<button data-fsm-event="GOTO_ABOUT" data-param="value">About</button>
+```
+
+In page trees, prefer object attrs:
+
+```javascript
+{
+    type: 'atom',
+    name: 'button',
+    props: {
+        slot: 'Details',
+        attrs: { 'data-fsm-event': 'GOTO_TODO', 'data-param-id': String(todo.id) }
+    }
+}
 ```
 
 ### FSM Router Example - Multi-Step Form
@@ -536,16 +680,49 @@ composed.subscribe((change) => {
 
 ## Key Functions
 
-### compose(components)
-Converts component tree to HTML strings.
+### compose(components, context?)
+Converts a component tree to HTML. **This is the trust boundary** (escape-by-default). See [Composition & Escape-by-Default](#composition--escape-by-default-critical-for-agents).
 
 ```javascript
-import { compose } from './framework/compose.js';
+import {
+    compose,
+    composeOne,
+    clearCompositionCache,
+    setErrorFallback,
+    resetErrorFallback,
+    getCacheStats,
+    getErrorStats
+} from './framework/core/compose.js';
 
 const html = compose([
     { type: 'atom', name: 'text', props: { is: 'p', slot: 'Hello' } }
 ]);
+
+// Optional route context: rewrites relative asset paths
+// ./qr.png under /examples/talk/ → /examples/talk/qr.png
+compose(components, {
+    route: { pattern: { pathname: '/examples/talk/index.html' } }
+});
+
+// Custom error UI when a component is missing or throws
+setErrorFallback((error, component) =>
+    `<!-- failed: ${component.type}/${component.name}: ${error.message} -->`
+);
+resetErrorFallback();
+
+clearCompositionCache(); // tests / HMR
 ```
+
+| Export | Purpose |
+|--------|---------|
+| `compose(components, context?)` | Tree → HTML; escapes plain text; renders nodes |
+| `composeOne(component, context?)` | Single-node convenience |
+| `setErrorFallback(fn)` | Override error fallback UI `(error, component) => html` |
+| `resetErrorFallback()` | Restore default visible error box |
+| `clearCompositionCache()` / `clearCache()` | Drop render cache |
+| `getCacheStats()` / `getErrorStats()` | Debug helpers |
+
+Client-side dynamic compose (SPA templates) lives at `./framework/client/compose.js` and applies the **same** escape rules.
 
 ### renderPage(content, meta)
 Wraps content in full HTML document.
@@ -672,18 +849,34 @@ Serve the `public/` directory on any static host:
 ## Utility Functions
 
 ### processSlot(slot, options)
-Handles slot content with HTML escaping for user input.
+Low-level slot helpers. **Prefer compose for page content** — it already escapes plain text.
 
 ```javascript
-import { processSlot, processSlotTrusted } from './components/utils/processSlot.js';
+import { processSlot, processSlotTrusted, processSlotUser } from './components/utils/processSlot.js';
 
-// Escapes HTML (for user input)
+// Escapes HTML (user input) — default escape: true
 const safe = processSlot('<script>alert(1)</script>');
-// Returns: '&lt;script&gt;alert(1)&lt;/script&gt;'
+// → '&lt;script&gt;alert(1)&lt;/script&gt;'
 
-// Trusts HTML (for component content)
+processSlotUser(userInput); // always escape
+
+// Trusts HTML — used INSIDE atoms after compose has already made slot safe
 const trusted = processSlotTrusted('<button>Click</button>');
-// Returns: '<button>Click</button>'
+// → '<button>Click</button>'
+```
+
+Do **not** call `processSlotTrusted` on untrusted user strings at the page/MCP layer. Put user strings in the tree and let `compose` escape them.
+
+### attrsToString(attrs)
+Serializes attrs for HTML. Object form escapes values and validates names; string form is legacy pass-through.
+
+```javascript
+import { attrsToString } from './components/utils/attrsToString.js';
+
+attrsToString({ id: 'main', disabled: true, 'data-x': 'a"b' });
+// → ' id="main" disabled data-x="a&quot;b"'
+
+attrsToString('id="main"'); // legacy: ' id="main"'
 ```
 
 ### normalizeClasses(classes)
@@ -728,10 +921,32 @@ This avoids:
 - Breaking changes on updates
 - Bundle bloat
 
-### Security: XSS Protection
-- `processSlotTrusted()` - For component-rendered HTML (trusted)
-- `processSlot()` with `escape: true` - For user input (escaped)
-- `escapeHtml()` / `escapeAttr()` - Available for manual escaping
+### Security: XSS Protection (escape-by-default)
+
+**Primary rule for agents:** emit JSON trees; call `compose`. Never put raw tags in string slots.
+
+| Layer | Behavior |
+|-------|----------|
+| `compose` / `composeSlot` | Escapes plain strings; renders component nodes; allows `{ html }` opt-in |
+| Atoms (`processSlotTrusted`) | Trust already-composed slot HTML (do not double-escape) |
+| `attrsToString({…})` | Escapes attribute values; validates names |
+| `attrs` string form | Legacy pass-through — trusted values only |
+| `escapeHtml()` / `escapeAttr()` | Manual helpers when needed outside compose |
+| `{ html: '…' }` | Explicit raw HTML — use only for trusted pipelines (markdown, CMS) |
+
+```javascript
+// Safe — script becomes text
+compose([{ type: 'atom', name: 'text', props: {
+    is: 'p', slot: '<img src=x onerror=alert(1)>'
+}}]);
+// contains &lt;img … not a real <img>
+
+// Nested components stay real tags (no double-escape)
+compose([{ type: 'atom', name: 'button', props: {
+    slot: [{ type: 'atom', name: 'text', props: { is: 'span', slot: 'OK' } }]
+}}]);
+// → <button>…<span>OK</span>…</button>
+```
 
 ### NO Client-Side JavaScript Required
 - Server-rendered HTML works without JavaScript
@@ -745,15 +960,16 @@ This avoids:
 
 ## Common Patterns
 
-### Nested Components
+### Nested Components (structure, not HTML strings)
 ```javascript
 {
-    type: 'organism',
+    type: 'molecule',
     name: 'card',
     props: {
         slot: [
             { type: 'atom', name: 'text', props: { is: 'h2', slot: 'Title' }},
             { type: 'atom', name: 'text', props: { is: 'p', slot: 'Content' }}
+            // ❌ do not: slot: '<h2>Title</h2><p>Content</p>'
         ]
     }
 }
@@ -814,11 +1030,21 @@ connectFSMtoDOM(fsm, document.getElementById('app'), routes);
 
 ### "Component not found in library"
 - Component must be registered in `atoms/index.js`, `molecules/index.js`, or `organisms/index.js`
-- Check component name matches exactly
+- Check component name matches exactly (`type` + `name` in the tree)
+- Default fallback is a visible error box; override with `setErrorFallback`
+
+### Tags show up as literal text (`&lt;strong&gt;`)
+- You put HTML in a **string** slot. compose escapes plain text by design.
+- Fix: nest component nodes, or use `{ html: '…' }` only for trusted markup.
+
+### Nested components became `&lt;button&gt;` / double-escaped
+- Something re-escaped after compose (or escaped inside an atom incorrectly).
+- Atoms should use `processSlotTrusted` on the composed `slot`, not `processSlotUser`.
 
 ### Tests failing
 - String comparison is exact (whitespace matters)
 - Check expected output format carefully
+- XSS-style strings in compose tests should expect escaped entities
 
 ### Build fails
 - Check `route.components` is array (or function returning array for dynamic routes)
@@ -827,6 +1053,7 @@ connectFSMtoDOM(fsm, document.getElementById('app'), routes);
 ### Client-side components not working
 - Check if b0nes.js is loaded (`meta.interactive !== false`)
 - Verify component has `data-b0nes` attribute
+- Interactive clients (modal, tabs, dropdown) should return a **cleanup** function
 - Check browser console for initialization errors
 
 ### FSM not rendering anything
@@ -834,23 +1061,34 @@ connectFSMtoDOM(fsm, document.getElementById('app'), routes);
 - Use `createRouterFSM` helper or implement your own onEntry actions
 - Templates must be provided in route definitions
 
+### FSM params missing / wrong key
+- Use `data-param-id="1"` (→ `{ id: "1" }`), not bare heuristics
+- Or `data-fsm-data='{"id":"1"}'`
+- Route `onEnter` / templates receive that object as transition data
+
 ## Code Style
 
 - Use JSDoc for documentation
 - Follow atomic design principles
 - Keep components pure (no side effects)
 - Validate props at component start
-- Use `processSlotTrusted()` for component content
-- Use `normalizeClasses()` for class handling
+- **Pages/MCP: always emit JSON trees and run `compose`**
+- **Never put raw HTML tags in string slots** (use nested nodes or `{ html }`)
+- Prefer `attrs: { … }` objects over attribute strings
+- Use `processSlotTrusted()` inside atoms (slot already safe from compose)
+- Use `attrsToString()` / `normalizeClasses()` for attrs and classes
 - Return template literals for HTML
+- Client behaviors must return a cleanup function when they attach listeners
 
 ## What b0nes Is
 
 ✅ Complete web development toolkit with zero dependencies
 ✅ SSG/SSR framework with built-in state management
 ✅ Component composition system (atomic design)
+✅ Escape-by-default compose pipeline (XSS-safe text, structured markup)
 ✅ Progressive enhancement with client-side runtime
 ✅ State machines for flow control AND SPA routing
+✅ JSON component trees as IR for humans, APIs, and AI agents (MCP)
 ✅ For content-heavy sites and web applications
 
 ## What b0nes Is NOT
@@ -859,11 +1097,12 @@ connectFSMtoDOM(fsm, document.getElementById('app'), routes);
 ❌ Not trying to replace React/Vue for complex SPAs
 ❌ Not for real-time applications
 ❌ Not opinionated about styling
+❌ Not a free-form HTML string builder — structure is the IR
 
 ## Version Info
 
-Current: v0.2.0
-Node: >=24.0.0
+Current: v0.2.1
+Node: >=22.0.0
 License: MIT
 
 ## Links
@@ -871,17 +1110,22 @@ License: MIT
 - GitHub: https://github.com/iggydotdev/b0nes
 - Issues: https://github.com/iggydotdev/b0nes/issues
 - npm: https://www.npmjs.com/package/b0nes
+- README: https://github.com/iggydotdev/b0nes#readme
 
 ---
 
-**When helping users with b0nes:**
-1. It's a complete toolkit (components + routing + state + FSM)
+**When helping users (or generating b0nes UI) as an agent:**
+1. It's a complete toolkit (components + routing + state + FSM + MCP)
 2. Zero dependencies = suggest pure JS solutions only
-3. Components return HTML strings, not JSX
-4. FSM for flow control AND SPA routing, Store for data management
-5. No CSS included - users choose their own strategy
-6. Progressive enhancement pattern (works without JS, better with JS)
-7. Point to component generator for new components
-8. Encourage atomic design patterns (atoms → molecules → organisms)
-9. FSM needs render functions to actually display UI - it's not magic!
-10. FSM Router combines state machines with actual URL/template rendering
+3. Components return HTML strings, not JSX — pages are **JSON trees**
+4. **Always compose trees** — never paste raw HTML into string slots
+5. Escape-by-default: plain text is safe; nest nodes for real tags; `{ html }` only when trusted
+6. Prefer `attrs` objects; use `data-param-*` / `data-fsm-data` for FSM payloads
+7. FSM for flow control AND SPA routing, Store for data management
+8. No CSS included — users choose their own strategy
+9. Progressive enhancement (works without JS, better with JS)
+10. Point to component generator for new components
+11. Encourage atomic design (atoms → molecules → organisms)
+12. FSM needs templates/render — it's not magic
+13. FSM Router combines state machines with URL/template rendering
+14. Import compose from `./framework/core/compose.js` (not the old `./framework/compose.js` path)

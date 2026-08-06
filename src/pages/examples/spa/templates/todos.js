@@ -50,7 +50,7 @@ export const components = (todos) => [
                     type: 'atom',
                     name: 'button',
                     props: {
-                      attrs: `data-fsm-event="GOTO_TODO" data-param="${todo.id}"`,
+                      attrs: `data-fsm-event="GOTO_TODO" data-param-id="${todo.id}"`,
                       slot: 'Details'
                     }
                   }
