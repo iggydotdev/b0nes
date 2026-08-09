@@ -52,7 +52,43 @@ npm run generate [atom|molecule|organism] [name]
 
 # Install community component
 npm run install-component [url]
+
+# Upgrade vendored framework in an existing app
+npx b0nes@latest upgrade --dry-run
+npx b0nes@latest upgrade
+npx b0nes upgrade --components   # also stock components
 ```
+
+## Upgrading vendored projects (CRITICAL)
+
+b0nes **scaffolds by copy**: `src/framework` lives inside the user project. It is NOT upgraded by bumping a runtime npm dependency.
+
+### Commands
+```bash
+npx b0nes@latest upgrade --dry-run
+npx b0nes@latest upgrade              # replaces src/framework/**
+npx b0nes upgrade --components        # + stock atoms/molecules/organisms/utils
+npx b0nes upgrade --force             # allow overwrite of locally edited stock files
+npx b0nes upgrade --yes               # non-interactive
+```
+
+### Ownership (never tell users to hand-merge pages for routine upgrades)
+| Tier | Paths | On upgrade |
+|------|-------|------------|
+| Framework | `src/framework/**` | Replaced (default) |
+| Stock components | built-in atoms/molecules/organisms/utils | Only with `--components` |
+| User land | `src/pages/**`, `public/**`, custom generated components | **Never** touched |
+
+### Metadata
+- Create stamps `.b0nes/manifest.json` + `.b0nes/checksums.json`
+- Backups: `.b0nes/backups/<timestamp>/`
+- Design doc: `docs/UPGRADE.md`
+
+### Agent rules
+1. Prefer `upgrade --dry-run` before applying.
+2. Never overwrite `src/pages` as part of “upgrading b0nes”.
+3. If stock files were edited, warn and use `--force` only with user consent.
+4. After upgrade, point humans at CHANGELOG breaking notes (escape-by-default, FSM params, Node >=22, etc.).
 
 ## Component Architecture
 
@@ -1129,3 +1165,5 @@ License: MIT
 12. FSM needs templates/render — it's not magic
 13. FSM Router combines state machines with URL/template rendering
 14. Import compose from `./framework/core/compose.js` (not the old `./framework/compose.js` path)
+15. **Upgrades:** `npx b0nes@latest upgrade` — never “npm update b0nes” as the primary story for vendored apps; never touch `src/pages` during upgrade
+16. Full examples (talk/spa/…) are git-only; npm ships basic/blog/documentation templates only

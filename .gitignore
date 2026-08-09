@@ -4,6 +4,9 @@ node_modules/
 .env
 .b0nes-cache/
 
+# b0nes upgrade backups (keep .b0nes/manifest.json + checksums.json in git)
+.b0nes/backups/
+
 
 # Envs
 .env

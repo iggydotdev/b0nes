@@ -16,6 +16,9 @@ apps/
 
 # Tests (run from git; not needed in published package)
 **/*.test.js
+bin/**/*.test.js
+
+# Note: docs/UPGRADE.md IS published (users need the upgrade contract)
 
 # ── Examples policy ──────────────────────────────────────────────────────────
 # Full demos stay in the git repo for local validation (`npm run dev`).

@@ -46,6 +46,15 @@ npm run dev                    # Start building immediately
 
 **Because b0nes is a scaffolding tool, not a library, the framework code is copied directly into your `src/` folder. You own the code. It literally disappears into your codebase.**
 
+**Upgrades:** re-sync the vendored framework with:
+
+```bash
+cd my-app
+npx b0nes@latest upgrade --dry-run   # plan only
+npx b0nes@latest upgrade             # apply (backs up to .b0nes/backups/)
+```
+
+See [Upgrading](#upgrading) and [`docs/UPGRADE.md`](docs/UPGRADE.md).
 
 **Learn the entire framework in an afternoon. Use it for years.**
 
@@ -218,6 +227,45 @@ npm run dev:watch
 - **`npx b0nes my-app`** copies framework code and one template into the new project; it does not need the talk deck or SPA demos.
 
 You do **not** need a second repo for examples unless you want a public gallery site later. Same tree, different publish filter is enough.
+
+---
+
+## Upgrading
+
+b0nes **copies** the framework into your project. Updates are not `npm update` of a runtime dependency — they are a deliberate re-sync.
+
+### Quick path
+
+```bash
+cd my-app
+git status                          # clean tree preferred
+npx b0nes@latest upgrade --dry-run  # see adds / updates / local edits
+npx b0nes@latest upgrade            # write src/framework, backup first
+npm test && npm run build
+```
+
+| Flag | Meaning |
+|------|---------|
+| `--dry-run` | Print plan only |
+| `--components` | Also refresh stock atoms/molecules/organisms/utils |
+| `--force` | Overwrite stock files you edited locally |
+| `--yes` | Skip confirmation (CI) |
+| `--no-backup` | Skip `.b0nes/backups/` (not recommended) |
+
+### What gets touched
+
+| Path | Default `upgrade` | With `--components` |
+|------|-------------------|---------------------|
+| `src/framework/**` | ✅ replaced | ✅ |
+| Stock components | ❌ left alone | ✅ replaced |
+| Your components (e.g. `generate atom foo`) | ❌ never | ❌ never |
+| `src/pages/**`, `public/**` | ❌ never | ❌ never |
+
+New projects get `.b0nes/manifest.json` (framework version) and checksums so later upgrades can detect **local-modified** stock files and refuse without `--force`.
+
+Legacy projects (no manifest) still work: the CLI detects `src/framework` and writes a manifest on first upgrade.
+
+Full contract: **[docs/UPGRADE.md](docs/UPGRADE.md)**.
 
 ---
 

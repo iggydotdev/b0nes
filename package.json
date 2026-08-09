@@ -18,10 +18,10 @@
     "./mcp": "./src/mcp/server.js"
   },
   "bin": {
-    "b0nes": "bin/create.js"
+    "b0nes": "bin/b0nes.js"
   },
   "scripts": {
-    "test": "node --test 'src/**/*.test.js'",
+    "test": "node --test 'src/**/*.test.js' 'bin/**/*.test.js'",
     "dev": "NODE_ENV=development node src/framework/server/index.js",
     "dev:watch": "NODE_ENV=development node --watch src/framework/server/index.js",
     "build": "node src/framework/build/cli.js build",
