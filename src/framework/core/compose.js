@@ -255,14 +255,31 @@ export const compose = (components = [], context = {}) => {
             return cached;
         }
 
+        const renderedProps = { ...finalProps };
+
+        // Process default slot (maintains backward-compatibility)
         let slotContent = '';
         if (finalProps.slot !== undefined && finalProps.slot !== null) {
             slotContent = composeSlot(finalProps.slot, context);
         }
+        renderedProps.slot = slotContent;
+
+        // Process named slots (*Slot) and component descriptor props
+        for (const [key, val] of Object.entries(finalProps)) {
+            if (key === 'slot' || val === undefined || val === null) continue;
+
+            const isNamedSlot = key.endsWith('Slot');
+            const isComponentDescriptor = typeof val === 'object' && !Array.isArray(val) && Boolean(val.type && val.name);
+            const isComponentArray = Array.isArray(val) && val.some(item => item && typeof item === 'object' && (item.type || item.html));
+
+            if (isNamedSlot || isComponentDescriptor || isComponentArray) {
+                renderedProps[key] = composeSlot(val, context);
+            }
+        }
 
         const html = safeRender(
             comp,
-            { ...finalProps, slot: slotContent },
+            renderedProps,
             name,
             type
         );

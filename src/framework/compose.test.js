@@ -279,3 +279,49 @@ test('compose - does not rewrite absolute paths', () => {
     );
     assert.ok(result.includes('src="/images/logo.png"'));
 });
+
+// ── Named slots & Empty slot validation ─────────────────────────────────
+
+test('compose - renders named slots with nested components (accordion, card)', () => {
+    clearCompositionCache();
+    const result = compose([
+        {
+            type: 'atom',
+            name: 'accordion',
+            props: {
+                titleSlot: {
+                    type: 'atom',
+                    name: 'text',
+                    props: { is: 'span', slot: 'FAQ Question' }
+                },
+                detailsSlot: {
+                    type: 'atom',
+                    name: 'text',
+                    props: { is: 'p', slot: 'FAQ Answer' }
+                }
+            }
+        }
+    ]);
+
+    assert.ok(result.includes('<details class="accordion">'));
+    assert.ok(result.includes('<summary>'));
+    assert.ok(result.includes('FAQ Question'));
+    assert.ok(result.includes('FAQ Answer'));
+    assert.ok(!result.includes('Component Error'));
+});
+
+test('compose - allows empty string for slot without throwing', () => {
+    clearCompositionCache();
+    const result = compose([
+        {
+            type: 'atom',
+            name: 'text',
+            props: { is: 'strong', slot: '', attrs: "data-field='name'" }
+        }
+    ]);
+
+    assert.ok(result.includes('<strong'));
+    assert.ok(result.includes("data-field='name'"));
+    assert.ok(!result.includes('Component Error'));
+});
+

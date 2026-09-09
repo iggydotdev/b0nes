@@ -87,11 +87,11 @@ export const compose = async (components = []) => {
 
             // 🚀 Convention over Configuration: Scan props for {{var}}
             const propertyBindings = [];
-            const finalProps = { ...props };
+            const finalProps = { ...props, slot: slotContent };
             const store = window.spaConfig?.store;
             
             for (const [key, value] of Object.entries(finalProps)) {
-                if (key === 'slot') continue; // 🚀 Convention: slots are handled by composeSlot
+                if (key === 'slot' || key.endsWith('Slot')) continue; // Slots are handled by composeSlot
                 
                 if (typeof value === 'string' && value.includes('{{')) {
                     finalProps[key] = value.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
@@ -103,6 +103,19 @@ export const compose = async (components = []) => {
                 }
             }
 
+            // Compose named slots (*Slot) and component descriptor props
+            for (const [key, val] of Object.entries(props)) {
+                if (key === 'slot' || val === undefined || val === null) continue;
+
+                const isNamedSlot = key.endsWith('Slot');
+                const isComponentDescriptor = typeof val === 'object' && !Array.isArray(val) && Boolean(val.type && val.name);
+                const isComponentArray = Array.isArray(val) && val.some(item => item && typeof item === 'object' && (item.type || item.html));
+
+                if (isNamedSlot || isComponentDescriptor || isComponentArray) {
+                    finalProps[key] = await composeSlot(val);
+                }
+            }
+
             // Render the component
             try {
                 const renderFn = typeof comp === 'function' ? comp : comp?.render;
@@ -111,7 +124,7 @@ export const compose = async (components = []) => {
                     throw new Error(`Component ${name} is not a function`);
                 }
                 
-                let html = renderFn({ ...finalProps, slot: slotContent });
+                let html = renderFn(finalProps);
 
                 // 🔗 Reactivity Hook: add binding attribute
                 if (typeof html === 'string') {
