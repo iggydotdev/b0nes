@@ -4,6 +4,6 @@ export * from "./components/molecules/index.js";
 export * from "./components/organisms/index.js";
 
 // Re-export utility functions
-export { compose } from './framework/compose.js';
-export { router } from './framework/router/index.js';
-export { renderPage } from './framework/renderPage.js';
+export { compose } from './framework/core/compose.js';
+export { router } from './framework/core/router/index.js';
+export { renderPage } from './framework/core/render.js';
