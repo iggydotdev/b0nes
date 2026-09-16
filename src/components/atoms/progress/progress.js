@@ -75,18 +75,21 @@ export const progress = ({
     let numValue = isIndeterminate ? 0 : value;
 
     // Validate prop types
+    const typesToValidate = { max, className };
+    const schemaToValidate = { max: 'number', className: 'string' };
+    if (!isIndeterminate) {
+        typesToValidate.value = numValue;
+        schemaToValidate.value = 'number';
+    }
+
     validatePropTypes(
-        { value: numValue, max, className },
-        { 
-            value: 'number',
-            max: 'number',
-            className: 'string'
-        },
+        typesToValidate,
+        schemaToValidate,
         { componentName: 'progress', componentType: 'atom' }
     );
     
     // Validate value is not negative
-    if (numValue < 0) {
+    if (!isIndeterminate && numValue < 0) {
         console.warn(
             `[b0nes Warning] Progress value cannot be negative. ` +
             `Got: ${numValue}. Setting to 0.`
@@ -103,7 +106,7 @@ export const progress = ({
     }
     
     // Warn if value exceeds max
-    if (numValue > max) {
+    if (!isIndeterminate && numValue > max) {
         console.warn(
             `[b0nes Warning] Progress value (${numValue}) exceeds max (${max}). ` +
             `This may cause unexpected rendering.`
@@ -130,5 +133,6 @@ export const progress = ({
         fallbackText = `${numValue} of ${max}`;
     }
     
-    return `<progress class="${classes}" value="${numValue}" max="${max}"${attrsStr}>${fallbackText}</progress>`;
+    const valueAttr = isIndeterminate ? '' : ` value="${numValue}"`;
+    return `<progress class="${classes}"${valueAttr} max="${max}"${attrsStr}>${fallbackText}</progress>`;
 };

@@ -22,6 +22,7 @@
   },
   "scripts": {
     "test": "node --test 'src/**/*.test.js' 'bin/**/*.test.js'",
+    "test:browser": "node tests/browser/server.mjs",
     "dev": "NODE_ENV=development node src/framework/server/index.js",
     "dev:watch": "NODE_ENV=development node --watch src/framework/server/index.js",
     "build": "node src/framework/build/cli.js build",

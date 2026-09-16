@@ -12,3 +12,13 @@ test('modal rendering', () => {
     assert.ok(actualModal.includes('Test'), 'Modal should include title');
     assert.ok(actualTrigger.includes('data-modal-open="test-modal"'), 'Trigger should have correct data attribute');
 });
+
+
+test('modal has an accessible name, fallback focus target and non-submit close button', () => {
+    const html = modal({ id: 'named', title: 'Settings', slot: 'Body' });
+    assert.ok(html.includes('aria-labelledby="named-title"'));
+    assert.ok(html.includes('id="named-title"'));
+    assert.ok(html.includes('tabindex="-1"'));
+    assert.ok(html.includes('<button type="button"'));
+    assert.ok(modal({ id: 'untitled', slot: 'Body' }).includes('aria-label="Dialog"'));
+});

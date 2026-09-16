@@ -7,3 +7,10 @@ test('link rendering', () => {
     const expected = '<a href="https://example.com" class="link custom-link" target="_blank" rel="noopener noreferrer">Example</a>';
     assert.strictEqual(actual, expected);
 });
+
+test('link escapes quotes in url to prevent attribute breakout', () => {
+    const actual = link({ url: 'https://example.com/" onmouseover="alert(1)', slot: 'Click' });
+    assert.ok(actual.includes('&quot;'));
+    assert.ok(!actual.includes('" onmouseover='));
+});
+

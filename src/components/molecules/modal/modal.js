@@ -29,12 +29,12 @@ export const modal = ({ id, title, slot, className, attrs }) => {
     const attrsStr = attrsToString(attrs);
     className = className ? ` ${className}` : '';
     const content = processSlot(slot) ?? '';
-    const titleHtml = title ? `<h2 class="modal-title">${title}</h2>` : '';
+    const titleHtml = title ? `<h2 class="modal-title" id="${id}-title">${title}</h2>` : '';
 
-    return `<div class="modal${className}" data-b0nes="molecules:modal" id="${id}" aria-hidden="true" role="dialog" aria-modal="true"${attrsStr}>
+    return `<div class="modal${className}" data-b0nes="molecules:modal" id="${id}" aria-hidden="true" role="dialog" aria-modal="true" tabindex="-1"${title ? ` aria-labelledby="${id}-title"` : ' aria-label="Dialog"'}${attrsStr}>
     <div class="modal-overlay" data-modal-close></div>
     <div class="modal-content">
-        <button class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
         ${titleHtml}
         <div class="modal-body">
             ${content}

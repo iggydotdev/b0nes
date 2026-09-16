@@ -2,6 +2,7 @@ import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
+import { escapeAttr } from '../../utils/escapeAttr.js';
 
 /**
  * Link component - An HTML anchor element for navigation
@@ -102,5 +103,5 @@ export const link = ({
     // Process slot content (trust component-rendered HTML)
     const slotContent = processSlotTrusted(slot);
         
-    return `<a href="${url}" class="${classes}"${attrsStr}>${slotContent}</a>`;
+    return `<a href="${escapeAttr(url)}" class="${classes}"${attrsStr}>${slotContent}</a>`;
 };

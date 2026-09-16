@@ -2,6 +2,7 @@ import { processSlotTrusted } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
+import { escapeAttr } from '../../utils/escapeAttr.js';
 
 /**
  * Video component - An HTML video element for embedding video content
@@ -106,6 +107,7 @@ export const video = ({
     
     // Process slot content (source elements, track elements, fallback text)
     const slotContent = processSlotTrusted(slot);
+    const srcAttr = src ? ` src="${escapeAttr(src)}"` : '';
     
-    return `<video class="${classes}"${attrsStr}>${slotContent}</video>`;
+    return `<video${srcAttr} class="${classes}"${attrsStr}>${slotContent}</video>`;
 };

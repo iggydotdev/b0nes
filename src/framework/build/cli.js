@@ -51,7 +51,7 @@ BUILD OPTIONS:
   --verbose, -v       Verbose logging
   --clean             Clean output directory before build
   --parallel, -p      Build routes in parallel (faster)
-  --no-cache          Disable build cache
+  --no-cache          Compatibility flag (routes always rebuild)
   --production        Enable production optimizations (bundling, etc)
 
 DEV OPTIONS:
@@ -98,7 +98,7 @@ const runBuild = async () => {
     }
     
     try {
-        const result = await build('public', options);
+        const result = await build(flags.outputDir, options);
         
         if (result.success) {
             console.log('✅ Build successful!');

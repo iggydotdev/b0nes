@@ -45,7 +45,10 @@ function buildRoutes() {
         }
         
         routes.push({ 
-          pattern: new URLPattern({ pathname }), 
+          pattern: new URLPattern({ pathname }),
+          params: pathname.includes(':')
+            ? [...pathname.matchAll(/:(\w+)/g)].map(match => match[1])
+            : null,
           load: () => {
               const url = pathToFileURL(fullPath).href;
               const cacheBuster = ENV.isDev ? `?t=${Date.now()}` : '';

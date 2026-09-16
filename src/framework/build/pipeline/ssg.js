@@ -1,6 +1,5 @@
 // src/framework/utils/build/ssg.js
 import fs from 'node:fs';
-import crypto from 'node:crypto';
 import path from 'node:path';
 import os from 'node:os';
 import { Worker } from 'node:worker_threads';
@@ -10,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Fixed imports - use the auto-routes system
-import { getRoutes } from '../../server/handlers/autoRoutes.js';
+import { getRoutes, invalidateRoutes } from '../../server/handlers/autoRoutes.js';
 import { generateRoute } from './generateRoute.js';
 
 import { copyColocatedAssets } from './colocatedAssets.js';
@@ -21,111 +20,6 @@ import { generateCompiledTemplates } from './compileTemplates.js';
 import { createPageBundle } from './bundle.js';
 import { compose } from '../../core/compose.js';
 
-
-/**
- * Build cache to skip unchanged routes (functional style with closures)
- */
-const createBuildCache = (cacheDir = '.b0nes-cache') => {
-    const cacheFile = path.join(cacheDir, 'build-cache.json');
-    
-    const loadCache = () => {
-        try {
-            if (fs.existsSync(cacheFile)) {
-                const data = fs.readFileSync(cacheFile, 'utf8');
-                return JSON.parse(data);
-            }
-        } catch (error) {
-            console.warn('[Cache] Failed to load cache:', error.message);
-        }
-        return { routes: {}, version: '1.0' };
-    };
-    
-    let cache = loadCache();
-    
-    const saveCache = () => {
-        try {
-            if (!fs.existsSync(cacheDir)) {
-                fs.mkdirSync(cacheDir, { recursive: true });
-            }
-            fs.writeFileSync(
-                cacheFile, 
-                JSON.stringify(cache, null, 2), 
-                'utf8'
-            );
-        } catch (error) {
-            console.error('[Cache] Failed to save cache:', error.message);
-        }
-    };
-    
-    const hashRoute = (route) => {
-        try {
-            const data = JSON.stringify({
-                pathname: route.pattern?.pathname,
-                // Hash the actual page module path
-                modulePath: route.load?.toString()
-            });
-            
-            return crypto.createHash('md5').update(data).digest('hex');
-        } catch (error) {
-            return null;
-        }
-    };
-    
-    const hasChanged = (route) => {
-        const hash = hashRoute(route);
-        if (!hash) return true;
-        
-        const routeKey = route.pattern?.pathname || 'unknown';
-        const cached = cache.routes[routeKey];
-        
-        if (!cached) return true;
-        
-        return cached.hash !== hash;
-    };
-    
-    const update = (route, result) => {
-        const hash = hashRoute(route);
-        if (!hash) return;
-        
-        const routeKey = route.pattern?.pathname || 'unknown';
-        cache.routes[routeKey] = {
-            hash,
-            lastBuild: Date.now(),
-            result
-        };
-    };
-    
-    const clear = () => {
-        cache = { routes: {}, version: '1.0' };
-        try {
-            if (fs.existsSync(cacheFile)) {
-                fs.unlinkSync(cacheFile);
-            }
-        } catch (error) {
-            console.error('[Cache] Failed to clear cache:', error.message);
-        }
-    };
-    
-    const getStats = () => {
-        return {
-            totalRoutes: Object.keys(cache.routes).length,
-            cacheSize: fs.existsSync(cacheFile) 
-                ? fs.statSync(cacheFile).size 
-                : 0
-        };
-    };
-    
-    const getCache = () => cache;
-    
-    return { 
-        hasChanged, 
-        update, 
-        clear, 
-        getStats, 
-        save: saveCache,
-        getCache 
-    };
-};
 
 /**
  * Check if a route should be rendered as SSG or SSR
@@ -172,7 +66,7 @@ export const shouldBeStatic = (page, route) => {
  * Safe route builder with error recovery and hybrid rendering support
  * Now also copies co-located assets!
  */
-async function safeBuildRoute(route, buildCache, outputDir, options) {
+export async function safeBuildRoute(route, outputDir, options) {
     const { verbose, continueOnError } = options;
     
     try {
@@ -206,23 +100,6 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
             };
         }
         
-        // Check cache
-        if (buildCache && !buildCache.hasChanged(route)) {
-            const routeKey = route.pattern?.pathname || 'unknown';
-            const cached = buildCache.getCache().routes[routeKey];
-            
-            if (verbose) {
-                console.log(`⏭️  ${route.pattern.pathname} (cached)`);
-            }
-            
-            return {
-                success: true,
-                skipped: true,
-                route,
-                result: cached.result
-            };
-        }
-        
         // Dynamic route with externalData (SSG with pre-fetched data)
         if (route.params && page.externalData) {
             let data;
@@ -242,7 +119,7 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
                 pattern: route.pattern,
                 meta: page.meta || {},
                 components: (data) => {
-                    const comps = page.components;
+                    const comps = page.components || page.default || [];
                     return typeof comps === 'function' ? comps(data) : comps;
                 }
             };
@@ -251,11 +128,6 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
             
             if (results.length === 0) {
                 throw new Error(`Dynamic route "${route.pattern.pathname}" generated no output`);
-            }
-            
-            // Update cache for first result (representative)
-            if (buildCache && results.length > 0) {
-                buildCache.update(route, results[0]);
             }
             
             return {
@@ -285,7 +157,7 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
             
             // Create production bundle if requested
             let bundlePath = null;
-            if (options.production) {
+            if (options.production && staticRoute.meta.interactive !== false) {
                 const pageName = route.pattern.pathname === '/' ? 'index' : route.pattern.pathname.substring(1).replace(/\//g, '-');
                 bundlePath = await createPageBundle(pageName, dependencies, outputDir, { verbose });
             }
@@ -300,10 +172,6 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
             
             if (!result) {
                 throw new Error(`Route "${route.pattern.pathname}" generated no output`);
-            }
-            
-            if (buildCache) {
-                buildCache.update(route, result);
             }
             
             return {
@@ -340,12 +208,12 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
 }
 
 /**
- * Build static site with error boundaries and intelligent caching
+ * Build static site with isolated route workers and error reporting
  * Now supports hybrid SSG/SSR rendering!
  * 
  * @param {string} outputDir - Output directory
  * @param {Object} options - Build options
- * @param {boolean} options.cache - Enable build cache (default: true)
+ * @param {boolean} options.cache - Reserved for compatibility; routes always rebuild
  * @param {boolean} options.clean - Clean output before build (default: true)
  * @param {boolean} options.parallel - Enable parallel builds (default: false)
  * @param {boolean} options.verbose - Verbose logging (default: false)
@@ -356,7 +224,6 @@ async function safeBuildRoute(route, buildCache, outputDir, options) {
  */
 export const build = async (outputDir = 'public', options = {}) => {
     const {
-        cache: enableCache = true,
         clean = true,
         parallel = false,
         verbose = false,
@@ -372,9 +239,8 @@ export const build = async (outputDir = 'public', options = {}) => {
     const skipped = [];
     const ssrRoutes = [];
     
-    // Initialize cache
-    const buildCache = enableCache ? createBuildCache() : null;
-    
+    // Routes always rebuild: arbitrary module, environment and remote-data
+    // dependencies cannot safely be invalidated by a pathname cache.
     console.log('🦴 b0nes SSG Build Starting...\n');
     
         
@@ -453,6 +319,7 @@ export const build = async (outputDir = 'public', options = {}) => {
     // ============================================
     // STEP 4: Get routes from auto-discovery
     // ============================================
+    invalidateRoutes();
     const routes = getRoutes();
     
     if (routes.length === 0) {
@@ -471,69 +338,16 @@ export const build = async (outputDir = 'public', options = {}) => {
     // STEP 5: Build routes (parallel or sequential)
     // ============================================
     // Build routes (co-located assets are copied per-route in safeBuildRoute)
-    const routeTasks = routes.map(route => async () => {
-        const result = await safeBuildRoute(
-            route, 
-            buildCache, 
-            outputDir, 
-            { verbose, continueOnError, production }
-        );
-        
-        if (result.success) {
-            if (result.ssr) {
-                // Route is SSR - skip in build, handle at runtime
-                ssrRoutes.push({
-                    pathname: route.pattern.pathname,
-                    reason: result.reason,
-                    route: route
-                });
-            } else if (result.skipped) {
-                skipped.push(result);
-            } else if (result.results) {
-                // Dynamic route with multiple results
-                result.results.forEach(r => generated.push(r));
-            } else {
-                generated.push(result.result);
-            }
-        } else {
-            errors.push(result);
-            
-            // Call error callback if provided
-            if (onError && typeof onError === 'function') {
-                try {
-                    onError(result, route);
-                } catch (callbackError) {
-                    console.error('[Build] Error in onError callback:', callbackError);
-                }
-            }
-        }
-        
-        return result;
-    });
-
     // Execute builds
-    if (parallel && routes.length > 1) {
+    if (routes.length > 0) {
         const cpuCount = os.cpus().length;
-        const workerCount = Math.min(cpuCount, routes.length);
-        console.log(`🚀 Using ${workerCount} worker threads for parallel build\n`);
-
-        const pool = [];
-        let routeIndex = 0;
+        const workerCount = parallel ? Math.min(cpuCount, routes.length) : 1;
+        console.log(`🚀 Using ${workerCount} worker thread(s) for fresh route rendering\n`);
 
         const runWorker = (index) => {
             return new Promise((resolve, reject) => {
                 const route = routes[index];
                 
-                // Skip routes that haven't changed (Cache Check in Main Thread)
-                const isClean = options.clean;
-                if (buildCache && !buildCache.hasChanged(route) && !isClean) {
-                    const routeKey = route.pattern?.pathname || 'unknown';
-                    const cached = buildCache.getCache().routes[routeKey];
-                    if (verbose) console.log(`⏭️  ${route.pattern.pathname} (cached)`);
-                    skipped.push({ success: true, skipped: true, route, result: cached.result });
-                    return resolve();
-                }
-
                 // Sanitize route object for worker (remove functions)
                 const workerRoute = {
                     pattern: { pathname: route.pattern.pathname },
@@ -543,10 +357,12 @@ export const build = async (outputDir = 'public', options = {}) => {
                 };
 
                 const worker = new Worker(path.join(__dirname, 'renderWorker.js'), {
-                    workerData: { route: workerRoute, outputDir, options }
+                    workerData: { route: workerRoute, outputDir, options: { verbose, continueOnError: true, production } }
                 });
 
+                let reported = false;
                 worker.on('message', (result) => {
+                    reported = true;
                     if (result.success) {
                         if (result.ssr) {
                             ssrRoutes.push({
@@ -556,27 +372,32 @@ export const build = async (outputDir = 'public', options = {}) => {
                             });
                         } else if (result.results) {
                             result.results.forEach(r => generated.push(r));
-                            if (buildCache) buildCache.update(result.route, result.results[0]);
                         } else {
                             generated.push(result.result);
-                            if (buildCache) buildCache.update(result.route, result.result);
                         }
                     } else {
                         errors.push(result);
-                        if (onError) onError(result, result.route);
+                        if (typeof onError === 'function') {
+                            try { onError(result, route); }
+                            catch (error) { console.error('[Build] Error in onError callback:', error); }
+                        }
                     }
-                    resolve();
+                    // Route modules may leave timers open; the render is complete.
+                    worker.terminate().then(resolve, reject);
                 });
 
                 worker.on('error', (err) => {
+                    reported = true;
                     console.error(`❌ Worker error for ${route.pattern.pathname}:`, err);
                     errors.push({ success: false, route: route.pattern.pathname, error: err.message });
                     resolve(); // Don't crash the whole build
                 });
 
                 worker.on('exit', (code) => {
-                    if (code !== 0) {
-                        // console.error(`Worker stopped with exit code ${code}`);
+                    if (!reported) {
+                        errors.push({ success: false, route: route.pattern.pathname,
+                            error: `Worker exited without a build result (code ${code})` });
+                        resolve();
                     }
                 });
             });
@@ -588,15 +409,12 @@ export const build = async (outputDir = 'public', options = {}) => {
             while (queue.length > 0) {
                 const index = queue.shift();
                 await runWorker(index);
+                if (!continueOnError && errors.length) throw new Error(errors.at(-1).error);
             }
         });
 
         await Promise.all(workers);
 
-    } else {
-        for (const task of routeTasks) {
-            await task();
-        }
     }
 
     // ============================================
@@ -624,16 +442,6 @@ export const build = async (outputDir = 'public', options = {}) => {
     // ============================================
     // DONE! Print summary
     // ============================================
-    console.log('\n📊 Build Summary');
-    // Save cache
-    if (buildCache) {
-        try {
-            buildCache.save();
-        } catch (error) {
-            console.error('⚠️  Failed to save cache:', error.message);
-        }
-    }
-    
     const endTime = performance.now();
     const duration = ((endTime - startTime) / 1000).toFixed(2);
     
@@ -645,11 +453,6 @@ export const build = async (outputDir = 'public', options = {}) => {
     console.log(`⚡ SSR Routes:      ${ssrRoutes.length} route(s) (runtime)`);
     console.log(`❌ Errors:          ${errors.length} route(s)`);
     console.log(`⏱️  Duration:        ${duration}s`);
-    
-    if (buildCache) {
-        const stats = buildCache.getStats();
-        console.log(`💾 Cache:           ${stats.totalRoutes} route(s), ${(stats.cacheSize / 1024).toFixed(2)} KB`);
-    }
     
     console.log('─'.repeat(50));
     
@@ -684,23 +487,14 @@ export const build = async (outputDir = 'public', options = {}) => {
         ssrRoutes,
         errors,
         duration: parseFloat(duration),
-        cacheStats: buildCache ? buildCache.getStats() : null
+        cacheStats: null
     };
 };
 
-/**
- * Clear build cache
- */
+/** Remove caches written by older versions. Kept for CLI/API compatibility. */
 export const clearBuildCache = () => {
-    const cache = createBuildCache();
-    cache.clear();
-    console.log('🗑️  Build cache cleared');
+    fs.rmSync(path.join('.b0nes-cache', 'build-cache.json'), { force: true });
 };
 
-/**
- * Get build cache stats
- */
-export const getBuildCacheStats = () => {
-    const cache = createBuildCache();
-    return cache.getStats();
-};
+/** Persistent HTML caching is disabled until inputs can be reliably tracked. */
+export const getBuildCacheStats = () => ({ totalRoutes: 0, cacheSize: 0 });

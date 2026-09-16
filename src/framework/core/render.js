@@ -221,7 +221,7 @@ export const renderPage = (content, meta = {}) => {
     }
     
    // Use dynamic asset path that works in both dev and prod
-    const includeScript = meta.interactive !== false;
+    const includeScript = meta.interactive !== false && !meta.bundlePath;
     const b0nesScriptTag = includeScript 
         ? `\n    <script type="module" defer src="${resolveVersionedAsset('js/client/b0nes.js', process.env.npm_package_version)}"></script>` 
         : '';

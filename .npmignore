@@ -40,3 +40,6 @@ src/pages/examples/**/*.jpg
 src/pages/examples/**/*.jpeg
 src/pages/examples/**/*.webp
 src/pages/examples/**/*.gif
+
+# Local browser regression fixtures
+tests/browser/

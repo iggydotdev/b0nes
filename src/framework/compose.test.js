@@ -325,3 +325,30 @@ test('compose - allows empty string for slot without throwing', () => {
     assert.ok(!result.includes('Component Error'));
 });
 
+
+
+test('cached ancestors replay nested and named-slot dependencies after an untracked render', () => {
+    clearCompositionCache();
+    const tree = [{ type: 'molecule', name: 'card', props: {
+        headerSlot: { type: 'molecule', name: 'tabs', props: { tabs: [{ label: 'A', content: 'B' }] } },
+        slot: [{ type: 'atom', name: 'box', props: { slot: [
+            { type: 'molecule', name: 'modal', props: { id: 'dialog', title: 'Hi', slot: 'Body' } }
+        ] } }]
+    } }];
+    const first = compose(tree);
+    for (let i = 0; i < 2; i++) {
+        const dependencies = new Set();
+        assert.equal(compose(tree, { dependencies }), first);
+        assert.deepEqual([...dependencies].sort(), ['atom:box', 'molecule:card', 'molecule:modal', 'molecule:tabs']);
+    }
+});
+
+test('cached ancestor HTML is scoped to the route of nested relative assets', () => {
+    clearCompositionCache();
+    const tree = [{ type: 'atom', name: 'box', props: { slot: [
+        { type: 'atom', name: 'image', props: { src: './photo.png', alt: 'Photo' } }
+    ] } }];
+    const render = pathname => compose(tree, { route: { pattern: { pathname } } });
+    assert.ok(render('/one/index.html').includes('/one/photo.png'));
+    assert.ok(render('/two/index.html').includes('/two/photo.png'));
+});

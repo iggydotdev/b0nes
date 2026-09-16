@@ -164,6 +164,12 @@ Refresh http://localhost:5000 - See your changes live! ✨
 npm run build
 ```
 
+Builds render every route with a fresh module graph, including imported data and
+components. Persistent HTML skipping is disabled until dependency and data
+invalidation can be guaranteed; `--no-cache` remains accepted for compatibility.
+Production builds use native ES-module registration entries, preserving behavior
+imports without an external bundler.
+
 Your static site is ready in `public/`:
 ```
 public/
@@ -506,7 +512,7 @@ Keyboard-accessible tabbed interface with arrow key navigation:
 - Click to switch tabs
 - Arrow keys for navigation
 - ARIA-compliant markup
-- Works without JS (shows all content)
+- Works without JS (shows all content; tab controls enable after initialization)
 
 ### Modal
 
@@ -538,7 +544,7 @@ Accessible overlay dialog with focus management:
 **Features:**
 - Click overlay or X to close
 - Escape key to close
-- Focus trap when open
+- Focus trap when open and focus restored to the opener on close
 - Body scroll lock
 - ARIA-compliant
 
@@ -1429,6 +1435,7 @@ and more to come!
 
 Contributions are welcome! Please ensure:
 - All tests pass: `npm run test`
+- Check client behaviors in a browser: `npm run test:browser`, then open http://localhost:5068 (see [verification recipes](docs/VERIFICATION.md))
 - New components follow atomic design patterns
 - JSDoc comments are included
 - Zero dependencies maintained

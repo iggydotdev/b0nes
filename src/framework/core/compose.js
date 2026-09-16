@@ -248,19 +248,24 @@ export const compose = (components = [], context = {}) => {
 
         // Path rewriting — must apply to the props actually rendered
         const finalProps = rewriteAssetPaths(props, context);
-        const componentWithFinalProps = { type, name, props: finalProps };
+        const componentWithFinalProps = {
+            type, name, props: finalProps,
+            routePath: context.route?.pattern?.pathname
+        };
 
-        const cached = renderCache.get(componentWithFinalProps);
+        const cached = renderCache.get(componentWithFinalProps, context.dependencies);
         if (cached) {
             return cached;
         }
 
+        const dependencies = new Set([`${type}:${name}`]);
+        const childContext = { ...context, dependencies };
         const renderedProps = { ...finalProps };
 
         // Process default slot (maintains backward-compatibility)
         let slotContent = '';
         if (finalProps.slot !== undefined && finalProps.slot !== null) {
-            slotContent = composeSlot(finalProps.slot, context);
+            slotContent = composeSlot(finalProps.slot, childContext);
         }
         renderedProps.slot = slotContent;
 
@@ -273,7 +278,7 @@ export const compose = (components = [], context = {}) => {
             const isComponentArray = Array.isArray(val) && val.some(item => item && typeof item === 'object' && (item.type || item.html));
 
             if (isNamedSlot || isComponentDescriptor || isComponentArray) {
-                renderedProps[key] = composeSlot(val, context);
+                renderedProps[key] = composeSlot(val, childContext);
             }
         }
 
@@ -284,7 +289,8 @@ export const compose = (components = [], context = {}) => {
             type
         );
 
-        renderCache.set(componentWithFinalProps, html);
+        dependencies.forEach(dep => context.dependencies?.add(dep));
+        renderCache.set(componentWithFinalProps, html, dependencies);
         return html;
     }).filter(Boolean).join('\n');
 };

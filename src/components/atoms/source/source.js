@@ -1,6 +1,7 @@
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
+import { escapeAttr } from '../../utils/escapeAttr.js';
 
 /**
  * Source component - An HTML source element for media resources
@@ -135,10 +136,10 @@ export const source = ({
     // we use 'src' for images and 'srcset' for videos in our API
     let sourceAttr = '';
     if (type === 'video') {
-        sourceAttr = ` srcset="${srcset}"`;
+        sourceAttr = ` srcset="${escapeAttr(srcset)}"`;
     } else {
         // type === 'image'
-        sourceAttr = ` src="${src}"`;
+        sourceAttr = ` src="${escapeAttr(src)}"`;
     }
     
     // Determine base class based on type

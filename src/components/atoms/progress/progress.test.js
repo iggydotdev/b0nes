@@ -16,7 +16,7 @@ test('progress - step progress (multi-step form)', () => {
 
 test('progress - indeterminate progress (no value)', () => {
     const actual = progress({ max: 100 });
-    const expected = '<progress class="progress" value="0" max="100">Loading...</progress>';
+    const expected = '<progress class="progress" max="100">Loading...</progress>';
     assert.strictEqual(actual, expected);
 });
 

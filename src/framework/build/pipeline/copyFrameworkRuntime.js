@@ -17,7 +17,12 @@ export async function copyFrameworkRuntime(outputDir, options = {}) {
                 dest: path.join(outputDir, 'assets', 'js', 'client')
             },
             {
-                src: path.join(FRAMEWORK_DIR, 'shared'), // NEW: shared replaces most of utils
+                src: path.join(FRAMEWORK_DIR, 'shared'),
+                dest: path.join(outputDir, 'assets', 'js', 'shared')
+            },
+            {
+                // Retain the legacy URL for existing applications.
+                src: path.join(FRAMEWORK_DIR, 'shared'),
                 dest: path.join(outputDir, 'assets', 'js', 'utils')
             }
         ];
@@ -35,7 +40,7 @@ export async function copyFrameworkRuntime(outputDir, options = {}) {
                 const stats = fs.statSync(item.src);
                 if (stats.isDirectory()) {
                     // Copy directory recursively
-                    fs.cpSync(item.src, item.dest, { recursive: true, force: true });
+                    fs.cpSync(item.src, item.dest, { recursive: true, force: true, filter: file => !file.endsWith('.test.js') });
                     
                     // Count files copied
                     const files = fs.readdirSync(item.dest, { recursive: true });

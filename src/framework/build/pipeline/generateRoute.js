@@ -24,7 +24,7 @@ export const generateRoute = async (route, outputDir='public', dataSource) => {
             
             // Get components (may be function)
             const components = typeof route.components === 'function' 
-                ? route.components(data) 
+                ? await route.components(data)
                 : route.components;
             
             // Build file path
@@ -70,7 +70,7 @@ export const generateRoute = async (route, outputDir='public', dataSource) => {
                 
                 generated.push(result);
             } catch (error) {
-                console.error(`❌ Failed to generate ${pathname}:`, error.message);
+                throw new Error(`Failed to generate ${pathname}: ${error.message}`, { cause: error });
             }
         } 
         return generated;

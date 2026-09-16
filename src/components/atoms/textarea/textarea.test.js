@@ -7,3 +7,16 @@ test('textarea rendering', () => {
     const expected = '<textarea class="textarea custom-textarea" placeholder="Enter text" id="text-area"></textarea>';
     assert.strictEqual(actual, expected);
 });
+
+test('textarea with value and escaping', () => {
+    const actual = textarea({ value: 'Initial text <script>alert(1)</script>' });
+    const expected = '<textarea class="textarea">Initial text &lt;script&gt;alert(1)&lt;/script&gt;</textarea>';
+    assert.strictEqual(actual, expected);
+});
+
+test('textarea with slot content', () => {
+    const actual = textarea({ slot: 'Multiline\ncontent' });
+    const expected = '<textarea class="textarea">Multiline\ncontent</textarea>';
+    assert.strictEqual(actual, expected);
+});
+

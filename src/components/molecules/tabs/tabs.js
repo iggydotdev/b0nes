@@ -30,12 +30,9 @@ export const tabs = ({ tabs = [], className, attrs }) => {
     // Generate tab buttons
     const tabButtons = tabs.map((tab, index) => {
         const activeClass = index === 0 ? ' active' : '';
-        const ariaSelected = index === 0 ? 'true' : 'false';
         return `<button 
             class="tab-button${activeClass}" 
-            role="tab" 
-            aria-selected="${ariaSelected}"
-            aria-controls="tab-panel-${index}"
+            type="button" disabled
             data-tab-index="${index}"
         >${tab.label}</button>`;
     }).join('');
@@ -43,17 +40,14 @@ export const tabs = ({ tabs = [], className, attrs }) => {
     // Generate tab panels
     const tabPanels = tabs.map((tab, index) => {
         const activeClass = index === 0 ? ' active' : '';
-        const hidden = index === 0 ? '' : ' hidden';
         const content = processSlot(tab.content) ?? '';
         return `<div 
             class="tab-panel${activeClass}" 
-            role="tabpanel" 
-            id="tab-panel-${index}"
-            ${hidden}
+
         >${content}</div>`;
     }).join('');
 
-    return `<div class="tabs${className}" data-b0nes="molecules:tabs" role="tablist"${attrsStr}>
+    return `<div class="tabs${className}" data-b0nes="molecules:tabs"${attrsStr}>
     <div class="tab-buttons">
         ${tabButtons}
     </div>

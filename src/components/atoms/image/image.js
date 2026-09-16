@@ -1,6 +1,7 @@
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
+import { escapeAttr } from '../../utils/escapeAttr.js';
 
 /**
  * Image component - An HTML img element for displaying images
@@ -121,5 +122,9 @@ export const image = ({
     // Normalize and escape classes
     const classes = normalizeClasses(['image', className]);
     
-    return `<img src="${src}" class="${classes}" alt="${alt}"${attrsStr}/>`;
+    // Escape attributes
+    const safeSrc = escapeAttr(src);
+    const safeAlt = escapeAttr(alt ?? '');
+    
+    return `<img src="${safeSrc}" class="${classes}" alt="${safeAlt}"${attrsStr}/>`;
 };

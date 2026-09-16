@@ -14,3 +14,12 @@ test('tabs rendering', () => {
     assert.ok(actual.includes('Content 1') && actual.includes('Content 2'), 'Should include tab contents');
     assert.ok(actual.includes('active'), 'Should have at least one active tab');
 });
+
+
+test('unenhanced tabs keep every panel readable and have no duplicate IDs', () => {
+    const html = tabs({ tabs: [{ label: 'One', content: 'First' }, { label: 'Two', content: 'Second' }] });
+    assert.ok(!html.includes(' hidden'));
+    assert.ok(!html.includes('role="tab'));
+    assert.ok(!html.includes(' id="'));
+    assert.equal((html.match(/type="button" disabled/g) || []).length, 2);
+});
