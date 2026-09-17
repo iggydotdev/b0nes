@@ -11,5 +11,5 @@ test('cta rendering', () => {
         ] 
     });
     const expected = '<div class="box cta" role="cta"><p class="text">Text</p><a href="#" class="link">Read More</a></div>';
-    assert.strictEqual(actual, expected);
+    assert.strictEqual(String(actual), expected);
 });

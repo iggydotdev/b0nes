@@ -28,7 +28,7 @@ export interface B0nesRuntime {
   /** WeakMap of element -> cleanup function. */
   instanceCleanup: WeakMap<HTMLElement, () => void>;
 
-  /** Registered behavior functions keyed by component name. */
+  /** Registered behavior functions keyed by category:name. */
   behaviors: Record<string, BehaviorFunction>;
 
   /** Utility functions for component developers. */
@@ -45,7 +45,7 @@ export interface B0nesRuntime {
     ): RemoveListenerFunction;
   };
 
-  /** Register a behavior function by name. */
+  /** Register by category:name (e.g. molecules:tabs). */
   register(name: string, behavior: BehaviorFunction): void;
 
   /**
@@ -53,6 +53,9 @@ export interface B0nesRuntime {
    * @returns The number of components initialized synchronously.
    */
   init(root?: Document | HTMLElement): number;
+
+  /** Wait for pending lazy imports and initialization. */
+  whenReady(): Promise<void>;
 
   /**
    * Destroy a single component instance and run its cleanup.

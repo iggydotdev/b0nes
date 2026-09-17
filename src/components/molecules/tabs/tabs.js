@@ -1,3 +1,5 @@
+import { escapeAttr } from '../../utils/escapeAttr.js';
+import { defineComponent } from '../../utils/html.js';
 import { processSlot } from '../../utils/processSlot.js';
 import { attrsToString } from '../../utils/attrsToString.js';
 
@@ -19,13 +21,13 @@ import { attrsToString } from '../../utils/attrsToString.js';
  *   ]
  * })
  */
-export const tabs = ({ tabs = [], className, attrs }) => {
+export const tabs = defineComponent(({ tabs = [], className, attrs }) => {
     if (!Array.isArray(tabs) || tabs.length === 0) {
         return '';
     }
 
     const attrsStr = attrsToString(attrs);
-    className = className ? ` ${className}` : '';
+    className = className ? ` ${escapeAttr(className)}` : '';
 
     // Generate tab buttons
     const tabButtons = tabs.map((tab, index) => {
@@ -34,7 +36,7 @@ export const tabs = ({ tabs = [], className, attrs }) => {
             class="tab-button${activeClass}" 
             type="button" disabled
             data-tab-index="${index}"
-        >${tab.label}</button>`;
+        >${processSlot(tab.label)}</button>`;
     }).join('');
 
     // Generate tab panels
@@ -55,4 +57,4 @@ export const tabs = ({ tabs = [], className, attrs }) => {
         ${tabPanels}
     </div>
 </div>`;
-};
+}, 'molecule:tabs');

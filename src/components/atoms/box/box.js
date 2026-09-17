@@ -1,5 +1,6 @@
+import { defineComponent } from '../../utils/html.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
 
@@ -73,7 +74,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * })
  * // Returns: '<div class="box card elevated" data-card-type="product" data-id="123">Product card content</div>'
  */
-export const box = ({
+export const box = defineComponent(({
     is = 'div',
     slot = '',
     attrs = '',
@@ -105,15 +106,10 @@ export const box = ({
         );
     }
     
-    // Warn about potentially problematic tags
-    const scriptTags = ['script', 'style', 'iframe', 'object', 'embed'];
-    if (scriptTags.includes(is.toLowerCase())) {
-        console.warn(
-            `[b0nes Warning] Using "${is}" tag in box component. ` +
-            `This may pose security or rendering issues. Consider using a different approach.`
-        );
+    if (['script', 'style', 'iframe', 'object', 'embed'].includes(is.toLowerCase())) {
+        throw new Error('Use { html } for explicit raw markup, or meta.scripts for scripts');
     }
-    
+
     // Recommend semantic HTML
     const semanticTags = ['section', 'article', 'aside', 'nav', 'main', 'header', 'footer'];
     if (is === 'div' && slot && typeof slot === 'string' && slot.includes('<h1')) {
@@ -130,7 +126,7 @@ export const box = ({
     const classes = normalizeClasses(['box', className]);
     
     // Process slot content (trust component-rendered HTML)
-    const slotContent = processSlotTrusted(slot);
+    const slotContent = processSlot(slot);
     
     return `<${is} class="${classes}"${attrsStr}>${slotContent}</${is}>`;
-};
+}, 'atom:box');

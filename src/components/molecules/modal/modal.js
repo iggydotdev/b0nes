@@ -1,3 +1,5 @@
+import { escapeAttr } from '../../utils/escapeAttr.js';
+import { defineComponent } from '../../utils/html.js';
 import { processSlot } from '../../utils/processSlot.js';
 import { attrsToString } from '../../utils/attrsToString.js';
 
@@ -20,18 +22,18 @@ import { attrsToString } from '../../utils/attrsToString.js';
  *   slot: '<p>Modal content here</p>'
  * })
  */
-export const modal = ({ id, title, slot, className, attrs }) => {
+export const modal = defineComponent(({ id, title, slot, className, attrs }) => {
     if (!id) {
         console.warn('[b0nes] Modal requires an id prop');
         return '';
     }
 
     const attrsStr = attrsToString(attrs);
-    className = className ? ` ${className}` : '';
+    className = className ? ` ${escapeAttr(className)}` : '';
     const content = processSlot(slot) ?? '';
-    const titleHtml = title ? `<h2 class="modal-title" id="${id}-title">${title}</h2>` : '';
+    const titleHtml = title ? `<h2 class="modal-title" id="${escapeAttr(String(id))}-title">${processSlot(title)}</h2>` : '';
 
-    return `<div class="modal${className}" data-b0nes="molecules:modal" id="${id}" aria-hidden="true" role="dialog" aria-modal="true" tabindex="-1"${title ? ` aria-labelledby="${id}-title"` : ' aria-label="Dialog"'}${attrsStr}>
+    return `<div class="modal${className}" data-b0nes="molecules:modal" id="${escapeAttr(String(id))}" aria-hidden="true" role="dialog" aria-modal="true" tabindex="-1"${title ? ` aria-labelledby="${escapeAttr(String(id))}-title"` : ' aria-label="Dialog"'}${attrsStr}>
     <div class="modal-overlay" data-modal-close></div>
     <div class="modal-content">
         <button type="button" class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
@@ -41,4 +43,4 @@ export const modal = ({ id, title, slot, className, attrs }) => {
         </div>
     </div>
 </div>`;
-};
+}, 'molecule:modal');

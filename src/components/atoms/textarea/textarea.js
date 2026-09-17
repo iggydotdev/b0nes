@@ -1,3 +1,4 @@
+import { defineComponent } from '../../utils/html.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { escapeHtml } from '../../utils/escapeHtml.js';
@@ -60,7 +61,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * })
  * // Returns: '<textarea class="textarea" name="notes" aria-label="Additional notes" aria-describedby="notes-help" spellcheck="true"/>'
  */
-export const textarea = ({
+export const textarea = defineComponent(({
     value,
     slot,
     attrs = '',
@@ -90,4 +91,4 @@ export const textarea = ({
 
     const escapedContent = escapeHtml(rawContent);
     return `<textarea class="${classes}"${attrsStr}>${escapedContent}</textarea>`;
-};
+}, 'atom:textarea');

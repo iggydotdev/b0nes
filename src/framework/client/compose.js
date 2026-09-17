@@ -1,3 +1,4 @@
+import { html as trustedHTML, isHTML, restoreHTML } from '../shared/html.js';
 // src/framework/client/compose.js
 /**
  * Client-side component composer
@@ -8,20 +9,14 @@
 
 const componentCache = new Map();
 
-// Detect if we're in dev or prod
-const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-/**
- * Get the correct import path for a component based on environment
- */
+// Module location determines asset layout, including production on localhost.
+const isDev = !new URL(import.meta.url).pathname.startsWith('/assets/');
 const getComponentPath = (type, name) => {
-    if (isDev) {
-        // Dev: Components are in their source locations
-        return `/components/${type}s/${name}/index.js`;
-    } else {
-        // Prod: Components are copied to assets/js/behaviors
-        return `/assets/js/behaviors/${type}s/${name}/index.js`;
+    if (!['atom', 'molecule', 'organism'].includes(type) || !/^[a-z0-9-]+$/.test(name)) {
+        throw new TypeError('Invalid component identifier');
     }
+    return new URL(isDev ? `../../components/${type}s/${name}/index.js` :
+        `../behaviors/${type}s/${name}/index.js`, import.meta.url).href;
 };
 
 /**
@@ -42,6 +37,7 @@ export const compose = async (components = []) => {
 
     const results = await Promise.all(
         components.map(async (component) => {
+            if (isHTML(component) || component?.html !== undefined) return composeSlot(component);
             if (!component || typeof component !== 'object') {
                 return '';
             }
@@ -73,21 +69,16 @@ export const compose = async (components = []) => {
                     componentCache.set(cacheKey, comp);
                 } catch (error) {
                     console.error(`[compose] Failed to load ${cacheKey}:`, error);
-                    return `<!-- Component ${cacheKey} failed to load: ${error.message} -->`;
+                    return '<!-- Component failed to load -->';
                 }
             }
 
             const comp = componentCache.get(cacheKey);
 
-            // Handle nested slots recursively
-            let slotContent = '';
-            if (props.slot !== undefined && props.slot !== null) {
-                slotContent = await composeSlot(props.slot);
-            }
 
             // 🚀 Convention over Configuration: Scan props for {{var}}
             const propertyBindings = [];
-            const finalProps = { ...props, slot: slotContent };
+            const finalProps = { ...props };
             const store = window.spaConfig?.store;
             
             for (const [key, value] of Object.entries(finalProps)) {
@@ -103,18 +94,21 @@ export const compose = async (components = []) => {
                 }
             }
 
-            // Compose named slots (*Slot) and component descriptor props
-            for (const [key, val] of Object.entries(props)) {
-                if (key === 'slot' || val === undefined || val === null) continue;
-
-                const isNamedSlot = key.endsWith('Slot');
-                const isComponentDescriptor = typeof val === 'object' && !Array.isArray(val) && Boolean(val.type && val.name);
-                const isComponentArray = Array.isArray(val) && val.some(item => item && typeof item === 'object' && (item.type || item.html));
-
-                if (isNamedSlot || isComponentDescriptor || isComponentArray) {
-                    finalProps[key] = await composeSlot(val);
+            const prepare = async (value, key = '') => {
+                if (value == null) return value;
+                if (type === 'atom' && name === 'textarea' && ['slot', 'value'].includes(key)) return value;
+                if (isHTML(value) || (typeof value === 'object' && (value.type && value.name || 'html' in value)) ||
+                    key === 'slot' || key.endsWith('Slot') || ['content', 'label', 'trigger'].includes(key) || (name === 'modal' && key === 'title')) {
+                    const output = await composeSlot(value);
+                    return output === '' ? '' : trustedHTML(output);
                 }
-            }
+                if (key === 'attrs') return value;
+                if (Array.isArray(value)) return Promise.all(value.map(item => prepare(item)));
+                if (typeof value === 'object') return Object.fromEntries(await Promise.all(
+                    Object.entries(value).map(async ([k, v]) => [k, await prepare(v, k)])));
+                return value;
+            };
+            for (const key of Object.keys(finalProps)) finalProps[key] = await prepare(finalProps[key], key);
 
             // Render the component
             try {
@@ -124,7 +118,7 @@ export const compose = async (components = []) => {
                     throw new Error(`Component ${name} is not a function`);
                 }
                 
-                let html = renderFn(finalProps);
+                let html = String(renderFn(finalProps));
 
                 // 🔗 Reactivity Hook: add binding attribute
                 if (typeof html === 'string') {
@@ -133,14 +127,14 @@ export const compose = async (components = []) => {
                     
                     if (allBindings.length > 0) {
                         // Inject data-b0nes-bind into the first opening tag
-                        html = html.replace(/<([a-z0-9-]+)/i, `<$1 data-b0nes-bind="${allBindings.join(',')}"`);
+                        html = html.replace(/<([a-z0-9-]+)/i, (_, tag) => `<${tag} data-b0nes-bind="${escapeAttr(allBindings.join(','))}"`);
                     }
                 }
                 
                 return html;
             } catch (error) {
                 console.error(`[compose] Render error for ${cacheKey}:`, error);
-                return `<!-- Component ${cacheKey} render failed: ${error.message} -->`;
+                return '<!-- Component render failed -->';
             }
         })
     );
@@ -218,56 +212,15 @@ const processTextSlot = (text) => {
  * - { html: '...' } → explicit raw HTML opt-in
  */
 async function composeSlot(slot) {
-    if (slot === null || slot === undefined) {
-        return '';
+    if (slot == null) return '';
+    if (isHTML(slot)) return String(slot);
+    if (Array.isArray(slot)) return (await Promise.all(slot.map(composeSlot))).join('');
+    if (typeof slot === 'object') {
+        if ('html' in slot && !slot.type) return String(restoreHTML(slot));
+        if (slot.type && slot.name) return compose([slot]);
+        throw new TypeError('Invalid content object');
     }
-
-    if (typeof slot === 'string') {
-        return processTextSlot(slot);
-    }
-
-    if (typeof slot === 'number' || typeof slot === 'boolean') {
-        return String(slot);
-    }
-
-    if (typeof slot === 'object' && !Array.isArray(slot)) {
-        if (typeof slot.html === 'string' && !slot.type) {
-            return slot.html;
-        }
-        if (slot.type && slot.name) {
-            return await compose([slot]);
-        }
-        return '';
-    }
-
-    if (!Array.isArray(slot)) {
-        return '';
-    }
-
-    const results = await Promise.all(
-        slot.map(async (child) => {
-            if (child === null || child === undefined) {
-                return '';
-            }
-            if (typeof child === 'string') {
-                return processTextSlot(child);
-            }
-            if (typeof child === 'number' || typeof child === 'boolean') {
-                return String(child);
-            }
-            if (typeof child === 'object') {
-                if (typeof child.html === 'string' && !child.type) {
-                    return child.html;
-                }
-                if (child.type && child.name) {
-                    return await compose([child]);
-                }
-            }
-            return '';
-        })
-    );
-
-    return results.filter(Boolean).join('\n');
+    return processTextSlot(String(slot));
 }
 
 /**

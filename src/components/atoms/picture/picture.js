@@ -1,4 +1,5 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { defineComponent } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -81,7 +82,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * })
  * // Returns: '<picture class="picture" id="main-picture" data-component="responsive-image">...</picture>'
  */
-export const picture = ({
+export const picture = defineComponent(({
     slot,
     attrs = '',
     className = '',
@@ -145,7 +146,7 @@ export const picture = ({
     const classes = normalizeClasses(['picture', className]);
     
     // Process slot content (source and img elements)
-    const slotContent = processSlotTrusted(slot);
+    const slotContent = processSlot(slot);
     
     return `<picture class="${classes}"${attrsStr}>${slotContent}</picture>`;
-};
+}, 'atom:picture');

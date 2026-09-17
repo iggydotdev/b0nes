@@ -16,7 +16,7 @@ import { copyColocatedAssets } from './colocatedAssets.js';
 import { generateSSRFallback } from './ssrFallback.js';
 import { copyFrameworkRuntime } from './copyFrameworkRuntime.js';
 import { copyComponentBehaviors } from './copyComponentBehaviors.js';
-import { generateCompiledTemplates } from './compileTemplates.js';
+import { compileTemplatesFresh } from './templateWorker.js';
 import { createPageBundle } from './bundle.js';
 import { compose } from '../../core/compose.js';
 
@@ -76,6 +76,9 @@ export async function safeBuildRoute(route, outputDir, options) {
         // Copy co-located assets FIRST (CSS, images, etc. in same folder as page)
         if (route.filePath) {
             const assetStats = copyColocatedAssets(route.filePath, outputDir, { verbose });
+            if (assetStats.errors.length) {
+                throw new Error(`Failed to copy route assets: ${assetStats.errors.map(item => `${item.file}: ${item.error}`).join('; ')}`);
+            }
             if (verbose && assetStats.filesCopied > 0) {
                 console.log(`   📎 Copied ${assetStats.filesCopied} co-located asset(s) for ${route.pattern.pathname}`);
             }
@@ -124,7 +127,7 @@ export async function safeBuildRoute(route, outputDir, options) {
                 }
             };
             
-            const results = await generateRoute(routeWithComponents, outputDir, dataArray);
+            const results = await generateRoute(routeWithComponents, outputDir, dataArray, options);
             
             if (results.length === 0) {
                 throw new Error(`Dynamic route "${route.pattern.pathname}" generated no output`);
@@ -150,7 +153,7 @@ export async function safeBuildRoute(route, outputDir, options) {
             };
             
             // Create a special context for composition that includes our dependency tracker
-            const context = { route, dependencies };
+            const context = { route, dependencies, strict: !options.allowRenderErrors };
             
             // Compose components to HTML
             const content = compose(staticRoute.components, context);
@@ -168,7 +171,7 @@ export async function safeBuildRoute(route, outputDir, options) {
                 bundlePath: bundlePath || staticRoute.meta.bundlePath
             };
 
-            const result = await generateRoute({ ...staticRoute, meta: finalMeta, components: staticRoute.components }, outputDir);
+            const result = await generateRoute({ ...staticRoute, meta: finalMeta, components: staticRoute.components }, outputDir, undefined, options);
             
             if (!result) {
                 throw new Error(`Route "${route.pattern.pathname}" generated no output`);
@@ -230,6 +233,7 @@ export const build = async (outputDir = 'public', options = {}) => {
         continueOnError = true,
         generateSSRStubs = true,
         production = false,
+        allowRenderErrors = false,
         onError = null
     } = options;
     
@@ -304,14 +308,15 @@ export const build = async (outputDir = 'public', options = {}) => {
                     console.log(`   📂 Found SPA templates in: ${relativePath}`);
                 }
 
-                await generateCompiledTemplates(spaDir, compiledOutputPath, { 
+                await compileTemplatesFresh(spaDir, compiledOutputPath, {
                     verbose, 
-                    mode: 'individual' 
+                    mode: 'individual', allowRenderErrors
                 });
             }
             console.log(`✅ ${templateDirs.length} SPA template directory(s) compiled!\n`);
         }
     } catch (error) {
+        errors.push({ route: 'SPA templates', error: error.message });
         console.error('❌ Failed to compile SPA templates:', error.message);
         if (!continueOnError) throw error;
     }
@@ -324,10 +329,10 @@ export const build = async (outputDir = 'public', options = {}) => {
     
     if (routes.length === 0) {
         console.warn('⚠️  No routes found. Check your pages/ directory.');
-        return { success: true, generated: [],
+        return { success: errors.length === 0, generated: [],
             skipped: [],
             ssrRoutes: [],
-            errors: [],
+            errors,
             duration: 0 };
     }
     
@@ -341,7 +346,7 @@ export const build = async (outputDir = 'public', options = {}) => {
     // Execute builds
     if (routes.length > 0) {
         const cpuCount = os.cpus().length;
-        const workerCount = parallel ? Math.min(cpuCount, routes.length) : 1;
+        const workerCount = parallel ? Math.min(cpuCount, 8, routes.length) : 1;
         console.log(`🚀 Using ${workerCount} worker thread(s) for fresh route rendering\n`);
 
         const runWorker = (index) => {
@@ -357,7 +362,7 @@ export const build = async (outputDir = 'public', options = {}) => {
                 };
 
                 const worker = new Worker(path.join(__dirname, 'renderWorker.js'), {
-                    workerData: { route: workerRoute, outputDir, options: { verbose, continueOnError: true, production } }
+                    workerData: { route: workerRoute, outputDir, options: { verbose, continueOnError: true, production, allowRenderErrors } }
                 });
 
                 let reported = false;

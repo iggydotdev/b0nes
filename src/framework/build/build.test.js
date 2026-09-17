@@ -122,3 +122,67 @@ test('finished route workers release timers and tolerate throwing error callback
     `);
     run(dir, ['worker-lifecycle.mjs']);
 });
+
+for (const descriptor of [
+    { type: 'atom', name: 'missing', props: {} },
+    { type: 'atom', name: 'button', props: { slot: 'Go', type: 'invalid' } }
+]) {
+    test(`build rejects ${descriptor.name} failures unless explicitly permitted`, t => {
+        const dir = fixture(t);
+        write(dir, 'src/pages/index.js', `export const components = [${JSON.stringify(descriptor)}];`);
+        const args = ['src/framework/build/cli.js', 'build'];
+        const failed = spawnSync(process.execPath, args, { cwd: dir, encoding: 'utf8', timeout: 30000 });
+        assert.equal(failed.status, 1, failed.stdout + failed.stderr);
+        assert.equal(fs.existsSync(path.join(dir, 'public/index.html')), false);
+        run(dir, [...args, '--allow-render-errors']);
+        assert.ok(fs.existsSync(path.join(dir, 'public/index.html')));
+    });
+}
+
+test('broken SPA templates fail builds and repeated compilation reloads imports', t => {
+    const dir = fixture(t);
+    write(dir, 'src/pages/index.js', page('home'));
+    write(dir, 'src/pages/app/templates/main.js', "export const components = [{type:'atom',name:'missing'}];");
+    const failed = spawnSync(process.execPath, ['src/framework/build/cli.js', 'build'], { cwd: dir, encoding: 'utf8', timeout: 30000 });
+    assert.equal(failed.status, 1);
+    write(dir, 'src/pages/app/data.js', 'export const value = "before";');
+    write(dir, 'src/pages/app/templates/main.js', "import {value} from '../data.js'; export const components = [{type:'atom',name:'text',props:{is:'p',slot:value}}];");
+    write(dir, 'repeat-template.mjs', `
+        import fs from 'node:fs';
+        import assert from 'node:assert/strict';
+        import {build} from './src/framework/build/pipeline/ssg.js';
+        assert.equal((await build('public')).success, true);
+        fs.writeFileSync('src/pages/app/data.js', 'export const value = "after";');
+        assert.equal((await build('public')).success, true);
+        assert.match(fs.readFileSync('public/app/templates/main.js', 'utf8'), /after/);
+    `);
+    run(dir, ['repeat-template.mjs']);
+});
+
+for (const kind of ['unsafe parameter', 'asset copy failure']) {
+    test(`CLI exits nonzero for ${kind}`, t => {
+        const dir = fixture(t);
+        if (kind === 'unsafe parameter') {
+            write(dir,'src/pages/posts/[slug].js', `export const externalData = () => [{slug:'../../escaped'}]; export const components = [];`);
+        } else {
+            write(dir,'src/pages/about/index.js', page('About'));
+            write(dir,'src/pages/about/style.css','body{}');
+            fs.mkdirSync(path.join(dir,'public/about/style.css'),{recursive:true});
+        }
+        const result = spawnSync(process.execPath,['src/framework/build/cli.js','build'],{cwd:dir,encoding:'utf8',timeout:30000});
+        assert.equal(result.status,1,result.stdout + result.stderr);
+        assert.equal(fs.existsSync(path.join(dir,'escaped')),false);
+    });
+}
+
+test('production bundle retains dependencies after serialized component input', t => {
+    const dir = fixture(t);
+    write(dir,'src/pages/index.js', `
+        import {tabs} from '../components/molecules/tabs/tabs.js';
+        export const components = JSON.parse(JSON.stringify([tabs({tabs:[{label:'A',content:'B'}]})]));
+    `);
+    run(dir,['src/framework/build/cli.js','build','--production']);
+    const bundle = fs.readFileSync(path.join(dir,'public/assets/js/bundles/index.bundle.js'),'utf8');
+    assert.match(bundle,/molecules:tabs/);
+    assert.equal(fs.existsSync(path.join(dir,'public/assets/js/behaviors/atoms/button/button.test.js')),false);
+});

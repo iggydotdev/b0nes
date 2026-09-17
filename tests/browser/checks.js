@@ -25,11 +25,7 @@ try {
     tabs(groups[0]);
 
     const dialog = document.getElementById('test-dialog');
-    const body = dialog.querySelector('.modal-body');
-    body.textContent = '';
-    const input = document.createElement('input'); input.setAttribute('aria-label', 'Name');
-    const action = document.createElement('button'); action.id = 'last'; action.textContent = 'Last action';
-    body.append(input, action);
+    check('nested modal components render actual controls', !!dialog.querySelector('input') && !!dialog.querySelector('#last'));
     const destroy = modal(dialog);
     const opener = document.getElementById('opener');
     document.body.style.overflow = 'scroll';
@@ -70,8 +66,48 @@ try {
     check('closing final modal restores original focus and scroll',
         document.activeElement === opener && document.body.style.overflow === 'scroll');
     disposeEmpty(); nestedTrigger.remove();
+    const frame = document.createElement('iframe');
+    frame.src = '/production'; document.body.append(frame);
+    await new Promise((resolve, reject) => {
+        frame.onload = resolve;
+        frame.onerror = () => reject(Error('Production page failed to load'));
+    });
+    const runtime = frame.contentWindow.b0nes;
+    check('production ESM entry loads runtime', !!runtime);
+    await runtime.whenReady();
+    check('production entry initializes shipped multi-step form',
+        !!frame.contentDocument.querySelector('[data-b0nes="organisms:multi-step-form"][data-b0nes-init="true"]'));
+    let atom = 0, molecule = 0;
+    runtime.register('atoms:collision', () => { atom++; });
+    runtime.register('molecules:collision', () => { molecule++; });
+    const container = frame.contentDocument.createElement('div');
+    container.innerHTML = '<div data-b0nes="atoms:collision"></div><div data-b0nes="molecules:collision"></div>';
+    frame.contentDocument.body.append(container);
+    runtime.init(container); runtime.init(container);
+    check('qualified behavior names do not collide or initialize twice', atom === 1 && molecule === 1);
+    const [firstCollision, secondCollision] = container.children;
+    runtime.destroy(firstCollision); runtime.destroy(secondCollision);
+    check('destroy clears instances even without cleanup callbacks', !firstCollision.dataset.b0nesInit && !secondCollision.dataset.b0nesInit);
+    container.remove();
+    const pending = frame.contentDocument.createElement('div');
+    pending.dataset.b0nes = 'atoms:pending'; frame.contentDocument.body.append(pending);
+    runtime.init(pending); runtime.init(pending); runtime.destroy(pending);
+    await runtime.whenReady();
+    check('destroy cancels pending lazy initialization', !pending.dataset.calls && !pending.dataset.b0nesInit);
+    runtime.init(pending); runtime.init(pending);
+    check('canceled element can initialize once on retry', pending.dataset.calls === '1');
+    runtime.destroy(pending); pending.remove();
+    const { compose: clientCompose } = await import('/assets/js/client/compose.js');
+    const dynamic = await clientCompose([{type:'molecule',name:'modal',props:{id:'dynamic',title:'A & B',
+        slot:{type:'atom',name:'button',props:{slot:'<img src=x> & save'}}}}]);
+    const host = document.createElement('div'); host.innerHTML = dynamic;
+    check('production client composition works on localhost with nested controls',
+        host.querySelector('.modal-body button')?.textContent === '<img src=x> & save' && !host.querySelector('img'));
+    check('client titles escape exactly once', host.querySelector('.modal-title')?.textContent === 'A & B');
+    frame.remove();
     results.textContent = checks.join('\n') + '\nALL ' + checks.length + ' BROWSER CHECKS PASSED';
 } catch (error) {
     results.textContent = checks.join('\n') + '\nFAIL ' + error.message;
     console.error(error);
 }
+await fetch('/results', {method:'POST',body:JSON.stringify({success:!results.textContent.includes('FAIL '),checks,text:results.textContent})});

@@ -1,4 +1,6 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { safeUrl } from '../../utils/safeUrl.js';
+import { defineComponent } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -76,7 +78,7 @@ import { escapeAttr } from '../../utils/escapeAttr.js';
  * })
  * // Returns: '<video src="/videos/large-file.mp4" class="video" preload="metadata" controls playsinline disablepictureinpicture></video>'
  */
-export const video = ({
+export const video = defineComponent(({
     src,
     slot = '',
     attrs = '',
@@ -106,8 +108,8 @@ export const video = ({
     const classes = normalizeClasses(['video', className]);
     
     // Process slot content (source elements, track elements, fallback text)
-    const slotContent = processSlotTrusted(slot);
-    const srcAttr = src ? ` src="${escapeAttr(src)}"` : '';
+    const slotContent = processSlot(slot);
+    const srcAttr = src ? ` src="${escapeAttr(safeUrl(src))}"` : '';
     
     return `<video${srcAttr} class="${classes}"${attrsStr}>${slotContent}</video>`;
-};
+}, 'atom:video');

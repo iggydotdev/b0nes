@@ -20,26 +20,8 @@ bin/**/*.test.js
 
 # Note: docs/UPGRADE.md IS published (users need the upgrade contract)
 
-# ── Examples policy ──────────────────────────────────────────────────────────
-# Full demos stay in the git repo for local validation (`npm run dev`).
-# npm only ships scaffold templates used by `npx b0nes` (basic, blog, documentation).
-#
-# Excluded (heavy / demo-only):
-src/pages/examples/talk/
-src/pages/examples/bear/
-src/pages/examples/playground/
-src/pages/examples/social-demo/
-src/pages/examples/spa/
-src/pages/examples/live/
-src/pages/examples/fsm-store/
-
-# Large marketing assets not needed for scaffolding
-src/pages/b0nes.png
-src/pages/examples/**/*.png
-src/pages/examples/**/*.jpg
-src/pages/examples/**/*.jpeg
-src/pages/examples/**/*.webp
-src/pages/examples/**/*.gif
+# Pages are project-owned. The CLI generates one minimal page.
+src/pages/
 
 # Local browser regression fixtures
-tests/browser/
+tests/

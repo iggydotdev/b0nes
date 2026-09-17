@@ -1,3 +1,5 @@
+import { safeUrl } from '../../utils/safeUrl.js';
+import { defineComponent } from '../../utils/html.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -66,7 +68,7 @@ import { escapeAttr } from '../../utils/escapeAttr.js';
  * })
  * // Returns: '<img src="/decorations/divider.svg" alt="" class="image" role="presentation"/>'
  */
-export const image = ({
+export const image = defineComponent(({
     src,
     alt, 
     attrs = '',
@@ -123,8 +125,8 @@ export const image = ({
     const classes = normalizeClasses(['image', className]);
     
     // Escape attributes
-    const safeSrc = escapeAttr(src);
+    const safeSrc = escapeAttr(safeUrl(src));
     const safeAlt = escapeAttr(alt ?? '');
     
     return `<img src="${safeSrc}" class="${classes}" alt="${safeAlt}"${attrsStr}/>`;
-};
+}, 'atom:image');

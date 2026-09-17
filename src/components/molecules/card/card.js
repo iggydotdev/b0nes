@@ -1,5 +1,6 @@
+import { defineComponent, html } from '../../utils/html.js';
 import { box } from '../../atoms/index.js';
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validatePropTypes } from '../../utils/componentError.js';
 import { escapeAttr } from '../../utils/escapeAttr.js';
@@ -97,7 +98,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  *   linkSlot: '<button class="btn primary">Sign Up Now</button>'
  * })
  */
-export const card = ({
+export const card = defineComponent(({
     slot,
     headerSlot,
     mediaSlot,
@@ -151,14 +152,14 @@ export const card = ({
     
     if (hasCustomSlot) {
         // Custom mode: use slot directly
-        finalContent = processSlotTrusted(slot);
+        finalContent = processSlot(slot);
     } else {
         // Structured mode: combine all structured slots in order
         // Order: header → media → link → content
-        const header = processSlotTrusted(headerSlot) || '';
-        const media = processSlotTrusted(mediaSlot) || '';
-        const link = processSlotTrusted(linkSlot) || '';
-        const content = processSlotTrusted(contentSlot) || '';
+        const header = processSlot(headerSlot) || '';
+        const media = processSlot(mediaSlot) || '';
+        const link = processSlot(linkSlot) || '';
+        const content = processSlot(contentSlot) || '';
         
         finalContent = `${header}${media}${link}${content}`;
     }
@@ -174,6 +175,6 @@ export const card = ({
         is: 'div',
         className: classes,
         attrs: boxAttrs,
-        slot: finalContent
+        slot: html(finalContent)
     });
-};
+}, 'molecule:card');

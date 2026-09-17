@@ -1,3 +1,4 @@
+import { defineComponent } from '../../utils/html.js';
 // src/components/atoms/progress/progress.js
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
@@ -65,7 +66,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * })
  * // Returns: '<progress class="progress task-progress" value="3" max="10">3 of 10</progress>'
  */
-export const progress = ({
+export const progress = defineComponent(({
     value,
     max = 100,
     attrs = '',
@@ -135,4 +136,4 @@ export const progress = ({
     
     const valueAttr = isIndeterminate ? '' : ` value="${numValue}"`;
     return `<progress class="${classes}"${valueAttr} max="${max}"${attrsStr}>${fallbackText}</progress>`;
-};
+}, 'atom:progress');

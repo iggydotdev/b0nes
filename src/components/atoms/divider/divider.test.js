@@ -5,5 +5,5 @@ import divider from './index.js';
 test('divider rendering', () => {
     const actual = divider({});
     const expected = '<hr class="divider"/>';
-    assert.strictEqual(actual, expected);
+    assert.strictEqual(String(actual), expected);
 });

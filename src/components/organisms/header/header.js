@@ -1,4 +1,5 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { defineComponent } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -95,7 +96,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * })
  * // Returns: '<header class="header section-header"><h2>Section Title</h2>...</header>'
  */
-export const header = ({
+export const header = defineComponent(({
     slot,
     attrs = '',
     className = '',
@@ -143,7 +144,7 @@ export const header = ({
     const classes = normalizeClasses(['header', className]);
     
     // Process slot content
-    const slotContent = processSlotTrusted(slot);
+    const slotContent = processSlot(slot);
     
     return `<header class="${classes}"${attrsStr}>${slotContent}</header>`;
-};
+}, 'organism:header');

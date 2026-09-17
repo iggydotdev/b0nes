@@ -27,6 +27,13 @@ export async function copyFrameworkRuntime(outputDir, options = {}) {
             }
         ];
         
+        const utilitySource = path.resolve(FRAMEWORK_DIR, '../components/utils');
+        const utilityDest = path.resolve(outputDir, 'assets/components/utils');
+        fs.mkdirSync(utilityDest, { recursive: true });
+        for (const file of ['html.js', 'escapeHtml.js']) {
+            fs.copyFileSync(path.join(utilitySource, file), path.join(utilityDest, file));
+        }
+
         let copiedCount = 0;
         
         for (const item of filesToCopy) {

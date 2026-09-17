@@ -1,3 +1,5 @@
+import { escapeAttr } from '../../utils/escapeAttr.js';
+import { defineComponent } from '../../utils/html.js';
 import { processSlot } from '../../utils/processSlot.js';
 import { attrsToString } from '../../utils/attrsToString.js';
 
@@ -18,14 +20,14 @@ import { attrsToString } from '../../utils/attrsToString.js';
  *   slot: '<a href="#">Item 1</a><a href="#">Item 2</a>'
  * })
  */
-export const dropdown = ({ trigger, slot, className, attrs }) => {
+export const dropdown = defineComponent(({ trigger, slot, className, attrs }) => {
     if (!trigger) {
         console.warn('[b0nes] Dropdown requires a trigger prop');
         return '';
     }
 
     const attrsStr = attrsToString(attrs);
-    className = className ? ` ${className}` : '';
+    className = className ? ` ${escapeAttr(className)}` : '';
     const triggerContent = processSlot(trigger) ?? 'Dropdown';
     const menuContent = processSlot(slot) ?? '';
 
@@ -38,4 +40,4 @@ export const dropdown = ({ trigger, slot, className, attrs }) => {
         ${menuContent}
     </div>
 </div>`;
-};
+}, 'molecule:dropdown');

@@ -1,11 +1,12 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { defineComponent, html } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
 import { box } from '../../atoms/index.js';
 
 
-export const spa = ({
+export const spa = defineComponent(({
     slot,
     attrs = '',
     className = ''
@@ -41,7 +42,7 @@ export const spa = ({
     const classes = normalizeClasses(['spa', className]);
     
     // Process slot content
-    const slotContent = processSlotTrusted(slot);
+    const slotContent = processSlot(slot);
     
     // Combine all attributes for box
     const boxAttrs = `data-b0nes='organisms:spa'${attrsStr}`.trim();
@@ -51,6 +52,6 @@ export const spa = ({
         is: 'div',
         className: classes,
         attrs: boxAttrs,
-        slot: slotContent
+        slot: html(slotContent)
     });
-};
+}, 'organism:spa');

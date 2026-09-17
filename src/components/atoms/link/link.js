@@ -1,4 +1,6 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { safeUrl } from '../../utils/safeUrl.js';
+import { defineComponent } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -63,7 +65,7 @@ import { escapeAttr } from '../../utils/escapeAttr.js';
  * })
  * // Returns: '<a href="/files/document.pdf" class="link" download>Download PDF</a>'
  */
-export const link = ({
+export const link = defineComponent(({
     url,
     slot,
     attrs = '',
@@ -101,7 +103,7 @@ export const link = ({
     const classes = normalizeClasses(['link', className]);
     
     // Process slot content (trust component-rendered HTML)
-    const slotContent = processSlotTrusted(slot);
+    const slotContent = processSlot(slot);
         
-    return `<a href="${escapeAttr(url)}" class="${classes}"${attrsStr}>${slotContent}</a>`;
-};
+    return `<a href="${escapeAttr(safeUrl(url, { navigation: true }))}" class="${classes}"${attrsStr}>${slotContent}</a>`;
+}, 'atom:link');

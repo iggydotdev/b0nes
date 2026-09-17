@@ -84,54 +84,58 @@ See [Upgrading](#upgrading) and [`docs/UPGRADE.md`](docs/UPGRADE.md).
 - A terminal
 - That's it!
 
-### Step 1: Clone & Explore (30 seconds)
+### Step 1: Create a minimal project
 
 ```bash
-git clone https://github.com/iggydotdev/b0nes.git
-cd b0nes
-ls src/components/atoms    # Explore available components
+npx b0nes my-site --skip-git
+cd my-site
 ```
 
-### Step 2: Start Dev Server (30 seconds)
+The CLI creates one working page without installing dependencies. Larger starter
+sites are documented in [page recipes](docs/RECIPES.md), rather than bundled.
+
+### Step 2: Start the development server
 
 ```bash
 npm run dev:watch
 ```
 
-Open http://localhost:5000 - You'll see a working site! 🎉
+Open http://localhost:5000. Your page lives in `src/pages/index.js`.
 
 ### Step 3: Create Your First Component (2 minutes)
 
 ```bash
-npm run generate atom badge
+npm run generate atom notice
 ```
 
 This creates:
 ```
-src/components/atoms/badge/
+src/components/atoms/notice/
 ├── index.js
-├── badge.js
-└── badge.test.js
+├── notice.js
+└── notice.test.js
 ```
 
-Edit `src/components/atoms/badge/badge.js`:
+Edit `src/components/atoms/notice/notice.js`:
 
 ```javascript
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { processSlot } from '../../utils/processSlot.js';
+import { defineComponent } from '../../utils/html.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 
-export const badge = ({ slot, variant = 'default', className = '', attrs = '' }) => {
-    attrs = attrs ? ` ${attrs}` : '';
-    const classes = normalizeClasses(['badge', `badge-${variant}`, className]);
-    const slotContent = processSlotTrusted(slot);
+export const notice = defineComponent(({ slot, variant = 'default', className = '', attrs = '' }) => {
+    attrs = attrsToString(attrs);
+    const classes = normalizeClasses(['notice', `notice-${variant}`, className]);
+    const slotContent = processSlot(slot);
     
     return `<span class="${classes}"${attrs}>${slotContent}</span>`;
-};
+}, 'atom:notice');
 ```
 
 ### Step 4: Use Your Component (1 minute)
 
-Edit `src/framework/pages/home.js`:
+Edit `src/pages/index.js`:
 
 ```javascript
 export const components = [
@@ -207,32 +211,16 @@ npx serve public
 
 ---
 
-## Examples: git vs npm
+## Recipes and verification
 
-Examples live in **this repository** so you can validate the framework end-to-end:
+Bulky starter templates and demo pages are intentionally absent. The CLI writes a
+minimal home page. See [recipes](docs/RECIPES.md) for static pages, blogs, and tabs;
+see [verification](docs/VERIFICATION.md) for integration and browser checks.
 
-```bash
-git clone https://github.com/iggydotdev/b0nes.git
-cd b0nes
-npm run dev:watch
-# open routes under /examples/...
-```
-
-| Location | Purpose | In git? | In npm package? |
-|----------|---------|---------|-----------------|
-| `src/pages/examples/basic` | Scaffold template (`npx b0nes`) | ✅ | ✅ |
-| `src/pages/examples/blog` | Scaffold template | ✅ | ✅ |
-| `src/pages/examples/documentation` | Scaffold template | ✅ | ✅ |
-| `src/pages/examples/spa`, `talk`, `playground`, … | Local demos / validation | ✅ | ❌ (`.npmignore`) |
-| Talk PNGs, bundled Tailwind, root `b0nes.png` | Heavy assets | ✅ | ❌ |
-
-**Rule of thumb**
-
-- **Validate & dogfood** → clone the repo, keep everything under `src/pages/examples/`.
-- **Ship to users** → npm only includes framework + the three scaffold templates (keeps the tarball small).
-- **`npx b0nes my-app`** copies framework code and one template into the new project; it does not need the talk deck or SPA demos.
-
-You do **not** need a second repo for examples unless you want a public gallery site later. Same tree, different publish filter is enough.
+**Content API change:** built-in component results carry an HTML marker. Ordinary
+strings are escaped, nested components render normally, and `html()` explicitly
+trusts developer markup. At file/HTTP boundaries use `String(result)`. Read the
+[migration guide](docs/HTML.md) before upgrading custom renderers or raw slots.
 
 ---
 
@@ -964,7 +952,7 @@ export const routes = [
 ### Creating Pages
 
 ```javascript
-// src/framework/pages/home.js
+// src/pages/index.js
 export const components = [
     {
         type: 'organism',
@@ -1342,20 +1330,21 @@ git subtree push --prefix public origin gh-pages
 ## Performance
 
 ### Build Performance
-- ⚡ **Fast builds** - ~100ms for small sites
+- ⚡ **Fresh builds** - isolated route workers; benchmark with `npm run benchmark:build`
 - ⚡ **No transpilation** - Pure JavaScript
-- ⚡ **No bundling** - Direct HTML output
+- ⚡ **Native modules** - production behavior registration uses ESM entries
 
 ### Runtime Performance
 - ⚡ **Zero hydration** - Server-rendered HTML
 - ⚡ **Minimal JavaScript** - Only for interactive components
-- ⚡ **Progressive enhancement** - Works without JS
+- ⚡ **Progressive enhancement** - static content and tab panels remain readable without JS; interactive widgets may require it
 
-### Lighthouse Scores (Typical)
-- 🟢 Performance: 100
-- 🟢 Accessibility: 100
-- 🟢 Best Practices: 100
-- 🟢 SEO: 100
+### Accessibility and performance verification
+
+Scores depend on the site's content, styling, assets, and hosting. No blanket
+Lighthouse or WCAG score is claimed. Browser regression tests cover tab keyboard
+navigation, ARIA relationships, modal focus, nested content, and production modules.
+Applications still need manual keyboard and assistive-technology testing.
 
 ---
 
@@ -1417,7 +1406,7 @@ and more to come!
 
 **Performance.** Server-rendered HTML is the fastest way to deliver content.
 
-**Accessibility.** Semantic HTML is naturally accessible.
+**Accessibility.** Semantic HTML provides a foundation; behavior, focus, styling, and content still require testing.
 
 ### Why FSM for Routing?
 
@@ -1450,14 +1439,13 @@ Contributions are welcome! Please ensure:
 
 ---
 
-## Known Issues (v0.2.0)
+## Current limitations
 
-- Component generator has template replacement issues (being addressed)
-- Dynamic route generation needs more robust error handling
-- Human-friendly authoring helpers (that compile to the JSON tree) are not shipped yet — use trees or MCP for now
-- Direct component calls still trust slots; always prefer `compose` for untrusted content
-
-We're aware of these and they'll be addressed in upcoming releases.
+- Builds render every route afresh. There is no incremental HTML cache.
+- Use a clean production build when routes or dynamic URLs are removed.
+- Dynamic client templates must use browser-resolvable imports.
+- Raw HTML, raw attribute strings, and scripts remain explicit developer trust boundaries.
+- Modal/dropdown interactions require JavaScript; provide alternatives when needed.
 
 ---
 
@@ -1518,7 +1506,7 @@ connectFSMtoDOM(fsm, document.getElementById('app'), routes);
 
 ### How does escaping / XSS work?
 
-**`compose` escapes plain-text slots by default.** Nested `{ type, name, props }` nodes render real HTML and are not double-escaped. For trusted markup (e.g. markdown output), use `{ html: '…' }` explicitly.
+**Built-in component calls and `compose` escape plain-text content by default.** Nested `{ type, name, props }` nodes render real HTML and are not double-escaped. For trusted markup (e.g. markdown output), use `{ html: '…' }` explicitly.
 
 ```javascript
 // User text → safe
@@ -1532,7 +1520,7 @@ compose([{ type: 'atom', name: 'button', props: {
 // → <button>…<span>OK</span>…</button>
 ```
 
-Do not put HTML tags in string slots expecting them to render — use nested components or `{ html }`. Prefer `attrs: { … }` objects over raw attribute strings. Full details: [Composition & Escape-by-Default](#composition--escape-by-default).
+Do not put HTML tags in string slots expecting them to render — use nested components or `{ html }`. Prefer `attrs: { … }` objects over raw attribute strings. Full details and migration: [Text, components, and explicit HTML](docs/HTML.md).
 
 ### How do I handle forms?
 

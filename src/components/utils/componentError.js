@@ -1,3 +1,4 @@
+import { isHTML } from './html.js';
 /**
  * Creates a formatted error message for component errors
  * @param {string} message - Error message
@@ -55,7 +56,7 @@ export const validatePropTypes = (props, schema, context) => {
         const value = props[key];
         if (value === undefined) continue;
         
-        const actualType = Array.isArray(value) ? 'array' : typeof value;
+        const actualType = isHTML(value) ? 'string' : Array.isArray(value) ? 'array' : typeof value;
         if (actualType !== expectedType) {
             errors.push(`${key}: expected ${expectedType}, got ${actualType}`);
         }

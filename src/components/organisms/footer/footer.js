@@ -1,4 +1,5 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { defineComponent } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -114,7 +115,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * })
  * // Returns: '<footer class="footer" aria-label="Site footer with links and information">...</footer>'
  */
-export const footer = ({
+export const footer = defineComponent(({
     slot,
     attrs = '',
     className = ''
@@ -161,7 +162,7 @@ export const footer = ({
     const classes = normalizeClasses(['footer', className]);
     
     // Process slot content
-    const slotContent = processSlotTrusted(slot);
+    const slotContent = processSlot(slot);
     
     return `<footer class="${classes}"${attrsStr}>${slotContent}</footer>`;
-};
+}, 'organism:footer');

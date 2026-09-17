@@ -13,7 +13,7 @@ export async function createPageBundle(pageName, dependencies, outputDir, { verb
         const symbol = `behavior${imports.length}`;
         const url = `../behaviors/${typeDir}/${name}/client.js`;
         imports.push(`import { client as ${symbol} } from ${JSON.stringify(url)};`);
-        registrations.push(`window.b0nes.register(${JSON.stringify(name)}, ${symbol});`);
+        registrations.push(`window.b0nes.register(${JSON.stringify(`${typeDir}:${name}`)}, ${symbol});`);
     }
     if (!imports.length) return null;
     const filename = `${pageName.replaceAll('/', '-')}.bundle.js`;

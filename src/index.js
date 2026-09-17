@@ -7,3 +7,4 @@ export * from "./components/organisms/index.js";
 export { compose } from './framework/core/compose.js';
 export { createRouter, createRouterWithDefaults } from './framework/core/router/index.js';
 export { renderPage } from './framework/core/render.js';
+export { html, isHTML, TrustedHTML, defineComponent, toHTMLString, scriptData } from './components/utils/html.js';

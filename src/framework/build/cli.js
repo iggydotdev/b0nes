@@ -29,6 +29,7 @@ const flags = {
     host: args.find(arg => arg.startsWith('--host='))?.split('=')[1] || '0.0.0.0',
     outputDir: args.find(arg => arg.startsWith('--output='))?.split('=')[1] || 'public',
     production: args.includes('--production'),
+    allowRenderErrors: args.includes('--allow-render-errors'),
     help: args.includes('--help') || args.includes('-h')
 };
 
@@ -52,7 +53,8 @@ BUILD OPTIONS:
   --clean             Clean output directory before build
   --parallel, -p      Build routes in parallel (faster)
   --no-cache          Compatibility flag (routes always rebuild)
-  --production        Enable production optimizations (bundling, etc)
+  --production        Enable production ES-module entries
+  --allow-render-errors  Explicitly permit component error fallback HTML
 
 DEV OPTIONS:
   --port=<port>       Server port (default: 5000)
@@ -90,7 +92,8 @@ const runBuild = async () => {
         verbose: flags.verbose,
         continueOnError: true,
         generateSSRStubs: true,
-        production: flags.production
+        production: flags.production,
+        allowRenderErrors: flags.allowRenderErrors
     };
     
     if (flags.verbose) {

@@ -1,3 +1,5 @@
+import { escapeAttr } from '../../utils/escapeAttr.js';
+import { defineComponent } from '../../utils/html.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -73,7 +75,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * })
  * // Returns: '<input type="text" class="input" name="search" aria-label="Search products" aria-describedby="search-help"/>'
  */
-export const input = ({
+export const input = defineComponent(({
     type = 'text',
     attrs = '',
     className = ''
@@ -98,7 +100,7 @@ export const input = ({
     
     if (!validTypes.includes(type)) {
         console.warn(
-            `[b0nes Warning] Unknown input type: "${type}". ` +
+            `[b0nes Warning] Unknown input type: "${escapeAttr(type)}". ` +
             `Valid types are: ${validTypes.join(', ')}. ` +
             `Defaulting to "text".`
         );
@@ -110,5 +112,5 @@ export const input = ({
     // Normalize and escape classes
     const classes = normalizeClasses(['input', className]);
     
-    return `<input type="${type}" class="${classes}"${attrsStr}/>`;
-};
+    return `<input type="${escapeAttr(type)}" class="${classes}"${attrsStr}/>`;
+}, 'atom:input');

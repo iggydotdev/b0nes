@@ -1,3 +1,4 @@
+import { defineComponent } from '../../utils/html.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validatePropTypes } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -55,7 +56,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * divider({ className: 'dashed' })
  * divider({ className: 'dotted' })
  */
-export const divider = ({
+export const divider = defineComponent(({
     attrs = '',
     className = ''
 } = {}) => {
@@ -75,4 +76,4 @@ export const divider = ({
     const classes = normalizeClasses(['divider', className]);
     
     return `<hr class="${classes}"${attrsStr}/>`;
-};
+}, 'atom:divider');

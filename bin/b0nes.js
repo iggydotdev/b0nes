@@ -36,7 +36,6 @@ ${colors.bright}Usage:${colors.reset}
   npx b0nes help                         Show this help
 
 ${colors.bright}Create options:${colors.reset}
-  --template <name>    basic | blog | docs
   --skip-git           Skip git init
 
 ${colors.bright}Upgrade options:${colors.reset}
@@ -48,11 +47,12 @@ ${colors.bright}Upgrade options:${colors.reset}
 
 ${colors.bright}Examples:${colors.reset}
   npx b0nes my-site
-  npx b0nes my-blog --template blog
+  npx b0nes my-site --skip-git
   cd my-site && npx b0nes@latest upgrade --dry-run
   npx b0nes upgrade --components --yes
 
 ${colors.bright}Docs:${colors.reset}
+  Page recipes: docs/RECIPES.md
   Upgrade design: docs/UPGRADE.md
   `);
 }

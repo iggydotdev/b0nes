@@ -1,36 +1,8 @@
 import { resolveAssetPath } from '../../server/handlers/resolveAssetPath.js';
-
-/**
- * Generate link tag for stylesheet
- * NOW WITH PATH RESOLUTION! 🎉
- */
+import { attrsToString } from '../../../components/utils/attrsToString.js';
+import { safeUrl } from '../../../components/utils/safeUrl.js';
 export const generateStylesheetTag = (stylesheet, currentPath = '/') => {
-    // Resolve the href relative to current page
-    const resolvedHref = resolveAssetPath(stylesheet.href, currentPath);
-    
-    if (resolvedHref.includes(`tailwind`)) {
-        return `<script src="${resolvedHref}"></script>`;
-    }
-    
-    let attrs = `rel="stylesheet" href="${resolvedHref}"`;
-    
-    if (stylesheet.media) {
-        attrs += ` media="${stylesheet.media}"`;
-    }
-    
-    if (stylesheet.integrity) {
-        attrs += ` integrity="${stylesheet.integrity}"`;
-    }
-    
-    if (stylesheet.crossOrigin) {
-        attrs += ` crossorigin="${stylesheet.crossOrigin}"`;
-    }
-    
-    if (stylesheet.attrs && typeof stylesheet.attrs === 'object') {
-        Object.entries(stylesheet.attrs).forEach(([key, value]) => {
-            attrs += ` ${key}="${value}"`;
-        });
-    }
-    
-    return `<link ${attrs}>`;
+    const href = safeUrl(resolveAssetPath(safeUrl(stylesheet.href), currentPath));
+    return `<link${attrsToString({ ...stylesheet.attrs, rel: 'stylesheet', href,
+        media: stylesheet.media, integrity: stylesheet.integrity, crossorigin: stylesheet.crossOrigin })}>`;
 };

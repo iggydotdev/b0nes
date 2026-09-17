@@ -1,4 +1,5 @@
-import path from 'path';
+import { html as trustedHTML, isHTML, restoreHTML } from '../../components/utils/html.js';
+import { resolveAssetPath } from '../server/handlers/resolveAssetPath.js';
 
 import library from '../../components/library.js';
 import { escapeHtml } from '../../components/utils/escapeHtml.js';
@@ -42,8 +43,8 @@ const renderErrorFallback = (componentName, componentType, errorMessage) => {
  */
 const getComponent = (type, name) => {
     const lib = componentLibrary[type];
-    if (!lib) return null;
-    return lib[name] || null;
+    if (!lib || !Object.hasOwn(componentLibrary, type)) return null;
+    return Object.hasOwn(lib, name) ? lib[name] : null;
 };
 
 /**
@@ -99,64 +100,25 @@ const processTextSlot = (text) => {
  * @private
  */
 const composeSlot = (slot, context = {}) => {
-    if (slot === null || slot === undefined) {
-        return '';
-    }
-
-    if (typeof slot === 'string') {
-        return processTextSlot(slot);
-    }
-
-    if (typeof slot === 'number' || typeof slot === 'boolean') {
+    if (slot == null) return '';
+    if (isHTML(slot)) {
+        slot.dependencies.forEach(dep => context.dependencies?.add(dep));
         return String(slot);
     }
-
-    // Single object (component node or raw html) — not an array
-    if (typeof slot === 'object' && !Array.isArray(slot)) {
-        // Explicit raw HTML opt-in
-        if (typeof slot.html === 'string' && !slot.type) {
-            return slot.html;
-        }
-        // Component node
-        if (slot.type && slot.name) {
-            return compose([slot], context);
-        }
-        return '';
+    if (Array.isArray(slot)) return slot.map(child => composeSlot(child, context)).join('');
+    if (typeof slot === 'object') {
+        if ('html' in slot && !slot.type) return composeSlot(restoreHTML(slot), context);
+        if (slot.type && slot.name) return compose([slot], context);
+        throw new TypeError('Invalid content object');
     }
-
-    if (!Array.isArray(slot)) {
-        return '';
-    }
-
-    return slot.map(child => {
-        if (child === null || child === undefined) {
-            return '';
-        }
-        if (typeof child === 'string') {
-            return processTextSlot(child);
-        }
-        if (typeof child === 'number' || typeof child === 'boolean') {
-            return String(child);
-        }
-        if (typeof child === 'object') {
-            // Explicit raw HTML opt-in
-            if (typeof child.html === 'string' && !child.type) {
-                return child.html;
-            }
-            // Component node
-            if (child.type && child.name) {
-                return compose([child], context);
-            }
-        }
-        return '';
-    }).filter(Boolean).join('\n');
+    return processTextSlot(String(slot));
 };
 
 /**
  * Safely executes a render function with error handling
  * @private
  */
-const safeRender = (comp, props, componentName, componentType) => {
+const safeRender = (comp, props, componentName, componentType, context) => {
     try {
         const renderFn = typeof comp === 'function' ? comp : comp?.render;
 
@@ -164,8 +126,9 @@ const safeRender = (comp, props, componentName, componentType) => {
             throw new Error('Component must be a function or have a render method');
         }
 
-        return renderFn(props);
+        return String(renderFn(props));
     } catch (error) {
+        if (context.strict) throw new Error(`Failed to render ${componentType}/${componentName}: ${error.message}`, { cause: error });
         console.error(
             `Failed to render ${componentType}/${componentName}:`,
             error
@@ -194,12 +157,11 @@ const rewriteAssetPaths = (props, context) => {
     const finalProps = { ...props };
 
     if (context.route?.pattern?.pathname) {
-        const routeBasePath = path.dirname(context.route.pattern.pathname);
         const pathProps = ['src', 'href', 'poster'];
 
         for (const prop of pathProps) {
             if (typeof finalProps[prop] === 'string' && finalProps[prop].startsWith('./')) {
-                const newPath = path.join(routeBasePath, finalProps[prop].substring(2));
+                const newPath = resolveAssetPath(finalProps[prop], context.route.pattern.pathname);
                 finalProps[prop] = newPath.replace(/\\/g, '/');
             }
         }
@@ -224,13 +186,16 @@ const rewriteAssetPaths = (props, context) => {
  */
 export const compose = (components = [], context = {}) => {
     return components.map(component => {
+        if (isHTML(component) || component?.html !== undefined) return composeSlot(component, context);
         if (!component || typeof component !== 'object') {
+            if (context.strict) throw new TypeError('Invalid component descriptor');
             return '';
         }
 
         const { type, name, props = {} } = component;
 
         if (!type || !name) {
+            if (context.strict) throw new TypeError('Components require type and name');
             return '';
         }
 
@@ -242,6 +207,7 @@ export const compose = (components = [], context = {}) => {
         const comp = getComponent(type, name);
 
         if (!comp) {
+            if (context.strict) throw new Error(`Component not found: ${type}/${name}`);
             console.warn(`Component not found: ${type}/${name}`);
             return renderErrorFallback(name, type, 'Component not found in library');
         }
@@ -250,7 +216,8 @@ export const compose = (components = [], context = {}) => {
         const finalProps = rewriteAssetPaths(props, context);
         const componentWithFinalProps = {
             type, name, props: finalProps,
-            routePath: context.route?.pattern?.pathname
+            routePath: context.route?.pattern?.pathname,
+            strict: Boolean(context.strict)
         };
 
         const cached = renderCache.get(componentWithFinalProps, context.dependencies);
@@ -260,33 +227,28 @@ export const compose = (components = [], context = {}) => {
 
         const dependencies = new Set([`${type}:${name}`]);
         const childContext = { ...context, dependencies };
-        const renderedProps = { ...finalProps };
-
-        // Process default slot (maintains backward-compatibility)
-        let slotContent = '';
-        if (finalProps.slot !== undefined && finalProps.slot !== null) {
-            slotContent = composeSlot(finalProps.slot, childContext);
-        }
-        renderedProps.slot = slotContent;
-
-        // Process named slots (*Slot) and component descriptor props
-        for (const [key, val] of Object.entries(finalProps)) {
-            if (key === 'slot' || val === undefined || val === null) continue;
-
-            const isNamedSlot = key.endsWith('Slot');
-            const isComponentDescriptor = typeof val === 'object' && !Array.isArray(val) && Boolean(val.type && val.name);
-            const isComponentArray = Array.isArray(val) && val.some(item => item && typeof item === 'object' && (item.type || item.html));
-
-            if (isNamedSlot || isComponentDescriptor || isComponentArray) {
-                renderedProps[key] = composeSlot(val, childContext);
+        const prepare = (value, key = '') => {
+            if (value == null) return value;
+            // Textarea content is text even when it resembles markup.
+            if (type === 'atom' && name === 'textarea' && ['slot', 'value'].includes(key)) return value;
+            if (isHTML(value) || (typeof value === 'object' && (value.type && value.name || 'html' in value)) ||
+                key === 'slot' || key.endsWith('Slot') || ['content', 'label', 'trigger'].includes(key) || (name === 'modal' && key === 'title')) {
+                const output = composeSlot(value, childContext);
+                return output === '' ? '' : trustedHTML(output);
             }
-        }
+            if (key === 'attrs') return value;
+            if (Array.isArray(value)) return value.map(item => prepare(item));
+            if (typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, prepare(v, k)]));
+            return value;
+        };
+        const renderedProps = Object.fromEntries(Object.entries(finalProps).map(([key, value]) => [key, prepare(value, key)]));
 
         const html = safeRender(
             comp,
             renderedProps,
             name,
-            type
+            type,
+            context
         );
 
         dependencies.forEach(dep => context.dependencies?.add(dep));

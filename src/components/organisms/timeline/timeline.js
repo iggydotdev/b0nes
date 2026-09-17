@@ -1,4 +1,5 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { defineComponent } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -17,13 +18,13 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * @param {string} [props.className]
  * @param {string} [props.attrs]
  */
-export const timeline = ({ slot, attrs = '', className = '' }) => {
+export const timeline = defineComponent(({ slot, attrs = '', className = '' }) => {
     validateProps({ slot }, ['slot'], { componentName: 'timeline', componentType: 'organism' });
     validatePropTypes({ className }, { className: 'string' }, { componentName: 'timeline', componentType: 'organism' });
 
     const attrsStr = attrsToString(attrs);
     const classes = normalizeClasses(['timeline', className]);
-    const slotContent = processSlotTrusted(slot);
+    const slotContent = processSlot(slot);
 
     return `<div class="${classes}" data-b0nes="organisms:timeline"${attrsStr}>${slotContent}</div>`;
-};
+}, 'organism:timeline');

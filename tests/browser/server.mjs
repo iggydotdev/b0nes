@@ -20,7 +20,8 @@ const content = `<h1>Browser regression fixture</h1><pre id="results">Running…
 <button id="opener" data-modal-open="test-dialog">Open dialog</button>
 <button id="outside">Outside focus target</button>` + compose([tab, tab,
     { type: 'molecule', name: 'modal', props: { id: 'test-dialog', title: 'Test dialog',
-        slot: { html: '<input aria-label="Name"><button id="last">Last action</button>' } } },
+        slot: [{type:'atom', name:'input', props:{type:'text', attrs:{'aria-label':'Name'}}},
+            {type:'atom', name:'button', props:{slot:'Last action',attrs:{id:'last'}}}] } },
     { type: 'molecule', name: 'modal', props: { id: 'empty-dialog', title: 'Empty dialog', slot: 'No controls' } }
 ]);
 const html = renderPage(content, { interactive: false, title: 'b0nes browser tests',
@@ -34,6 +35,22 @@ fs.writeFileSync(path.join(output, 'index.html'), renderPage(compose([
 
 const server = http.createServer((req, res) => {
     const pathname = new URL(req.url, 'http://localhost').pathname;
+    if (pathname === '/assets/js/behaviors/atoms/pending/client.js') {
+        setTimeout(() => {
+            res.setHeader('content-type','text/javascript');
+            res.end('export const client = el => { el.dataset.calls = String(Number(el.dataset.calls || 0) + 1); };');
+        }, 40);
+        return;
+    }
+    if (pathname === '/results' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; if (body.length > 65536) req.destroy(); });
+        req.on('end', () => {
+            try { process.send?.({type:'results', ...JSON.parse(body)}); res.end('ok'); }
+            catch { res.writeHead(400); res.end(); }
+        });
+        return;
+    }
     if (pathname === '/') { res.setHeader('content-type', 'text/html'); res.end(html); return; }
     if (pathname === '/no-js') {
         res.setHeader('content-type', 'text/html');
@@ -50,7 +67,11 @@ const server = http.createServer((req, res) => {
     res.setHeader('content-type', file.endsWith('.html') ? 'text/html' : 'text/javascript');
     res.end(fs.readFileSync(file));
 });
-server.listen(5068, '127.0.0.1', () => console.log('Browser checks: http://localhost:5068'));
+server.listen(Number(process.env.PORT ?? 5068), '127.0.0.1', () => {
+    const url = `http://127.0.0.1:${server.address().port}`;
+    console.log(`Browser checks: ${url}`);
+    process.send?.({type:'ready',url});
+});
 const close = () => server.close(() => { fs.rmSync(output, {recursive:true,force:true}); process.exit(0); });
 process.on('SIGINT', close);
 process.on('SIGTERM', close);

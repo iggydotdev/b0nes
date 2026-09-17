@@ -1,5 +1,7 @@
+import { escapeAttr } from '../../utils/escapeAttr.js';
+import { defineComponent } from '../../utils/html.js';
 // src/components/organisms/slides/slides.js
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -41,7 +43,7 @@ import { box } from '../../atoms/index.js';
  *   ]
  * })
  */
-export const slides = ({
+export const slides = defineComponent(({
     slides = [],
     className = '',
     attrs = ''
@@ -72,15 +74,11 @@ export const slides = ({
     // Generate slide elements
     const slideElements = slides.map((slide, index) => {
         const isActive = index === 0 ? ' active' : '';
-        const bgStyle = slide.background ? ` style="background: ${slide.background}"` : '';
-        const slideContent = typeof slide.content === 'string' 
-            ? slide.content 
-            : Array.isArray(slide.content) 
-            ? slide.content.join('') 
-            : '';
+        const bgStyle = slide.background ? ` style="background: ${escapeAttr(String(slide.background))}"` : '';
+        const slideContent = processSlot(slide.content);
         
         return `
-    <div class="slide${isActive}" data-slide="${index}"${bgStyle} role="region" aria-label="Slide ${index + 1} of ${slides.length}${slide.title ? ': ' + slide.title : ''}">
+    <div class="slide${isActive}" data-slide="${index}"${bgStyle} role="region" aria-label="Slide ${index + 1} of ${slides.length}${slide.title ? ': ' + escapeAttr(String(slide.title)) : ''}">
         <div class="slide-content">
             ${slideContent}
         </div>
@@ -111,4 +109,4 @@ export const slides = ({
         <span class="current-title"></span>
     </div>
 </div>`;
-};
+}, 'organism:slides');

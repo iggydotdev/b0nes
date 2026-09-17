@@ -1,250 +1,107 @@
-/**
- * b0nes Client Runtime - Memory Leak Fix (Minimal Edition)
- * We ONLY fix what's actually broken: event listeners and timers
- */
-(async function() {
-    'use strict';
-
-    // Centralized cleanup tracking
-    const instanceCleanup = new WeakMap();
-    const behaviorModules = new Map();
-    
-    // Track event listeners for cleanup
-    const globalListeners = new Map(); // element -> [{type, listener, options}]
-    
-    /**
-     * Safe addEventListener wrapper that tracks for cleanup
-     */
-    function addTrackedEventListener(element, type, listener, options = {}) {
-        if (!element || typeof listener !== 'function') {
-            console.warn('[b0nes] Invalid addEventListener call');
-            return () => {};
-        }
-        
-        element.addEventListener(type, listener, options);
-        
-        // Track this listener
-        if (!globalListeners.has(element)) {
-            globalListeners.set(element, []);
-        }
-        globalListeners.get(element).push({ type, listener, options });
-        
-        // Return cleanup function
-        return () => {
-            element.removeEventListener(type, listener, options);
-            const listeners = globalListeners.get(element);
-            if (listeners) {
-                const index = listeners.findIndex(
-                    l => l.type === type && l.listener === listener
-                );
-                if (index !== -1) listeners.splice(index, 1);
-            }
-        };
-    }
-    
-    
-    /**
-     * Cleanup all resources for an element
-     */
-    function cleanupElement(element) {
-        let cleanedCount = 0;
-        
-        // 1. Call component's cleanup function if it exists
-        const componentCleanup = instanceCleanup.get(element);
-        if (componentCleanup) {
-            try {
-                componentCleanup();
-                instanceCleanup.delete(element);
-                cleanedCount++;
-            } catch (error) {
-                console.error('[b0nes] Component cleanup error:', error);
-            }
-        }
-        
-        // 2. Remove tracked event listeners
-        const listeners = globalListeners.get(element);
-        if (listeners && listeners.length > 0) {
-            listeners.forEach(({ type, listener, options }) => {
-                element.removeEventListener(type, listener, options);
-            });
-            globalListeners.delete(element);
-            cleanedCount += listeners.length;
-        }
-        
-        return cleanedCount;
-    }
-    
-    window.b0nes = {
+/** Progressive enhancement with category-qualified behaviors and cancellable initialization. */
+(() => {
+    if (window.b0nes) return;
+    const instances = new WeakMap();
+    const pending = new Map();
+    const tasks = new Set();
+    const modules = new Map();
+    const listeners = new Map();
+    const identifier = value => {
+        const match = /^(atoms?|molecules?|organisms?):([a-z0-9-]+)$/.exec(value);
+        if (!match) throw new TypeError('Use a qualified behavior ID, e.g. molecules:tabs');
+        return `${match[1].replace(/s$/, '')}s:${match[2]}`;
+    };
+    const runtime = window.b0nes = {
         activeInstances: new Set(),
-        instanceCleanup,
-        behaviors: {},
-        
-        // Expose safe utilities for component developers
+        instanceCleanup: instances,
+        behaviors: Object.create(null),
         utils: {
-            addEventListener: addTrackedEventListener,
-
+            addEventListener(element, type, listener, options = {}) {
+                element.addEventListener(type, listener, options);
+                const remove = () => {
+                    element.removeEventListener(type, listener, options);
+                    listeners.get(element)?.delete(remove);
+                    if (!listeners.get(element)?.size) listeners.delete(element);
+                };
+                if (!listeners.has(element)) listeners.set(element, new Set());
+                listeners.get(element).add(remove);
+                return remove;
+            }
         },
-        
-        /**
-         * Register a behavior
-         */
-        register(name, behavior) {
-            this.behaviors[name] = behavior;
-            console.log(`[b0nes] Registered: ${name}`);
+        register(id, behavior) {
+            if (typeof behavior !== 'function') throw new TypeError('Behavior must be a function');
+            this.behaviors[identifier(id)] = behavior;
         },
-
-        /**
-         * Initialize components with proper cleanup tracking
-         */
         init(root = document) {
-            const elements = root.querySelectorAll('[data-b0nes]');
+            const elements = [...(root.matches?.('[data-b0nes]') ? [root] : []),
+                ...root.querySelectorAll('[data-b0nes]')];
             let count = 0;
-
-            elements.forEach(el => {
-                const dataset = el.dataset.b0nes.split(':');
-                const [type, name] = dataset;
-                
-                if (dataset.length !== 2) {
-                    console.warn(`[b0nes] Invalid data-b0nes format: ${el.dataset.b0nes}`);
-                    return;
-                }
-                
-                // Skip if already initialized
-                if (el.dataset.b0nesInit === 'true') return;
-                
-                // Get component from registry
-                if (this.behaviors[name] !== undefined) {
-                    try {
-                        // Call behavior and get cleanup function
-                        const cleanup = this.behaviors[name](el);
-                        
-                        // Store cleanup function if returned
-                        if (typeof cleanup === 'function') {
-                            instanceCleanup.set(el, cleanup);
-                        }
-                        
-                        el.dataset.b0nesInit = 'true';
-                        this.activeInstances.add(el);
-                        count++;
-                    } catch (error) {
-                        console.error(`[b0nes] Error initializing ${type}:${name}`, error);
-                    }
+            for (const el of elements) {
+                if (this.activeInstances.has(el) || pending.has(el)) continue;
+                let id;
+                try { id = identifier(el.dataset.b0nes); }
+                catch (error) { console.error(error); continue; }
+                const token = {};
+                const apply = behavior => {
+                    if (pending.get(el) !== token || !el.isConnected) return;
+                    const cleanup = behavior(el);
+                    if (typeof cleanup === 'function') instances.set(el, cleanup);
+                    el.dataset.b0nesInit = 'true';
+                    this.activeInstances.add(el);
+                    count++;
+                };
+                pending.set(el, token);
+                if (this.behaviors[id]) {
+                    try { apply(this.behaviors[id]); }
+                    catch (error) { console.error(`[b0nes] Failed to initialize ${id}`, error); }
+                    finally { pending.delete(el); }
                 } else {
-                    // Lazy load component
-                    const behaviorPath = `/assets/js/behaviors/${type}/${name}/client.js`;
-                    
-                    import(behaviorPath)
-                        .then(component => {
-                            this.register(name, component.client);
-                            console.log(`[b0nes] Loaded component: ${type}/${name}`);
-                            
-                            try {
-                                const cleanup = this.behaviors[name](el);
-                                
-                                if (typeof cleanup === 'function') {
-                                    instanceCleanup.set(el, cleanup);
-                                }
-                                
-                                el.dataset.b0nesInit = 'true';
-                                this.activeInstances.add(el);
-                                count++;
-                            } catch (error) {
-                                console.error(`[b0nes] Error initializing ${type}:${name}`, error);
-                            }
-                        })
-                        .catch(error => {
-                            // Fallback to dev path if production path fails
-                            console.warn(`[b0nes] Production path failed, trying dev path...`);
-                            const devPath = `../../components/${type}/${name}/client.js`;
-                            
-                            import(devPath)
-                                .then(component => {
-                                    this.register(name, component.client);
-                                    console.log(`[b0nes] Loaded component (dev): ${type}/${name}`);
-                                    
-                                    try {
-                                        const cleanup = this.behaviors[name](el);
-                                        if (typeof cleanup === 'function') {
-                                            instanceCleanup.set(el, cleanup);
-                                        }
-                                        el.dataset.b0nesInit = 'true';
-                                        this.activeInstances.add(el);
-                                        count++;
-                                    } catch (e) {
-                                        console.error(`[b0nes] Error initializing ${type}:${name}`, e);
-                                    }
-                                })
-                                .catch(devError => {
-                                    console.error(`[b0nes] Failed to load ${type}/${name} from either path:`, error, devError);
-                                });
+                    if (!modules.has(id)) {
+                        const [type, name] = id.split(':');
+                        const load = import(`/assets/js/behaviors/${type}/${name}/client.js`)
+                            .catch(() => import(new URL(`../../components/${type}/${name}/client.js`, import.meta.url).href))
+                            .then(module => { this.register(id, module.client); return module.client; })
+                            .catch(error => { modules.delete(id); throw error; });
+                        modules.set(id, load);
+                    }
+                    const task = modules.get(id).then(apply)
+                        .catch(error => console.error(`[b0nes] Failed to load ${id}`, error))
+                        .finally(() => {
+                            if (pending.get(el) === token) pending.delete(el);
+                            tasks.delete(task);
                         });
+                    tasks.add(task);
                 }
-            });
-
+            }
             return count;
         },
-
-        /**
-         * Destroy component instance with full cleanup
-         */
+        async whenReady() { while (tasks.size) await Promise.all([...tasks]); },
         destroy(el) {
-            if (!el) {
-                console.warn('[b0nes] destroy() called with invalid element');
-                return false;
-            }
-            
-            const cleanedCount = cleanupElement(el);
-            
-            if (cleanedCount > 0) {
+            if (!el) return false;
+            const existed = pending.has(el) || this.activeInstances.has(el) || listeners.has(el);
+            pending.delete(el);
+            try { instances.get(el)?.(); }
+            finally {
+                instances.delete(el);
+                for (const remove of [...(listeners.get(el) || [])]) remove();
                 this.activeInstances.delete(el);
                 delete el.dataset.b0nesInit;
-                console.log(`[b0nes] Destroyed: ${el.dataset.b0nes} (${cleanedCount} resources)`);
-                return true;
             }
-            
-            return false;
+            return existed;
         },
-
-        /**
-         * Destroy all components
-         */
         destroyAll() {
             let count = 0;
-            const instances = Array.from(this.activeInstances);
-            
-            instances.forEach(el => {
-                if (this.destroy(el)) count++;
-            });
-            
-            console.log(`[b0nes] Destroyed all: ${count} components`);
+            for (const el of new Set([...this.activeInstances, ...pending.keys()])) if (this.destroy(el)) count++;
             return count;
         },
-        
-        /**
-         * Get memory stats (useful for debugging)
-         */
         getMemoryStats() {
-            return {
-                activeInstances: this.activeInstances.size,
-                trackedListeners: Array.from(globalListeners.values())
-                    .reduce((sum, listeners) => sum + listeners.length, 0),
-                registeredBehaviors: Object.keys(this.behaviors).length
-            };
+            return { activeInstances: this.activeInstances.size,
+                trackedListeners: [...listeners.values()].reduce((sum, set) => sum + set.size, 0),
+                registeredBehaviors: Object.keys(this.behaviors).length };
         }
     };
-
-    const initialize = () => window.b0nes.init();
-
-    // Auto-init
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initialize);
-    } else {
-        initialize();
-    }
-    
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-        console.log('[b0nes] Page unloading, cleaning up...');
-        window.b0nes.destroyAll();
-    });
+    const init = () => runtime.init();
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+    else queueMicrotask(init);
+    window.addEventListener('beforeunload', () => runtime.destroyAll());
 })();

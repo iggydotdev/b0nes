@@ -1,3 +1,4 @@
+import { safeUrl } from './safeUrl.js';
 import { escapeAttr } from './escapeAttr.js';
 
 /**
@@ -60,6 +61,13 @@ export const attrsToString = (attrs) => {
                     `[b0nes Warning] Invalid attribute name: "${key}". Skipping.`
                 );
                 continue;
+            }
+
+            if (/^on/i.test(key) || key.toLowerCase() === 'srcdoc') {
+                throw new TypeError('Executable attributes require explicitly trusted raw markup');
+            }
+            if (['href', 'src', 'action', 'formaction', 'poster', 'xlink:href'].includes(key.toLowerCase())) {
+                safeUrl(value, { navigation: key.toLowerCase() === 'href' });
             }
 
             // Boolean true -> valueless attribute (e.g. disabled, checked, open)

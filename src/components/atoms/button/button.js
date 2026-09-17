@@ -1,4 +1,5 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { defineComponent } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -53,7 +54,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * })
  * // Returns: '<button type="submit" class="btn"><span class="icon">→</span> Continue</button>'
  */
-export const button = ({
+export const button = defineComponent(({
     type = 'button',
     attrs = '', 
     className = '',
@@ -92,7 +93,7 @@ export const button = ({
     const classes = normalizeClasses(['btn', className]);
     
     // Process slot content (trust component-rendered HTML)
-    const slotContent = processSlotTrusted(slot);
+    const slotContent = processSlot(slot);
     
     return `<button type="${type}" class="${classes}"${attrsStr}>${slotContent}</button>`;
-};
+}, 'atom:button');
