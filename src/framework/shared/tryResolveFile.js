@@ -65,6 +65,7 @@ export async function tryResolveFile(pathname) {
         } while (stripped);
 
         if (baseDir === COMPONENTS_BASE) {
+            if (lookupPath.startsWith('behaviors/')) lookupPath = lookupPath.slice(10);
             if (lookupPath.startsWith('/components/')) lookupPath = lookupPath.slice(12);
             else if (lookupPath.startsWith('components/')) lookupPath = lookupPath.slice(11);
         } else if (baseDir === CLIENT_BASE) {
@@ -74,6 +75,7 @@ export async function tryResolveFile(pathname) {
             if (lookupPath.startsWith('/pages/')) lookupPath = lookupPath.slice(7);
             else if (lookupPath.startsWith('pages/')) lookupPath = lookupPath.slice(6);
         } else if (baseDir === UTILS_BASE) {
+            if (lookupPath.startsWith('shared/')) lookupPath = lookupPath.slice(7);
             if (lookupPath.startsWith('/utils/')) lookupPath = lookupPath.slice(7);
             else if (lookupPath.startsWith('utils/')) lookupPath = lookupPath.slice(6);
         }

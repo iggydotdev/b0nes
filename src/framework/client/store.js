@@ -117,13 +117,20 @@ export const createStore = ({ state: initialState, actions = {}, getters = {}, m
      * Notify subscribers of state change
      * @param {Object} change - Change details
      */
+    const readSnapshot = (snapshot, path) => {
+        const [first, ...rest] = path.split('.');
+        let value = getters[first] ? getters[first](snapshot) : snapshot?.[first];
+        for (const key of rest) value = value?.[key];
+        return value;
+    };
+
     const notify = (change) => {
         subscribers.forEach(({ listener, options }) => {
             try {
                 // Filter by path if specified
                 if (options.path) {
-                    const oldValue = get.call({ state: previousState }, options.path);
-                    const newValue = get(options.path);
+                    const oldValue = readSnapshot(change.previousState, options.path);
+                    const newValue = readSnapshot(change.state, options.path);
                     
                     if (oldValue === newValue) return; // No change to this path
                 }

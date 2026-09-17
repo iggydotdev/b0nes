@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/b0nes.svg)](https://www.npmjs.com/package/b0nes)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org/)
 
 **The framework that fits in your head and disappearing in your codebase.**
 
@@ -46,6 +46,15 @@ npm run dev                    # Start building immediately
 
 **Because b0nes is a scaffolding tool, not a library, the framework code is copied directly into your `src/` folder. You own the code. It literally disappears into your codebase.**
 
+**Upgrades:** re-sync the vendored framework with:
+
+```bash
+cd my-app
+npx b0nes@latest upgrade --dry-run   # plan only
+npx b0nes@latest upgrade             # apply (backs up to .b0nes/backups/)
+```
+
+See [Upgrading](#upgrading) and [`docs/UPGRADE.md`](docs/UPGRADE.md).
 
 **Learn the entire framework in an afternoon. Use it for years.**
 
@@ -64,64 +73,69 @@ npm run dev                    # Start building immediately
 - 🎨 **CSS-Agnostic** - Use Tailwind, vanilla CSS, or any framework you want
 - 🔌 **Interactive Components** - Tabs, modals, dropdowns with zero dependencies
 - 📦 **Component Installer** - Install community components from URLs
+- 🔒 **Escape-by-default** - Plain-text slots are XSS-safe via `compose`; structure stays real HTML
 
 ---
 
 ## Quick Start in 5 Minutes ⚡
 
 ### Prerequisites
-- Node.js v24+ installed
+- Node.js v22+ (Active LTS; Node 20 is EOL)
 - A terminal
 - That's it!
 
-### Step 1: Clone & Explore (30 seconds)
+### Step 1: Create a minimal project
 
 ```bash
-git clone https://github.com/iggydotdev/b0nes.git
-cd b0nes
-ls src/components/atoms    # Explore available components
+npx b0nes my-site --skip-git
+cd my-site
 ```
 
-### Step 2: Start Dev Server (30 seconds)
+The CLI creates one working page without installing dependencies. Larger starter
+sites are documented in [page recipes](docs/RECIPES.md), rather than bundled.
+
+### Step 2: Start the development server
 
 ```bash
 npm run dev:watch
 ```
 
-Open http://localhost:5000 - You'll see a working site! 🎉
+Open http://localhost:5000. Your page lives in `src/pages/index.js`.
 
 ### Step 3: Create Your First Component (2 minutes)
 
 ```bash
-npm run generate atom badge
+npm run generate atom notice
 ```
 
 This creates:
 ```
-src/components/atoms/badge/
+src/components/atoms/notice/
 ├── index.js
-├── badge.js
-└── badge.test.js
+├── notice.js
+└── notice.test.js
 ```
 
-Edit `src/components/atoms/badge/badge.js`:
+Edit `src/components/atoms/notice/notice.js`:
 
 ```javascript
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { processSlot } from '../../utils/processSlot.js';
+import { defineComponent } from '../../utils/html.js';
+import { attrsToString } from '../../utils/attrsToString.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 
-export const badge = ({ slot, variant = 'default', className = '', attrs = '' }) => {
-    attrs = attrs ? ` ${attrs}` : '';
-    const classes = normalizeClasses(['badge', `badge-${variant}`, className]);
-    const slotContent = processSlotTrusted(slot);
+export const notice = defineComponent(({ slot, variant = 'default', className = '', attrs = '' }) => {
+    attrs = attrsToString(attrs);
+    const classes = normalizeClasses(['notice', `notice-${variant}`, className]);
+    const slotContent = processSlot(slot);
     
     return `<span class="${classes}"${attrs}>${slotContent}</span>`;
-};
+}, 'atom:notice');
 ```
 
 ### Step 4: Use Your Component (1 minute)
 
-Edit `src/framework/pages/home.js`:
+Edit `src/pages/index.js`:
 
 ```javascript
 export const components = [
@@ -153,6 +167,12 @@ Refresh http://localhost:5000 - See your changes live! ✨
 ```bash
 npm run build
 ```
+
+Builds render every route with a fresh module graph, including imported data and
+components. Persistent HTML skipping is disabled until dependency and data
+invalidation can be guaranteed; `--no-cache` remains accepted for compatibility.
+Production builds use native ES-module registration entries, preserving behavior
+imports without an external bundler.
 
 Your static site is ready in `public/`:
 ```
@@ -188,6 +208,58 @@ npx serve public
 - ✅ Pure JavaScript + HTML
 - ✅ Production-ready output
 - ✅ Ready to deploy
+
+---
+
+## Recipes and verification
+
+Bulky starter templates and demo pages are intentionally absent. The CLI writes a
+minimal home page. See [recipes](docs/RECIPES.md) for static pages, blogs, and tabs;
+see [verification](docs/VERIFICATION.md) for integration and browser checks.
+
+**Content API change:** built-in component results carry an HTML marker. Ordinary
+strings are escaped, nested components render normally, and `html()` explicitly
+trusts developer markup. At file/HTTP boundaries use `String(result)`. Read the
+[migration guide](docs/HTML.md) before upgrading custom renderers or raw slots.
+
+---
+
+## Upgrading
+
+b0nes **copies** the framework into your project. Updates are not `npm update` of a runtime dependency — they are a deliberate re-sync.
+
+### Quick path
+
+```bash
+cd my-app
+git status                          # clean tree preferred
+npx b0nes@latest upgrade --dry-run  # see adds / updates / local edits
+npx b0nes@latest upgrade            # write src/framework, backup first
+npm test && npm run build
+```
+
+| Flag | Meaning |
+|------|---------|
+| `--dry-run` | Print plan only |
+| `--components` | Also refresh stock atoms/molecules/organisms/utils |
+| `--force` | Overwrite stock files you edited locally |
+| `--yes` | Skip confirmation (CI) |
+| `--no-backup` | Skip `.b0nes/backups/` (not recommended) |
+
+### What gets touched
+
+| Path | Default `upgrade` | With `--components` |
+|------|-------------------|---------------------|
+| `src/framework/**` | ✅ replaced | ✅ |
+| Stock components | ❌ left alone | ✅ replaced |
+| Your components (e.g. `generate atom foo`) | ❌ never | ❌ never |
+| `src/pages/**`, `public/**` | ❌ never | ❌ never |
+
+New projects get `.b0nes/manifest.json` (framework version) and checksums so later upgrades can detect **local-modified** stock files and refuse without `--force`.
+
+Legacy projects (no manifest) still work: the CLI detects `src/framework` and writes a manifest on first upgrade.
+
+Full contract: **[docs/UPGRADE.md](docs/UPGRADE.md)**.
 
 ---
 
@@ -261,6 +333,93 @@ const html = button({
         ]
     }
 }
+```
+
+### Composition & Escape-by-Default
+
+Pages and nested UI go through **`compose`**, which is the **trust boundary**. Plain strings are escaped; component nodes render real HTML; raw HTML is opt-in only.
+
+| Slot kind | Example | What happens |
+|-----------|---------|--------------|
+| Plain text | `'Hello <world>'` | Escaped → `Hello &lt;world&gt;` |
+| Component node | `{ type: 'atom', name: 'button', props: {…} }` | Rendered HTML (not re-escaped) |
+| Raw HTML (opt-in) | `{ html: '<em>…</em>' }` | Inserted as-is — you own the risk |
+| Bind marker | `'Hi {{user.name}}'` | Text escaped; `<span data-b0nes-bind>` kept real |
+
+```javascript
+import { compose } from './framework/core/compose.js';
+
+// ✅ Safe — user/API text cannot inject tags
+compose([{
+    type: 'atom',
+    name: 'text',
+    props: { is: 'p', slot: userInput }  // escaped automatically
+}]);
+
+// ✅ Real markup via structure (preferred) — not raw HTML strings
+compose([{
+    type: 'atom',
+    name: 'text',
+    props: {
+        is: 'p',
+        slot: [
+            'Hello ',
+            { type: 'atom', name: 'text', props: { is: 'strong', slot: 'world' } }
+        ]
+    }
+}]);
+// → <p class="text">Hello <strong class="text">world</strong></p>
+
+// ⚠️ Explicit raw HTML only when you truly need it (markdown, CMS)
+compose([{
+    type: 'atom',
+    name: 'box',
+    props: {
+        slot: [{ html: renderMarkdown(post.body) }]
+    }
+}]);
+```
+
+**Do not** put markup in string slots and expect tags to render:
+
+```javascript
+// ❌ Wrong — becomes visible text: &lt;strong&gt;bold&lt;/strong&gt;
+{ type: 'atom', name: 'text', props: { is: 'p', slot: '<strong>bold</strong>' } }
+
+// ✅ Right — nested component node
+{ type: 'atom', name: 'text', props: {
+    is: 'p',
+    slot: [{ type: 'atom', name: 'text', props: { is: 'strong', slot: 'bold' } }]
+}}
+```
+
+**Mental model**
+
+```text
+Any input (pages, MCP, helpers)
+        │
+        ▼
+   JSON component tree (IR)
+        │
+        ▼
+   compose(tree)   ← escape strings · render nodes · allow { html }
+        │
+        ▼
+   HTML string
+```
+
+- **LLMs / MCP / APIs** speak the JSON tree directly.
+- **Humans** should prefer the same tree (or helpers that return trees). A future human-facing syntax can compile to this IR.
+- **Direct atom calls** (e.g. `button({ slot: '…' })`) bypass `compose`. Prefer `compose` for page content so escape-by-default applies. Component internals use `processSlotTrusted` because `compose` already made `slot` safe.
+
+**Attributes:** prefer object form so values are escaped:
+
+```javascript
+// ✅ Recommended
+attrs: { id: 'main', 'aria-label': userLabel, 'data-param-id': id }
+
+// ⚠️ Legacy string form — passed through; only use with trusted values
+attrs: `id="main" aria-label="${userLabel}"`
 ```
 
 ### Component Generator
@@ -341,7 +500,7 @@ Keyboard-accessible tabbed interface with arrow key navigation:
 - Click to switch tabs
 - Arrow keys for navigation
 - ARIA-compliant markup
-- Works without JS (shows all content)
+- Works without JS (shows all content; tab controls enable after initialization)
 
 ### Modal
 
@@ -373,7 +532,7 @@ Accessible overlay dialog with focus management:
 **Features:**
 - Click overlay or X to close
 - Escape key to close
-- Focus trap when open
+- Focus trap when open and focus restored to the opener on close
 - Body scroll lock
 - ARIA-compliant
 
@@ -679,10 +838,24 @@ cleanup();
 #### Key notes: 
 
 - Routes get auto-connected with GOTO_[NAME] events.
-- Use data-fsm-event on buttons/links for transitions.
-- onEnter/onExit become state actions.
+- Use `data-fsm-event` on buttons/links for transitions.
+- Pass params with named data attributes (no special-case heuristics):
+
+```html
+<!-- Named params: data-param-id → { id: "1" } -->
+<button data-fsm-event="GOTO_TODO" data-param-id="1">Details</button>
+
+<!-- JSON blob -->
+<button data-fsm-event="GOTO_TODO" data-fsm-data='{"id":"1"}'>Details</button>
+
+<!-- Legacy bare param → { param: "value" } -->
+<button data-fsm-event="GOTO_ABOUT" data-param="value">About</button>
+```
+
+- `onEnter` / `onExit` become state actions.
 - Handles browser back/forward via popstate.
 - Initial state matches current URL if possible.
+- `connectFSMtoDOM` returns a cleanup function — call it when tearing down.
 
 ### Multi-Step Form with FSM Router
 
@@ -779,7 +952,7 @@ export const routes = [
 ### Creating Pages
 
 ```javascript
-// src/framework/pages/home.js
+// src/pages/index.js
 export const components = [
     {
         type: 'organism',
@@ -1050,16 +1223,43 @@ b0nes/
 
 ### Core Functions
 
-#### compose(components)
-Recursively composes component tree into HTML.
+#### compose(components, context?)
+Recursively composes a component tree into HTML. This is the **trust boundary**: plain-text slots are escaped; nested component nodes render as real HTML; `{ html: '…' }` is the raw-HTML opt-in. See [Composition & Escape-by-Default](#composition--escape-by-default).
 
 ```javascript
-import { compose } from './framework/compose.js';
+import {
+    compose,
+    clearCompositionCache,
+    setErrorFallback,
+    resetErrorFallback
+} from './framework/core/compose.js';
 
 const html = compose([
     { type: 'atom', name: 'text', props: { is: 'p', slot: 'Hello' } }
 ]);
+
+// Optional route context rewrites relative asset paths (./x.png → /route/x.png)
+compose(components, {
+    route: { pattern: { pathname: '/examples/talk/index.html' } }
+});
+
+// Custom error UI when a component is missing or throws
+setErrorFallback((error, component) =>
+    `<!-- failed: ${component.type}/${component.name}: ${error.message} -->`
+);
+resetErrorFallback(); // back to default visible error box
+
+clearCompositionCache(); // useful in tests / HMR
 ```
+
+| Export | Purpose |
+|--------|---------|
+| `compose(components, context?)` | Tree → HTML (escape-by-default) |
+| `composeOne(component, context?)` | Single-node convenience |
+| `setErrorFallback(fn)` | Override error fallback UI |
+| `resetErrorFallback()` | Restore default fallback |
+| `clearCompositionCache()` / `clearCache()` | Drop render cache |
+| `getCacheStats()` / `getErrorStats()` | Debug helpers |
 
 #### renderPage(content, meta)
 Wraps composed HTML in full page template.
@@ -1130,20 +1330,21 @@ git subtree push --prefix public origin gh-pages
 ## Performance
 
 ### Build Performance
-- ⚡ **Fast builds** - ~100ms for small sites
+- ⚡ **Fresh builds** - isolated route workers; benchmark with `npm run benchmark:build`
 - ⚡ **No transpilation** - Pure JavaScript
-- ⚡ **No bundling** - Direct HTML output
+- ⚡ **Native modules** - production behavior registration uses ESM entries
 
 ### Runtime Performance
 - ⚡ **Zero hydration** - Server-rendered HTML
 - ⚡ **Minimal JavaScript** - Only for interactive components
-- ⚡ **Progressive enhancement** - Works without JS
+- ⚡ **Progressive enhancement** - static content and tab panels remain readable without JS; interactive widgets may require it
 
-### Lighthouse Scores (Typical)
-- 🟢 Performance: 100
-- 🟢 Accessibility: 100
-- 🟢 Best Practices: 100
-- 🟢 SEO: 100
+### Accessibility and performance verification
+
+Scores depend on the site's content, styling, assets, and hosting. No blanket
+Lighthouse or WCAG score is claimed. Browser regression tests cover tab keyboard
+navigation, ARIA relationships, modal focus, nested content, and production modules.
+Applications still need manual keyboard and assistive-technology testing.
 
 ---
 
@@ -1205,7 +1406,7 @@ and more to come!
 
 **Performance.** Server-rendered HTML is the fastest way to deliver content.
 
-**Accessibility.** Semantic HTML is naturally accessible.
+**Accessibility.** Semantic HTML provides a foundation; behavior, focus, styling, and content still require testing.
 
 ### Why FSM for Routing?
 
@@ -1223,6 +1424,7 @@ and more to come!
 
 Contributions are welcome! Please ensure:
 - All tests pass: `npm run test`
+- Check client behaviors in a browser: `npm run test:browser`, then open http://localhost:5068 (see [verification recipes](docs/VERIFICATION.md))
 - New components follow atomic design patterns
 - JSDoc comments are included
 - Zero dependencies maintained
@@ -1237,14 +1439,13 @@ Contributions are welcome! Please ensure:
 
 ---
 
-## Known Issues (v0.2.0)
+## Current limitations
 
-- Some tests need improvement (will use node:test in future)
-- Component generator has template replacement issues (being addressed)
-- Dynamic route generation needs more robust error handling
-- FSM Router needs more examples and documentation
-
-We're aware of these and they'll be addressed in upcoming releases.
+- Builds render every route afresh. There is no incremental HTML cache.
+- Use a clean production build when routes or dynamic URLs are removed.
+- Dynamic client templates must use browser-resolvable imports.
+- Raw HTML, raw attribute strings, and scripts remain explicit developer trust boundaries.
+- Modal/dropdown interactions require JavaScript; provide alternatives when needed.
 
 ---
 
@@ -1302,6 +1503,24 @@ connectFSMtoDOM(fsm, document.getElementById('app'), routes);
 - FSM Router is new but tested
 - Use for new projects, not mission-critical apps yet
 - We're working toward v1.0.0 for production SPAs
+
+### How does escaping / XSS work?
+
+**Built-in component calls and `compose` escape plain-text content by default.** Nested `{ type, name, props }` nodes render real HTML and are not double-escaped. For trusted markup (e.g. markdown output), use `{ html: '…' }` explicitly.
+
+```javascript
+// User text → safe
+compose([{ type: 'atom', name: 'text', props: { is: 'p', slot: '<script>…</script>' } }]);
+// → &lt;script&gt;…&lt;/script&gt; inside a real <p>
+
+// Structure → real tags
+compose([{ type: 'atom', name: 'button', props: {
+    slot: [{ type: 'atom', name: 'text', props: { is: 'span', slot: 'OK' } }]
+}}]);
+// → <button>…<span>OK</span>…</button>
+```
+
+Do not put HTML tags in string slots expecting them to render — use nested components or `{ html }`. Prefer `attrs: { … }` objects over raw attribute strings. Full details and migration: [Text, components, and explicit HTML](docs/HTML.md).
 
 ### How do I handle forms?
 

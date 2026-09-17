@@ -11,7 +11,9 @@ export const createRenderCache = (maxSize = 500) => {
             return JSON.stringify({
                 type: component.type,
                 name: component.name,
-                props: component.props
+                props: component.props,
+                routePath: component.routePath,
+                strict: component.strict
             });
         } catch (error) {
             return null;
@@ -34,7 +36,7 @@ export const createRenderCache = (maxSize = 500) => {
         }
     };
     
-    const get = (component) => {
+    const get = (component, dependencies) => {
         if (!isCacheable(component)) {
             return null;
         }
@@ -48,14 +50,15 @@ export const createRenderCache = (maxSize = 500) => {
             const value = cache.get(key);
             cache.delete(key);
             cache.set(key, value);
-            return value;
+            value.dependencies.forEach(dep => dependencies?.add(dep));
+            return value.html;
         }
         
         misses++;
         return null;
     };
     
-    const set = (component, html) => {
+    const set = (component, html, dependencies = []) => {
         if (!isCacheable(component)) {
             return;
         }
@@ -69,7 +72,7 @@ export const createRenderCache = (maxSize = 500) => {
             cache.delete(firstKey);
         }
         
-        cache.set(key, html);
+        cache.set(key, { html, dependencies: [...dependencies] });
     };
     
     const clear = () => {

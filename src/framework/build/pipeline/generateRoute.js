@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { routeOutputPath } from './outputPath.js';
 import { buildPathname } from './buildPathName.js';
 import { compose } from '../../core/compose.js';
 import { renderPage } from '../../core/render.js';
@@ -13,7 +14,7 @@ import { renderPage } from '../../core/render.js';
  * @param {function} [dataSource] - Option data source for dynamic routes 
  * @returns {Object} - Generated file info
  */
-export const generateRoute = async (route, outputDir='public', dataSource) => {
+export const generateRoute = async (route, outputDir='public', dataSource, options = {}) => {
 
     if (dataSource) {
         const generated = [];
@@ -24,7 +25,7 @@ export const generateRoute = async (route, outputDir='public', dataSource) => {
             
             // Get components (may be function)
             const components = typeof route.components === 'function' 
-                ? route.components(data) 
+                ? await route.components(data)
                 : route.components;
             
             // Build file path
@@ -35,7 +36,7 @@ export const generateRoute = async (route, outputDir='public', dataSource) => {
                 filePath = `${filePath.replace(/\/$/, '')}/index.html`;
             }
             
-            const fullPath = path.join(outputDir, filePath);
+            const fullPath = routeOutputPath(outputDir, pathname);
             const dirPath = path.dirname(fullPath);
     
             // Ensure directory exists
@@ -45,7 +46,7 @@ export const generateRoute = async (route, outputDir='public', dataSource) => {
     
             try {
                 // Compose components
-                const content = compose(components, {route});
+                const content = compose(components, { route, strict: !options.allowRenderErrors });
                 
                 // ✨ THE FIX: Pass currentPath for asset resolution
                 const meta = {
@@ -70,7 +71,7 @@ export const generateRoute = async (route, outputDir='public', dataSource) => {
                 
                 generated.push(result);
             } catch (error) {
-                console.error(`❌ Failed to generate ${pathname}:`, error.message);
+                throw new Error(`Failed to generate ${pathname}: ${error.message}`, { cause: error });
             }
         } 
         return generated;
@@ -106,7 +107,7 @@ export const generateRoute = async (route, outputDir='public', dataSource) => {
             filePath = `${filePath.replace(/\/$/, '')}/index.html`;
         }
         
-        const fullPath = path.join(outputDir, filePath);
+        const fullPath = routeOutputPath(outputDir, pathname);
         const dirPath = path.dirname(fullPath);
 
         // Ensure directory exists
@@ -115,7 +116,7 @@ export const generateRoute = async (route, outputDir='public', dataSource) => {
         }
 
         // Compose components to HTML
-        const content = compose(route.components, {route});
+        const content = compose(route.components, { route, strict: !options.allowRenderErrors });
         
         // ✨ THE FIX: Pass currentPath in meta for asset resolution
         const meta = {

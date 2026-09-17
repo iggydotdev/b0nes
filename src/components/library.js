@@ -1,4 +1,4 @@
-import fs, { cp } from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -44,8 +44,10 @@ await register('atoms');
 await register('molecules');
 await register('organisms');
 
-console.log(`Auto-registered ${Object.keys(library.atoms).length} atoms, \
+if (process.env.DEBUG) {
+    console.log(`Auto-registered ${Object.keys(library.atoms).length} atoms, \
 ${Object.keys(library.molecules).length} molecules, \
 ${Object.keys(library.organisms).length} organisms`);
+}
 
 export default library;

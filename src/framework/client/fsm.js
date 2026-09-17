@@ -505,22 +505,59 @@ export const connectFSMtoDOM = (fsm, rootEl, routes, options = {}) => {
         }
     };
 
+    /**
+     * Collect transition payload from data attributes on the trigger element.
+     *
+     * Supported forms:
+     * - data-param-id="1" / data-param-user-id="x"  → { id: "1" } / { userId: "x" }
+     * - data-fsm-data='{"id":"1"}'                  → parsed JSON merged in
+     * - data-param="value"                          → { param: "value" } (legacy)
+     *
+     * @param {HTMLElement} el
+     * @returns {Object}
+     */
+    const collectFsmData = (el) => {
+        const data = {};
+        const { dataset } = el;
+
+        // JSON blob: data-fsm-data='{"id":"1"}'
+        if (dataset.fsmData) {
+            try {
+                const parsed = JSON.parse(dataset.fsmData);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    Object.assign(data, parsed);
+                }
+            } catch (err) {
+                console.warn('[FSM Connector] Invalid data-fsm-data JSON:', dataset.fsmData);
+            }
+        }
+
+        // Named params: data-param-id → dataset.paramId → { id }
+        for (const [key, value] of Object.entries(dataset)) {
+            if (key === 'fsmEvent' || key === 'fsmData') continue;
+
+            if (key.startsWith('param') && key.length > 5) {
+                // paramId → id, paramUserId → userId
+                const raw = key.slice(5); // "Id", "UserId"
+                const name = raw.charAt(0).toLowerCase() + raw.slice(1);
+                data[name] = value;
+            } else if (key === 'param') {
+                // Legacy bare data-param
+                data.param = value;
+            }
+        }
+
+        return data;
+    };
+
     // Use event delegation to handle UI events that trigger FSM transitions
     const clickHandler = (e) => {
         const target = e.target.closest('[data-fsm-event]');
         if (target) {
             e.preventDefault();
             const event = target.dataset.fsmEvent;
-            const param = target.dataset.param;
-            
-            // Build data object from data-param or other attributes
-            const data = {};
-            if (param) {
-                // Heuristic: if it's a GOTO_TODO-like event, 'id' is a common param name
-                if (event.includes('TODO')) data.id = param;
-                else data.param = param;
-            }
-            
+            const data = collectFsmData(target);
+
             if (fsm.can(event)) {
                 fsm.send(event, data);
             } else {

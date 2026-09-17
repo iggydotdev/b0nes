@@ -1,6 +1,11 @@
 name: CI
 
 on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
   push:
     branches: [ main ]
   pull_request:
@@ -13,13 +18,32 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [24.x]
+        # Current Active LTS (22). 24 optional forward-compat.
+        node-version: [22.x, 24.x]
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
       - run: npm test
+      - run: node --test .github/scripts/*.test.mjs
+
+  browser:
+    name: Chromium integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - run: google-chrome --version
+      - run: npm run test:browser:ci

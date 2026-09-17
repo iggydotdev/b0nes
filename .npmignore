@@ -1,16 +1,27 @@
-#configs and other random stuff
+# Local / editor
 .replit
 replit.md
 .vscode/
 .DS_Store
 .github/
+.certs/
+src/framework/.certs/
 
-# Build & other outputs
+# Build & cache outputs
 public/
+.b0nes-cache/
 src/apps/
 apps/
+*.tgz
 
-# Test
+# Tests (run from git; not needed in published package)
 **/*.test.js
+bin/**/*.test.js
 
+# Note: docs/UPGRADE.md IS published (users need the upgrade contract)
 
+# Pages are project-owned. The CLI generates one minimal page.
+src/pages/
+
+# Local browser regression fixtures
+tests/

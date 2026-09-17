@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+const root = fileURLToPath(new URL('../', import.meta.url));
+test('published package creates a working dependency-free project', t => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'b0nes-package-'));
+    t.after(() => fs.rmSync(dir,{recursive:true,force:true}));
+    const run = (command, args, cwd=dir) => {
+        const result = spawnSync(command,args,{cwd,encoding:'utf8',timeout:60000});
+        assert.equal(result.status,0,result.stdout + result.stderr);
+        return result.stdout;
+    };
+    const packed = JSON.parse(run('npm', ['pack','--ignore-scripts','--json','--pack-destination',dir],root))[0];
+    run('tar',['-xzf',path.join(dir,packed.filename)]);
+    run(process.execPath,[path.join(dir,'package/bin/b0nes.js'),'site','--skip-git']);
+    const project = path.join(dir,'site');
+    const pkg = JSON.parse(fs.readFileSync(path.join(project,'package.json')));
+    assert.equal(Object.keys(pkg.dependencies || {}).length,0);
+    assert.equal(Object.keys(pkg.devDependencies || {}).length,0);
+    assert.ok(fs.existsSync(path.join(project,'docs/RECIPES.md')));
+    run('npm',['test'],project);
+    run('npm',['run','build:production'],project);
+    assert.match(fs.readFileSync(path.join(project,'public/index.html'),'utf8'),/Hello, b0nes!/);
+    assert.ok(fs.existsSync(path.join(project,'.b0nes/manifest.json')));
+    const unsupported = spawnSync(process.execPath,[path.join(dir,'package/bin/b0nes.js'),'old','--template','blog'],{cwd:dir,encoding:'utf8'});
+    assert.equal(unsupported.status,1);
+    assert.match(unsupported.stderr,/RECIPES/);
+    assert.equal(fs.existsSync(path.join(dir,'old')),false);
+});

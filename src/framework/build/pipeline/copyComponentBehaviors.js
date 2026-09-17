@@ -28,9 +28,9 @@ export async function copyComponentBehaviors(outputDir, options = {}) {
             
             for (const file of files) {
                 const fullPath = path.join(dir, file.name);
-                if (file.isDirectory()) {
+                if (file.isDirectory() && !['__tests__', 'tests', 'generator'].includes(file.name)) {
                     findClientFiles(fullPath, fileList);
-                } else if (file.name.endsWith('.js')) {
+                } else if (file.isFile() && file.name.endsWith('.js') && !/\.(test|spec)\.js$/.test(file.name)) {
                     fileList.push(fullPath);
                 }
             }

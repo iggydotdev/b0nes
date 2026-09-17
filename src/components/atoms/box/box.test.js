@@ -5,5 +5,5 @@ import box from './index.js';
 test('box rendering', () => {
     const actual = box({slot: 'Content', className: 'customClass'});
     const expected = '<div class="box customClass">Content</div>';
-    assert.strictEqual(actual, expected);
+    assert.strictEqual(String(actual), expected);
 });

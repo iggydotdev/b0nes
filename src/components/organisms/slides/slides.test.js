@@ -156,5 +156,5 @@ test('slides - empty slides array warning (edge case)', () => {
         slides: []
     });
     
-    assert.strictEqual(actual, '');
+    assert.strictEqual(String(actual), '');
 });

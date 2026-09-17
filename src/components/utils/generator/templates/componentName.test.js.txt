@@ -5,5 +5,5 @@ import componentName from './index.js';
 test('componentName rendering', () => {
     const actual = componentName({ /* props go here */  });
     const expected = '...expected value goes here...';
-    assert.strictEqual(actual, expected);
+    assert.strictEqual(String(actual), expected);
 });

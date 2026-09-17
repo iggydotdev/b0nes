@@ -145,9 +145,15 @@ export const installComponent = async (url, options = {}) => {
     }
     
     // Step 2: Check if component already exists
+    if (!/^[a-z0-9-]+$/.test(manifest.name)) {
+      throw new Error(
+        `Invalid component name: "${manifest.name}". Only lowercase letters, numbers, and hyphens are allowed.`
+      );
+    }
+
     const targetDir = path.join(
       __dirname,
-      `../../components/${manifest.type}s`,
+      `../components/${manifest.type}s`,
       manifest.name
     );
     

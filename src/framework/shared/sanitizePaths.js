@@ -6,6 +6,14 @@ import path from 'path';
  * @returns {{ safe: boolean, sanitized: string, error?: string }}
  */
 export function validateAndSanitizePath(requestPath, baseDir) {
+    if (!requestPath || typeof requestPath !== 'string' || requestPath.includes('\0')) {
+        return {
+            safe: false,
+            sanitized: '',
+            error: 'Invalid path'
+        };
+    }
+
     // Remove query strings and fragments
     const cleanPath = requestPath.split('?')[0].split('#')[0];
     
@@ -13,7 +21,8 @@ export function validateAndSanitizePath(requestPath, baseDir) {
     const normalized = path.normalize(cleanPath);
     
     // Check for path traversal attempts
-    if (normalized.includes('..')) {
+    const segments = normalized.split(/[/\\]/);
+    if (segments.includes('..') || normalized.includes('..')) {
         return { 
             safe: false, 
             sanitized: '', 
@@ -27,11 +36,13 @@ export function validateAndSanitizePath(requestPath, baseDir) {
         : normalized;
     
     // Resolve the full path
-    const fullPath = path.resolve(baseDir, relativePath);
+    const resolvedBase = path.resolve(baseDir);
+    const fullPath = path.resolve(resolvedBase, relativePath);
     
-    // CRITICAL: Ensure the resolved path is still within baseDir
-    // This prevents symlink attacks and other sneaky bypasses
-    if (!fullPath.startsWith(path.resolve(baseDir))) {
+    // CRITICAL: Ensure the resolved path is strictly within baseDir
+    // Uses path.relative to prevent sibling directory prefix bypasses (e.g. /app/pages-secret)
+    const rel = path.relative(resolvedBase, fullPath);
+    if (rel.startsWith('..') || path.isAbsolute(rel)) {
         return { 
             safe: false, 
             sanitized: '', 

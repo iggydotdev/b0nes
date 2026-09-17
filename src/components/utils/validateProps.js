@@ -71,6 +71,9 @@ export class ComponentError extends Error {
 export const validateProps = (props, required, context) => {
     const missing = required.filter(key => {
         const value = props[key];
+        if (key === 'slot' || key.endsWith('Slot')) {
+            return value === undefined || value === null;
+        }
         return value === undefined || value === null || value === '';
     });
     

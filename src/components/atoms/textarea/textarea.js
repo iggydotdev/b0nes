@@ -1,3 +1,4 @@
+import { defineComponent } from '../../utils/html.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { escapeHtml } from '../../utils/escapeHtml.js';
@@ -60,10 +61,12 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * })
  * // Returns: '<textarea class="textarea" name="notes" aria-label="Additional notes" aria-describedby="notes-help" spellcheck="true"/>'
  */
-export const textarea = ({
+export const textarea = defineComponent(({
+    value,
+    slot,
     attrs = '',
     className = ''
-}) => {
+} = {}) => {
     // Validate prop types
     validatePropTypes(
         { className },
@@ -79,10 +82,13 @@ export const textarea = ({
     // Normalize and escape classes
     const classes = normalizeClasses(['textarea', className]);
     
-    // TODO: TO VALIDATE YET -- 
-    // Escape the value content (this goes inside the textarea tags)
-    // Important: textarea content must be HTML-escaped to prevent XSS
-    // const escapedValue = escapeHtml(value);
-    //return `<textarea class="${classes}"${attrs}>${escapedValue}</textarea>`;    
-    return `<textarea class="${classes}"${attrsStr}></textarea>`;
-};
+    // Content can come from either value or slot
+    const rawContent = (value !== undefined && value !== null) 
+        ? String(value) 
+        : (slot !== undefined && slot !== null) 
+            ? (typeof slot === 'string' ? slot : String(slot)) 
+            : '';
+
+    const escapedContent = escapeHtml(rawContent);
+    return `<textarea class="${classes}"${attrsStr}>${escapedContent}</textarea>`;
+}, 'atom:textarea');

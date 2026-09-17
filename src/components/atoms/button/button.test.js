@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import button from './index.js';
+import { text } from '../text/text.js';
 
 test('button - basic button with submit type', () => {
     const actual = button({
@@ -10,7 +11,7 @@ test('button - basic button with submit type', () => {
         attrs: 'id="my-button" onclick="()=>{alert(`hello`)}"'
     });
     const expected = '<button type="submit" class="btn custom-button" id="my-button" onclick="()=>{alert(`hello`)}">Click Me</button>';
-    assert.strictEqual(actual, expected);
+    assert.strictEqual(String(actual), expected);
 });
 
 test('button - default button (no type specified)', () => {
@@ -18,7 +19,7 @@ test('button - default button (no type specified)', () => {
         slot: 'Default Button'
     });
     const expected = '<button type="button" class="btn">Default Button</button>';
-    assert.strictEqual(actual, expected);
+    assert.strictEqual(String(actual), expected);
 });
 
 test('button - button with disabled attribute', () => {
@@ -27,7 +28,7 @@ test('button - button with disabled attribute', () => {
         attrs: 'disabled'
     });
     const expected = '<button type="button" class="btn" disabled>Disabled</button>';
-    assert.strictEqual(actual, expected);
+    assert.strictEqual(String(actual), expected);
 });
 
 test('button - button with aria-label', () => {
@@ -36,7 +37,7 @@ test('button - button with aria-label', () => {
         attrs: 'aria-label="Submit form"'
     });
     const expected = '<button type="button" class="btn" aria-label="Submit form">Submit</button>';
-    assert.strictEqual(actual, expected);
+    assert.strictEqual(String(actual), expected);
 });
 
 test('button - button with multiple classes', () => {
@@ -45,7 +46,7 @@ test('button - button with multiple classes', () => {
         className: 'primary large'
     });
     const expected = '<button type="button" class="btn primary large">Primary</button>';
-    assert.strictEqual(actual, expected);
+    assert.strictEqual(String(actual), expected);
 });
 
 test('button - reset button type', () => {
@@ -54,13 +55,13 @@ test('button - reset button type', () => {
         slot: 'Reset Form'
     });
     const expected = '<button type="reset" class="btn">Reset Form</button>';
-    assert.strictEqual(actual, expected);
+    assert.strictEqual(String(actual), expected);
 });
 
 test('button - button with array slot (nested content)', () => {
     const actual = button({
-        slot: ['Click ', '<strong>Me</strong>']
+        slot: ['Click ', text({ is: 'strong', slot: 'Me' })]
     });
-    const expected = '<button type="button" class="btn">Click <strong>Me</strong></button>';
-    assert.strictEqual(actual, expected);
+    const expected = '<button type="button" class="btn">Click <strong class="text">Me</strong></button>';
+    assert.strictEqual(String(actual), expected);
 });

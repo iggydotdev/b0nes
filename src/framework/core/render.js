@@ -1,3 +1,6 @@
+import { escapeHtml } from '../../components/utils/escapeHtml.js';
+import { escapeAttr } from '../../components/utils/escapeAttr.js';
+import { safeUrl } from '../../components/utils/safeUrl.js';
 import { resolveVersionedAsset } from '../shared/assetPath.js';
 import { generateStylesheetTag } from '../build/pipeline/generateStylesheetTag.js';
 import { generateMetaTags } from '../build/pipeline/generateMetaTags.js';
@@ -190,24 +193,24 @@ export const renderPage = (content, meta = {}) => {
     let html = document();
     
     // Set page title
-    const title = meta.title || 'b0nes Site';
-    html = html.replace('<title>b0nes Site</title>', `<title>${title}</title>`);
+    const title = escapeHtml(String(meta.title || 'b0nes Site'));
+    html = html.replace('<title>b0nes Site</title>', () => `<title>${title}</title>`);
     
     // Set language attribute
-    const lang = meta.lang || 'en';
-    html = html.replace('<html lang="en">', `<html lang="${lang}">`);
+    const lang = escapeAttr(String(meta.lang || 'en'));
+    html = html.replace('<html lang="en">', () => `<html lang="${lang}">`);
     
     // Generate meta tags
     const metaTags = generateMetaTags(meta);
     if (metaTags) {
-        html = html.replace('</head>', `    ${metaTags}\n</head>`);
+        html = html.replace('</head>', () => `    ${metaTags}\n</head>`);
     }
     
     // Get current page path for resolving relative assets
     const currentPath = meta.currentPath || '/';
 
     // Process stylesheets
-    const pageStylesheets = meta.stylesheets || [];
+    const pageStylesheets = normalizeStylesheets(meta.stylesheets);
     const allStylesheets = [...DEFAULT_STYLESHEETS, ...pageStylesheets];
     const normalizedStylesheets = normalizeStylesheets(allStylesheets);
     
@@ -217,11 +220,11 @@ export const renderPage = (content, meta = {}) => {
             .join('\n    ');
         
         // Insert before closing </head>
-        html = html.replace('</head>', `    ${stylesheetTags}\n</head>`);
+        html = html.replace('</head>', () => `    ${stylesheetTags}\n</head>`);
     }
     
    // Use dynamic asset path that works in both dev and prod
-    const includeScript = meta.interactive !== false;
+    const includeScript = meta.interactive !== false && !meta.bundlePath;
     const b0nesScriptTag = includeScript 
         ? `\n    <script type="module" defer src="${resolveVersionedAsset('js/client/b0nes.js', process.env.npm_package_version)}"></script>` 
         : '';
@@ -231,22 +234,31 @@ export const renderPage = (content, meta = {}) => {
     if (meta.scripts && Array.isArray(meta.scripts)) {
         additionalScripts = '\n    ' + meta.scripts
             .map(src => {
-                const resolvedSrc = resolveAssetPath(src, currentPath);
+                const resolvedSrc = escapeAttr(safeUrl(resolveAssetPath(safeUrl(src), currentPath)));
                 return `<script type="module" defer src="${resolvedSrc}"></script>`;
             })
             .join('\n    ');
     }
     
+    if (meta.inlineScripts) {
+        for (const code of meta.inlineScripts) {
+            if (typeof code !== 'string' || /<\/script/i.test(code)) {
+                throw new TypeError('inlineScripts must contain developer-authored JavaScript without closing script tags');
+            }
+            additionalScripts += `\n    <script type="module">${code}</script>`;
+        }
+    }
+
     // Replace app placeholder with content
     html = html.replace(
         '<div id="app"></div>',
-        `<div id="app">\n        ${content}\n    </div>${additionalScripts}${b0nesScriptTag}`
+        () => `<div id="app">\n        ${content}\n    </div>${additionalScripts}${b0nesScriptTag}`
     );
 
     // Bundle injection (for production)
     if (meta.bundlePath) {
-        const bundleTag = `\n    <script type="module" defer src="${meta.bundlePath}"></script>`;
-        html = html.replace('</body>', `${bundleTag}\n</body>`);
+        const bundleTag = `\n    <script type="module" defer src="${escapeAttr(safeUrl(meta.bundlePath))}"></script>`;
+        html = html.replace('</body>', () => `${bundleTag}\n</body>`);
         
         // If we have a bundle, we might want to flag the runtime to skip lazy loading
         // for components already in the bundle. 
@@ -290,7 +302,7 @@ export const renderPage = (content, meta = {}) => {
         connectHMR();
     })();
     </script>`;
-        html = html.replace('</body>', `${hmrScript}\n</body>`);
+        html = html.replace('</body>', () => `${hmrScript}\n</body>`);
     }
 
     return html;

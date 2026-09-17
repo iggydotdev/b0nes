@@ -1,4 +1,5 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { defineComponent, html } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { escapeAttr } from '../../utils/escapeAttr.js';
@@ -125,7 +126,7 @@ import { box } from '../../atoms/index.js';
  *   ]
  * })
  */
-export const cta = ({
+export const cta = defineComponent(({
     slot,
     attrs = '',
     className = '',
@@ -204,7 +205,7 @@ export const cta = ({
     const classes = normalizeClasses(classArray);
     
     // Process slot content
-    const slotContent = processSlotTrusted(slot);
+    const slotContent = processSlot(slot);
     
     // Combine all attributes for box
     const boxAttrs = `role="cta"${idAttr}${ariaLabelAttr}${escapedAttrs}`.trim();
@@ -214,6 +215,6 @@ export const cta = ({
         is: 'div',
         className: classes,
         attrs: boxAttrs,
-        slot: slotContent
+        slot: html(slotContent)
     });
-};
+}, 'organism:cta');

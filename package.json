@@ -18,10 +18,11 @@
     "./mcp": "./src/mcp/server.js"
   },
   "bin": {
-    "b0nes": "bin/create.js"
+    "b0nes": "bin/b0nes.js"
   },
   "scripts": {
-    "test": "node --test 'src/**/*.test.js'",
+    "test": "node --test 'src/**/*.test.js' 'bin/**/*.test.js'",
+    "test:browser": "node tests/browser/server.mjs",
     "dev": "NODE_ENV=development node src/framework/server/index.js",
     "dev:watch": "NODE_ENV=development node --watch src/framework/server/index.js",
     "build": "node src/framework/build/cli.js build",
@@ -30,12 +31,14 @@
     "build:fast": "node src/framework/build/cli.js build --parallel",
     "build:production": "node src/framework/build/cli.js build --clean --parallel --production",
     "clean": "node src/framework/build/cli.js clean",
-    "serve": "npx serve public",
+    "serve": "node src/framework/server/preview.js",
     "generate": "node src/components/utils/generator/index.js",
     "install-component": "node src/scripts/install-component.js",
     "create": "node bin/create.js",
     "mcp": "node src/mcp/server.js",
-    "prepublishOnly": "npm run test"
+    "prepublishOnly": "npm run test",
+    "test:browser:ci": "node tests/browser/ci.mjs",
+    "benchmark:build": "node tests/build-benchmark.mjs"
   },
   "keywords": [
     "components",
@@ -52,7 +55,7 @@
     "vanilla-js"
   ],
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=22.0.0"
   },
   "author": {
     "name": "Ignacio Garcia Villanueva",

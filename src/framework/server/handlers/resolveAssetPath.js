@@ -26,7 +26,9 @@ export const resolveAssetPath = (assetPath, currentPath = '/') => {
     const cleanPath = assetPath.replace(/^\.\//, '');
     
     // Get the directory of the current page
-    const pageDir = currentPath === '/' ? '/' : currentPath;
+    const pageDir = currentPath.endsWith('.html')
+        ? currentPath.slice(0, currentPath.lastIndexOf('/') + 1)
+        : currentPath;
     
     // Build the absolute path
     const resolved = pageDir.endsWith('/') 

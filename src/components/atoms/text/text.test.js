@@ -5,5 +5,5 @@ import text from './index.js';
 test('text rendering', () => {
     const actual = text({is: 'p', slot: 'Hello, World!', className: 'custom-text', attrs: 'id="greeting"'});
     const expected = `<p class="text custom-text" id="greeting">Hello, World!</p>`;
-    assert.strictEqual(actual, expected);
+    assert.strictEqual(String(actual), expected);
 });

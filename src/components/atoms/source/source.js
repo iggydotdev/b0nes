@@ -1,6 +1,9 @@
+import { safeUrl } from '../../utils/safeUrl.js';
+import { defineComponent } from '../../utils/html.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
+import { escapeAttr } from '../../utils/escapeAttr.js';
 
 /**
  * Source component - An HTML source element for media resources
@@ -80,7 +83,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * })
  * // Returns: '<source src="/images/hero.avif" class="img-src modern-format" type="image/avif"/>'
  */
-export const source = ({
+export const source = defineComponent(({
     type,
     src,
     srcset,
@@ -135,10 +138,10 @@ export const source = ({
     // we use 'src' for images and 'srcset' for videos in our API
     let sourceAttr = '';
     if (type === 'video') {
-        sourceAttr = ` srcset="${srcset}"`;
+        sourceAttr = ` srcset="${escapeAttr(srcset)}"`;
     } else {
         // type === 'image'
-        sourceAttr = ` src="${src}"`;
+        sourceAttr = ` src="${escapeAttr(safeUrl(src))}"`;
     }
     
     // Determine base class based on type
@@ -148,4 +151,4 @@ export const source = ({
     const classes = normalizeClasses([baseClass, className]);
     
     return `<source${sourceAttr} class="${classes}"${attrsStr}/>`;
-};
+}, 'atom:source');

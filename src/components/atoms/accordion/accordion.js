@@ -1,4 +1,5 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { defineComponent } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -76,7 +77,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * })
  * // Returns: '<details class="accordion" aria-label="Privacy settings configuration panel"><summary>Privacy Settings</summary>Manage your privacy preferences here.</details>'
  */
-export const accordion = ({
+export const accordion = defineComponent(({
     titleSlot,
     detailsSlot,
     attrs = '',
@@ -121,10 +122,10 @@ export const accordion = ({
     const classes = normalizeClasses(['accordion', className]);
     
     // Process title slot (the summary/header)
-    const titleContent = processSlotTrusted(titleSlot);
+    const titleContent = processSlot(titleSlot);
     
     // Process details slot (the collapsible content)
-    const detailsContent = processSlotTrusted(detailsSlot);
+    const detailsContent = processSlot(detailsSlot);
     
     return `<details class="${classes}"${attrsStr}><summary>${titleContent}</summary>${detailsContent}</details>`;
-};
+}, 'atom:accordion');

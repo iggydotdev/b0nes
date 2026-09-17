@@ -1,19 +1,13 @@
-export const buildPathname = (pattern, data) => {
-    let pathname = pattern;
-    // Extract all :params from pattern
-    const requiredParams = pattern.match(/:(\w+)/g)?.map(p => p.slice(1)) || [];
-    
-    // Validate all params exist in data
-    const missingParams = requiredParams.filter(param => !(param in data));
-    if (missingParams.length > 0) {
-        throw new Error(
-            `Missing required route parameters: ${missingParams.join(', ')}. ` +
-            `Pattern requires: ${requiredParams.join(', ')}. ` +
-            `Data has: ${Object.keys(data).join(', ')}`
-        );
+/** Substitute each parameter as a single URL segment, never as a filesystem path. */
+export const buildPathname = (pattern, data) => pattern.replace(/:(\w+)/g, (_, key) => {
+    if (!data || !Object.hasOwn(data, key)) throw new Error(`Missing required route parameter: ${key}`);
+    const value = data[key];
+    if (!['string', 'number'].includes(typeof value)) throw new TypeError(`Invalid route parameter: ${key}`);
+    const segment = String(value);
+    let decoded = segment;
+    try { decoded = decodeURIComponent(segment); } catch { /* Literal percent is encoded below. */ }
+    if (!segment || [segment, decoded].some(part => part === '.' || part === '..' || /[/\\\x00-\x1f\x7f]/.test(part))) {
+        throw new Error(`Unsafe route parameter: ${key}`);
     }
-    Object.entries(data).forEach(([key, value]) => {
-        pathname = pathname.replace(`:${key}`, value);
-    });
-    return pathname;
-}
+    return encodeURIComponent(segment);
+});

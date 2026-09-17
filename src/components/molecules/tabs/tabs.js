@@ -1,3 +1,5 @@
+import { escapeAttr } from '../../utils/escapeAttr.js';
+import { defineComponent } from '../../utils/html.js';
 import { processSlot } from '../../utils/processSlot.js';
 import { attrsToString } from '../../utils/attrsToString.js';
 
@@ -19,41 +21,35 @@ import { attrsToString } from '../../utils/attrsToString.js';
  *   ]
  * })
  */
-export const tabs = ({ tabs = [], className, attrs }) => {
+export const tabs = defineComponent(({ tabs = [], className, attrs }) => {
     if (!Array.isArray(tabs) || tabs.length === 0) {
         return '';
     }
 
     const attrsStr = attrsToString(attrs);
-    className = className ? ` ${className}` : '';
+    className = className ? ` ${escapeAttr(className)}` : '';
 
     // Generate tab buttons
     const tabButtons = tabs.map((tab, index) => {
         const activeClass = index === 0 ? ' active' : '';
-        const ariaSelected = index === 0 ? 'true' : 'false';
         return `<button 
             class="tab-button${activeClass}" 
-            role="tab" 
-            aria-selected="${ariaSelected}"
-            aria-controls="tab-panel-${index}"
+            type="button" disabled
             data-tab-index="${index}"
-        >${tab.label}</button>`;
+        >${processSlot(tab.label)}</button>`;
     }).join('');
 
     // Generate tab panels
     const tabPanels = tabs.map((tab, index) => {
         const activeClass = index === 0 ? ' active' : '';
-        const hidden = index === 0 ? '' : ' hidden';
         const content = processSlot(tab.content) ?? '';
         return `<div 
             class="tab-panel${activeClass}" 
-            role="tabpanel" 
-            id="tab-panel-${index}"
-            ${hidden}
+
         >${content}</div>`;
     }).join('');
 
-    return `<div class="tabs${className}" data-b0nes="molecules:tabs" role="tablist"${attrsStr}>
+    return `<div class="tabs${className}" data-b0nes="molecules:tabs"${attrsStr}>
     <div class="tab-buttons">
         ${tabButtons}
     </div>
@@ -61,4 +57,4 @@ export const tabs = ({ tabs = [], className, attrs }) => {
         ${tabPanels}
     </div>
 </div>`;
-};
+}, 'molecule:tabs');

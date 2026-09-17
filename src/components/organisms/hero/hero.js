@@ -1,4 +1,5 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { defineComponent, html } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -102,7 +103,7 @@ import { box } from '../../atoms/index.js';
  * })
  * // Returns: '<div class="box hero simple" role="hero"><h1>Page Title</h1></div>'
  */
-export const hero = ({
+export const hero = defineComponent(({
     slot,
     attrs = '',
     className = ''
@@ -148,7 +149,7 @@ export const hero = ({
     const classes = normalizeClasses(['hero', className]);
     
     // Process slot content
-    const slotContent = processSlotTrusted(slot);
+    const slotContent = processSlot(slot);
     
     // Combine all attributes for box
     const boxAttrs = `role="hero"${attrsStr}`.trim();
@@ -158,6 +159,6 @@ export const hero = ({
         is: 'div',
         className: classes,
         attrs: boxAttrs,
-        slot: slotContent
+        slot: html(slotContent)
     });
-};
+}, 'organism:hero');

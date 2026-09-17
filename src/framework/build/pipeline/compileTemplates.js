@@ -42,8 +42,7 @@ export const generateCompiledTemplates = async (spaComponentPath, outputPath, op
             const module = await import(templateUrl);
             
             if (!module.components) {
-                console.warn(`   ⚠️  Template ${templateName} doesn't export 'components'`);
-                continue;
+                throw new Error(`Template ${templateName} does not export components`);
             }
             
             const components = module.components;
@@ -53,12 +52,12 @@ export const generateCompiledTemplates = async (spaComponentPath, outputPath, op
                 compiledTemplates[templateName] = { type: 'dynamic', fn: components };
                 if (verbose) console.log(`   ⚡ Dynamic template: ${templateName}`);
             } else {
-                const html = compose(components);
+                const html = compose(components, { strict: !options.allowRenderErrors });
                 compiledTemplates[templateName] = { type: 'static', html };
                 if (verbose) console.log(`   ✅ Compiled static template: ${templateName}`);
             }
         } catch (error) {
-            console.error(`   ❌ Failed to compile ${templateName}:`, error.message);
+            throw new Error(`Failed to compile ${templateName}: ${error.message}`, { cause: error });
         }
     }
     

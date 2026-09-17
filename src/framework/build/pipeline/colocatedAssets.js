@@ -63,11 +63,9 @@ export const copyColocatedAssets = (pageFilePath, outputDir, options = {}) => {
         
         // Check if file should be ignored
         const shouldIgnore = ignorePatterns.some(pattern => {
-            if (pattern.startsWith('[')) {
-                // Dynamic route file like [slug].js
-                return file.startsWith('[') && file.endsWith('.js');
-            }
-            return file === pattern || file.includes(pattern);
+            // '*' matches a filename fragment; all other characters are literal.
+            const expression = pattern.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*');
+            return new RegExp(`^${expression}$`).test(file);
         });
         
         if (shouldIgnore) {

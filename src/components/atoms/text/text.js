@@ -1,4 +1,5 @@
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { defineComponent } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes, createComponentError } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
@@ -71,7 +72,7 @@ import { attrsToString } from '../../utils/attrsToString.js';
  * text({ is: 'mark', slot: 'Highlighted text' })
  * text({ is: 'small', slot: 'Small print' })
  */
-export const text = ({
+export const text = defineComponent(({
     is,
     slot,
     attrs = '',
@@ -111,15 +112,10 @@ export const text = ({
         );
     }
     
-    // Warn about potentially problematic tags
-    const scriptTags = ['script', 'style', 'iframe', 'object', 'embed'];
-    if (scriptTags.includes(is.toLowerCase())) {
-        console.warn(
-            `[b0nes Warning] Using "${is}" tag in text component. ` +
-            `This may pose security or rendering issues. Consider using a different approach.`
-        );
+    if (['script', 'style', 'iframe', 'object', 'embed'].includes(is.toLowerCase())) {
+        throw new Error('Use { html } for explicit raw markup, or meta.scripts for scripts');
     }
-    
+
     // Process attributes (supports string or object)
     const attrsStr = attrsToString(attrs);
         
@@ -127,7 +123,7 @@ export const text = ({
     const classes = normalizeClasses(['text', className]);
     
     // Process slot content (trust component-rendered HTML)
-    const slotContent = processSlotTrusted(slot);
+    const slotContent = processSlot(slot);
         
     return `<${is} class="${classes}"${attrsStr}>${slotContent}</${is}>`;
-};
+}, 'atom:text');

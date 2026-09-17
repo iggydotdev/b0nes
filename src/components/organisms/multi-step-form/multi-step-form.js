@@ -1,7 +1,8 @@
+import { defineComponent } from '../../utils/html.js';
 // src/components/organisms/multi-step-form/multi-step-form.js - FIXED
 import { box, input, text, button, progress } from "../../atoms/index.js"
 
-export const multiStepForm = ({ className = '', attrs = '' } = {}) => {
+export const multiStepForm = defineComponent(({ className = '', attrs = '' } = {}) => {
   return box({ 
     is: 'div', 
     className,
@@ -40,4 +41,4 @@ export const multiStepForm = ({ className = '', attrs = '' } = {}) => {
       ]}),
     ]
   });
-}
+}, 'organism:multi-step-form');
