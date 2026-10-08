@@ -28,7 +28,7 @@ export interface MiddlewareContext<S = Record<string, unknown>> {
   /** Get the current store state */
   getState: () => S;
   /** Dispatch an action */
-  dispatch: (actionName: string, payload?: unknown) => S;
+  dispatch: (actionName: string, payload?: unknown) => S | Promise<S>;
   /** The action name being dispatched */
   action: string;
   /** The payload being dispatched */
@@ -38,14 +38,21 @@ export interface MiddlewareContext<S = Record<string, unknown>> {
 /** Middleware function signature */
 export type StoreMiddleware<S = Record<string, unknown>> = (
   context: MiddlewareContext<S>,
-  next: () => Partial<S>
-) => Partial<S>;
+  next: () => S | Promise<S>
+) => S | Promise<S> | void | Promise<void>;
+
+/** Current state access available to actions, including asynchronous module actions. */
+export interface ActionContext<S = Record<string, unknown>> {
+  getState: () => S;
+  dispatch: (actionName: string, payload?: unknown) => S | Promise<S>;
+}
 
 /** Action function signature */
 export type ActionFunction<S = Record<string, unknown>> = (
   state: S,
-  payload?: unknown
-) => Partial<S>;
+  payload?: unknown,
+  context?: ActionContext<S>
+) => Partial<S> | Promise<Partial<S>>;
 
 /** Getter (computed value) function signature */
 export type GetterFunction<S = Record<string, unknown>, R = unknown> = (
@@ -72,8 +79,8 @@ export interface Store<S = Record<string, unknown>> {
   /** Get a value at a dot-notation path (e.g. `'user.profile.name'`). */
   get(path?: string): unknown;
 
-  /** Dispatch a named action with an optional payload. Returns the updated state. */
-  dispatch(actionName: string, payload?: unknown): S;
+  /** Return committed state synchronously, or a promise for asynchronous actions. */
+  dispatch(actionName: string, payload?: unknown): S | Promise<S>;
 
   /** Get a computed value by getter name. */
   computed(getterName: string): unknown;

@@ -1,8 +1,6 @@
 // src/framework/utils/build/generateRoute.js
-import fs from 'node:fs';
-import path from 'node:path';
-
-import { routeOutputPath } from './outputPath.js';
+import { routeOutputPath, writeOutputFile } from './outputPath.js';
+import { pageAssetBasePath } from '../../shared/pageAssetPath.js';
 import { buildPathname } from './buildPathName.js';
 import { compose } from '../../core/compose.js';
 import { renderPage } from '../../core/render.js';
@@ -37,29 +35,25 @@ export const generateRoute = async (route, outputDir='public', dataSource, optio
             }
             
             const fullPath = routeOutputPath(outputDir, pathname);
-            const dirPath = path.dirname(fullPath);
-    
-            // Ensure directory exists
-            if (!fs.existsSync(dirPath)) {
-                fs.mkdirSync(dirPath, { recursive: true });
-            }
-    
             try {
                 // Compose components
-                const content = compose(components, { route, strict: !options.allowRenderErrors });
+                const assetBasePath = pageAssetBasePath(route.filePath, pathname, options.pagesDir);
+                const resolvedRoute = { ...route, pattern: { pathname } };
+                const content = compose(components, { route: resolvedRoute, assetBasePath, strict: !options.allowRenderErrors });
                 
                 // ✨ THE FIX: Pass currentPath for asset resolution
                 const meta = {
                     ...(route.meta || {}),
                     ...data,
-                    currentPath: pathname  // Context-aware asset paths! 🎯
+                    currentPath: pathname,
+                    assetBasePath
                 };
                 
                 // Render with resolved paths
                 const html = renderPage(content, meta);
     
                 // Write file
-                fs.writeFileSync(fullPath, html, 'utf8');
+                writeOutputFile(outputDir, fullPath, html);
     
                 console.log(`✓ ${pathname} → ${filePath}`);
                 
@@ -108,27 +102,22 @@ export const generateRoute = async (route, outputDir='public', dataSource, optio
         }
         
         const fullPath = routeOutputPath(outputDir, pathname);
-        const dirPath = path.dirname(fullPath);
-
-        // Ensure directory exists
-        if (!fs.existsSync(dirPath)) {
-            fs.mkdirSync(dirPath, { recursive: true });
-        }
-
         // Compose components to HTML
-        const content = compose(route.components, { route, strict: !options.allowRenderErrors });
+        const assetBasePath = pageAssetBasePath(route.filePath, pathname, options.pagesDir);
+        const content = compose(route.components, { route, assetBasePath, strict: !options.allowRenderErrors });
         
         // ✨ THE FIX: Pass currentPath in meta for asset resolution
         const meta = {
             ...(route.meta || {}),
-            currentPath: pathname  // This is the magic! 🎩✨
+            currentPath: pathname,
+            assetBasePath
         };
         
         // Render full page with context-aware asset paths
         const html = renderPage(content, meta);
 
         // Write file
-        fs.writeFileSync(fullPath, html, 'utf8');
+        writeOutputFile(outputDir, fullPath, html);
 
         console.log(`✓ ${pathname} → ${filePath}`);
 

@@ -1,8 +1,9 @@
 // src/framework/utils/build/compileTemplates.js
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { compose } from '../../core/compose.js';
+import { assertSafeSourcePath, ensureSafeOutputDirectory, writeOutputFile } from './outputPath.js';
 
 /**
  * Generates pre-compiled templates for SPA components
@@ -11,7 +12,7 @@ import { compose } from '../../core/compose.js';
  * Key insight: Static templates → HTML, Dynamic templates → keep as functions
  */
 export const generateCompiledTemplates = async (spaComponentPath, outputPath, options = {}) => {
-    const { verbose = false, mode = 'bundle' } = options;
+    const { verbose = false, mode = 'bundle', outputDir = mode === 'individual' ? outputPath : path.dirname(outputPath) } = options;
     const templatesDir = path.join(spaComponentPath, 'templates');
     
     if (!fs.existsSync(templatesDir)) {
@@ -19,7 +20,9 @@ export const generateCompiledTemplates = async (spaComponentPath, outputPath, op
         return null;
     }
     
-    const templateFiles = fs.readdirSync(templatesDir).filter(f => f.endsWith('.js'));
+    const sourceRoot = path.resolve(spaComponentPath);
+    assertSafeSourcePath(sourceRoot, templatesDir);
+    const templateFiles = fs.readdirSync(templatesDir).filter(f => f.endsWith('.js') && !/\.(test|spec)\.js$/.test(f));
     
     if (templateFiles.length === 0) {
         if (verbose) console.warn(`⚠️  No template files found in: ${templatesDir}`);
@@ -36,6 +39,7 @@ export const generateCompiledTemplates = async (spaComponentPath, outputPath, op
     for (const file of templateFiles) {
         const templatePath = path.join(templatesDir, file);
         const templateName = path.basename(file, '.js');
+        assertSafeSourcePath(sourceRoot, templatePath);
         
         try {
             const templateUrl = pathToFileURL(templatePath).href;
@@ -67,9 +71,7 @@ export const generateCompiledTemplates = async (spaComponentPath, outputPath, op
 
     if (mode === 'individual') {
         // Output each template as an individual file in the outputPath directory
-        if (!fs.existsSync(outputPath)) {
-            fs.mkdirSync(outputPath, { recursive: true });
-        }
+        ensureSafeOutputDirectory(outputDir, outputPath);
 
         for (const [name, data] of Object.entries(compiledTemplates)) {
             const filePath = path.join(outputPath, `${name}.js`);
@@ -91,7 +93,7 @@ ${originalSource}
 `;
             }
 
-            fs.writeFileSync(filePath, content, 'utf8');
+            writeOutputFile(outputDir, filePath, content);
             if (verbose) console.log(`   📦 Generated: ${path.relative(process.cwd(), filePath)}`);
         }
         return compiledTemplates;
@@ -128,11 +130,6 @@ export const templates = {
 export default templates;
 `;
     
-    const outputDir = path.dirname(outputPath);
-    if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-    }
-    
-    fs.writeFileSync(outputPath, outputCode, 'utf8');
+    writeOutputFile(outputDir, outputPath, outputCode);
     return compiledTemplates;
 };

@@ -13,6 +13,7 @@ export const createRenderCache = (maxSize = 500) => {
                 name: component.name,
                 props: component.props,
                 routePath: component.routePath,
+                assetBasePath: component.assetBasePath,
                 strict: component.strict
             });
         } catch (error) {

@@ -2,6 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { assertSafeSourcePath, copyOutputFile, ensureSafeOutputDirectory } from './outputPath.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,20 +18,21 @@ export async function copyComponentBehaviors(outputDir, options = {}) {
         const COMPONENTS_DIR = path.resolve(__dirname, '../../../components');
         const behaviorsDest = path.join(outputDir, 'assets', 'js', 'behaviors');
         
-        // Ensure destination exists
-        if (!fs.existsSync(behaviorsDest)) {
-            fs.mkdirSync(behaviorsDest, { recursive: true });
-        }
+        const sourceRoot = path.dirname(COMPONENTS_DIR);
+        ensureSafeOutputDirectory(outputDir, behaviorsDest);
         
-        // Find all .client.js files in components directory
+        // Copy browser-importable component modules and their utility dependencies.
         function findClientFiles(dir, fileList = []) {
+            assertSafeSourcePath(sourceRoot, dir);
             const files = fs.readdirSync(dir, { withFileTypes: true });
             
             for (const file of files) {
                 const fullPath = path.join(dir, file.name);
-                if (file.isDirectory() && !['__tests__', 'tests', 'generator'].includes(file.name)) {
+                if (['__tests__', 'tests', 'generator'].includes(file.name) || /\.(test|spec)\.js$/.test(file.name)) continue;
+                assertSafeSourcePath(sourceRoot, fullPath);
+                if (file.isDirectory()) {
                     findClientFiles(fullPath, fileList);
-                } else if (file.isFile() && file.name.endsWith('.js') && !/\.(test|spec)\.js$/.test(file.name)) {
+                } else if (file.isFile() && file.name.endsWith('.js')) {
                     fileList.push(fullPath);
                 }
             }
@@ -44,14 +46,7 @@ export async function copyComponentBehaviors(outputDir, options = {}) {
             // Preserve relative path structure
             const relativePath = path.relative(COMPONENTS_DIR, srcFile);
             const destFile = path.join(behaviorsDest, relativePath);
-            const destDir = path.dirname(destFile);
-            
-            // Ensure subdirectory exists
-            if (!fs.existsSync(destDir)) {
-                fs.mkdirSync(destDir, { recursive: true });
-            }
-            
-            fs.copyFileSync(srcFile, destFile);
+            copyOutputFile(sourceRoot, srcFile, outputDir, destFile);
             
             if (verbose) {
                 console.log(`   📋 Copied ${path.relative(COMPONENTS_DIR, srcFile)}`);

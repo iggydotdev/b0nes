@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   FRAMEWORK_PATHS,
+  FRAMEWORK_UTILS_PATHS,
   COMPONENT_PATHS,
   BACKUPS_DIR,
   DEFAULT_POLICY
@@ -65,7 +66,8 @@ export const buildUpgradePlan = ({
   packageRoot,
   pathSpecs,
   tier,
-  previousChecksums
+  previousChecksums,
+  protectUntracked = false
 }) => {
   const plan = [];
   const seen = new Set();
@@ -93,7 +95,7 @@ export const buildUpgradePlan = ({
         status = 'add';
       } else if (destHash === srcHash) {
         status = 'identical';
-      } else if (prevHash && destHash !== prevHash && destHash !== srcHash) {
+      } else if ((prevHash && destHash !== prevHash) || (!prevHash && protectUntracked)) {
         status = 'local-modified';
       } else {
         status = 'update';
@@ -169,7 +171,7 @@ const printPlan = (plan, { fromVersion, toVersion, dryRun }) => {
 
   line('Will add', groups.add, colors.green);
   line('Will update', groups.update, colors.cyan);
-  line('Locally modified (stock)', groups['local-modified'], colors.yellow);
+  line('Locally modified or untracked (stock)', groups['local-modified'], colors.yellow);
   log.dim(`Unchanged (identical): ${groups.identical.length} files`);
   console.log();
 
@@ -223,16 +225,25 @@ export const runUpgrade = async ({
   const fromVersion = manifest.frameworkVersion || 'unknown';
   const previousChecksums = readChecksums(projectRoot);
 
-  const pathSpecs = [...FRAMEWORK_PATHS];
-  if (components) pathSpecs.push(...COMPONENT_PATHS);
-
   const frameworkPlan = buildUpgradePlan({
     projectRoot,
     packageRoot,
-    pathSpecs: FRAMEWORK_PATHS,
+    pathSpecs: FRAMEWORK_PATHS.filter(spec => !FRAMEWORK_UTILS_PATHS.includes(spec)),
     tier: 'framework',
     previousChecksums
   });
+
+  // These files used to belong to the optional component tier. Without a
+  // checksum baseline, an existing different file might be a customization.
+  const utilityPlan = buildUpgradePlan({
+    projectRoot,
+    packageRoot,
+    pathSpecs: FRAMEWORK_UTILS_PATHS,
+    tier: 'framework',
+    previousChecksums,
+    protectUntracked: true
+  });
+  const frameworkFiles = new Set([...frameworkPlan, ...utilityPlan].map(item => item.rel));
 
   const componentPlan = components
     ? buildUpgradePlan({
@@ -241,10 +252,10 @@ export const runUpgrade = async ({
         pathSpecs: COMPONENT_PATHS,
         tier: 'components',
         previousChecksums
-      })
+      }).filter(item => !frameworkFiles.has(item.rel))
     : [];
 
-  const plan = [...frameworkPlan, ...componentPlan];
+  const plan = [...frameworkPlan, ...utilityPlan, ...componentPlan];
   const groups = printPlan(plan, { fromVersion, toVersion, dryRun });
 
   const actionable = plan.filter(
@@ -253,11 +264,12 @@ export const runUpgrade = async ({
 
   if (actionable.length === 0) {
     log.success('Already up to date — nothing to write.');
-    // Still refresh manifest version if unknown → known
-    if (!dryRun && fromVersion !== toVersion) {
+    // Refresh version and ownership metadata even when files already match.
+    const policy = { ...manifest.policy, ...DEFAULT_POLICY };
+    if (!dryRun && (fromVersion !== toVersion || JSON.stringify(manifest.policy) !== JSON.stringify(policy))) {
       manifest.frameworkVersion = toVersion;
       manifest.upgradedAt = new Date().toISOString();
-      manifest.policy = manifest.policy || { ...DEFAULT_POLICY };
+      manifest.policy = policy;
       writeManifest(projectRoot, manifest);
       const specs = components ? [...FRAMEWORK_PATHS, ...COMPONENT_PATHS] : [...FRAMEWORK_PATHS];
       writeChecksums(projectRoot, {
@@ -271,7 +283,7 @@ export const runUpgrade = async ({
 
   if (groups['local-modified'].length > 0 && !force) {
     log.warn(
-      `${groups['local-modified'].length} stock file(s) were edited locally. ` +
+      `${groups['local-modified'].length} stock file(s) were edited locally or have no checksum baseline. ` +
         `Re-run with --force to overwrite them, or restore from git and upgrade.`
     );
     if (!force) {
@@ -333,7 +345,7 @@ export const runUpgrade = async ({
 
   manifest.frameworkVersion = toVersion;
   manifest.upgradedAt = new Date().toISOString();
-  manifest.policy = manifest.policy || { ...DEFAULT_POLICY };
+  manifest.policy = { ...manifest.policy, ...DEFAULT_POLICY };
   if (!manifest.createdWith) manifest.createdWith = toVersion;
   writeManifest(projectRoot, manifest);
 
@@ -341,7 +353,7 @@ export const runUpgrade = async ({
   if (components) log.info('Stock components were included (--components).');
   log.dim('User land left untouched: src/pages, public, custom components.');
   log.dim('Read CHANGELOG.md and docs/UPGRADE.md for breaking changes.');
-  if (backupRoot) log.dim(`Restore backup with: cp -R ${backupRoot}/src/framework src/  # adjust paths`);
+  if (backupRoot) log.dim(`Restore backup with: cp -R ${backupRoot}/src/. src/  # restores all replaced files`);
 
   return 0;
 };

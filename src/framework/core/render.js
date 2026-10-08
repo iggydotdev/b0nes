@@ -207,7 +207,7 @@ export const renderPage = (content, meta = {}) => {
     }
     
     // Get current page path for resolving relative assets
-    const currentPath = meta.currentPath || '/';
+    const currentPath = meta.assetBasePath ?? meta.currentPath ?? '/';
 
     // Process stylesheets
     const pageStylesheets = normalizeStylesheets(meta.stylesheets);

@@ -1,6 +1,6 @@
 // src/framework/utils/build/ssrFallback.js
-import fs from 'node:fs';
 import path from 'node:path';
+import { routeOutputPath, writeOutputFile } from './outputPath.js';
 
 /**
  * Generate a fallback HTML page for SSR routes
@@ -27,16 +27,9 @@ export const generateSSRFallback = async (route, outputDir, options = {}) => {
     
     // Determine output path
     // For dynamic routes like /blog/[slug], create a directory structure
-    const outputPath = pathname.includes('[') 
-        ? path.join(outputDir, pathname.replace(/\[.*?\]/g, '_dynamic_'))
-        : path.join(outputDir, pathname);
-    
-    const htmlPath = path.join(outputPath, 'index.html');
+    const htmlPath = routeOutputPath(outputDir, pathname.replace(/\[.*?\]/g, '_dynamic_'));
     
     // Ensure directory exists
-    if (!fs.existsSync(outputPath)) {
-        fs.mkdirSync(outputPath, { recursive: true });
-    }
     
     // Load page meta if available
     let meta = { title: 'Loading...', description: '' };
@@ -51,7 +44,7 @@ export const generateSSRFallback = async (route, outputDir, options = {}) => {
     const html = generateFallbackHTML(route, meta, { strategy, serverUrl });
     
     // Write to file
-    fs.writeFileSync(htmlPath, html, 'utf8');
+    writeOutputFile(outputDir, htmlPath, html);
     
     if (verbose) {
         console.log(`   ✅ Generated SSR fallback: ${pathname} (${strategy})`);
@@ -248,7 +241,7 @@ export const createSSRManifest = (ssrRoutes, outputDir) => {
     };
     
     const manifestPath = path.join(outputDir, 'ssr-manifest.json');
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+    writeOutputFile(outputDir, manifestPath, JSON.stringify(manifest, null, 2));
     
     console.log(`✅ Created SSR manifest: ${manifestPath}`);
     

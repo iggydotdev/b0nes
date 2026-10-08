@@ -28,6 +28,6 @@ If npm publishing fails after GitHub release creation, correct the problem and
 re-run the workflow. Existing releases are retained and versions already present
 on npm are skipped. Registry errors other than a missing version fail the run.
 
-The current package version is already tagged; merging without a version bump
-will intentionally skip a new release. Configure branch protection to require CI
-before merging. This workflow does not change repository settings or secrets.
+If the package version is already tagged on an earlier commit, merging without
+a version bump intentionally skips a new release. Configure branch protection
+to require CI before merging. This workflow does not change repository settings or secrets.

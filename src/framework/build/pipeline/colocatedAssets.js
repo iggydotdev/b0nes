@@ -1,6 +1,7 @@
 // src/framework/utils/build/colocatedAssets.js
 import fs from 'node:fs';
 import path from 'node:path';
+import { assertSafeSourcePath, copyOutputFile } from './outputPath.js';
 
 /**
  * Copy co-located assets for a specific page
@@ -18,8 +19,9 @@ import path from 'node:path';
 export const copyColocatedAssets = (pageFilePath, outputDir, options = {}) => {
     const {
         verbose = false,
+        pagesDir: suppliedPagesDir,
         // Files to ignore (the actual page files)
-        ignorePatterns = ['index.js', 'page.js', '[*.js', '*.test.js', '*.spec.js'],
+        ignorePatterns = ['index.js', 'page.js', '[*.js', ':*.js', '*.test.js', '*.spec.js'],
         // Only copy these extensions (or all if empty)
         allowedExtensions = ['.css', '.js', '.json', '.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.woff', '.woff2', '.ttf', '.eot']
     } = options;
@@ -39,26 +41,25 @@ export const copyColocatedAssets = (pageFilePath, outputDir, options = {}) => {
     
     // Calculate relative path from pages directory to preserve structure
     // e.g., src/pages/examples/talk/index.js → examples/talk
-    const pagesDir = pageFilePath.includes('pages') 
-        ? pageFilePath.substring(0, pageFilePath.indexOf('pages') + 5)
-        : path.dirname(pageFilePath);
+    const absolutePage = path.resolve(pageFilePath);
+    const segments = absolutePage.split(path.sep);
+    const pagesIndex = segments.lastIndexOf('pages');
+    const pagesDir = suppliedPagesDir ? path.resolve(suppliedPagesDir) : pagesIndex >= 0
+        ? segments.slice(0, pagesIndex + 1).join(path.sep) || path.parse(absolutePage).root
+        : path.dirname(absolutePage);
+    assertSafeSourcePath(pagesDir, pageFilePath);
     
     const relativePath = path.relative(pagesDir, pageDir);
     const targetDir = path.join(outputDir, relativePath);
-    
-    // Ensure target directory exists
-    if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
-    }
     
     // Read all files in the page directory
     const files = fs.readdirSync(pageDir);
     
     for (const file of files) {
         const filePath = path.join(pageDir, file);
-        const fileStat = fs.statSync(filePath);
-        
-        // Skip directories
+        const fileStat = fs.lstatSync(filePath);
+
+        // Ordinary directories are handled separately by template compilation.
         if (fileStat.isDirectory()) continue;
         
         // Check if file should be ignored
@@ -88,7 +89,7 @@ export const copyColocatedAssets = (pageFilePath, outputDir, options = {}) => {
         const targetPath = path.join(targetDir, file);
         
         try {
-            fs.copyFileSync(filePath, targetPath);
+            copyOutputFile(pagesDir, filePath, outputDir, targetPath);
             stats.filesCopied++;
             
             if (verbose) {
@@ -203,14 +204,9 @@ export const watchColocatedAssets = (pagesDir, outputDir, options = {}) => {
             const targetDir = path.join(outputDir, relativePath);
             const targetPath = path.join(targetDir, path.basename(filename));
             
-            // Ensure target directory exists
-            if (!fs.existsSync(targetDir)) {
-                fs.mkdirSync(targetDir, { recursive: true });
-            }
-            
-            // Copy the file
+            // Copy through the same containment checks used by builds.
             try {
-                fs.copyFileSync(fullPath, targetPath);
+                copyOutputFile(pagesDir, fullPath, outputDir, targetPath);
                 console.log(`🔄 Updated: ${relativePath}/${path.basename(filename)}`);
             } catch (error) {
                 console.error(`❌ Failed to copy ${filename}:`, error.message);

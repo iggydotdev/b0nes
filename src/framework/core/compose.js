@@ -103,6 +103,10 @@ const composeSlot = (slot, context = {}) => {
     if (slot == null) return '';
     if (isHTML(slot)) {
         slot.dependencies.forEach(dep => context.dependencies?.add(dep));
+        if ((context.assetBasePath || context.route?.pattern?.pathname) && slot.component) {
+            const descriptor = slot.component.descriptor;
+            if (getComponent(descriptor.type, descriptor.name)) return compose([descriptor], context);
+        }
         return String(slot);
     }
     if (Array.isArray(slot)) return slot.map(child => composeSlot(child, context)).join('');
@@ -156,12 +160,13 @@ const safeRender = (comp, props, componentName, componentType, context) => {
 const rewriteAssetPaths = (props, context) => {
     const finalProps = { ...props };
 
-    if (context.route?.pattern?.pathname) {
+    const assetBasePath = context.assetBasePath ?? context.route?.pattern?.pathname;
+    if (assetBasePath) {
         const pathProps = ['src', 'href', 'poster'];
 
         for (const prop of pathProps) {
             if (typeof finalProps[prop] === 'string' && finalProps[prop].startsWith('./')) {
-                const newPath = resolveAssetPath(finalProps[prop], context.route.pattern.pathname);
+                const newPath = resolveAssetPath(finalProps[prop], assetBasePath);
                 finalProps[prop] = newPath.replace(/\\/g, '/');
             }
         }
@@ -217,6 +222,7 @@ export const compose = (components = [], context = {}) => {
         const componentWithFinalProps = {
             type, name, props: finalProps,
             routePath: context.route?.pattern?.pathname,
+            assetBasePath: context.assetBasePath,
             strict: Boolean(context.strict)
         };
 

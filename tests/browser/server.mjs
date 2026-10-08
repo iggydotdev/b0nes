@@ -33,6 +33,26 @@ fs.writeFileSync(path.join(output, 'index.html'), renderPage(compose([
     {type:'organism',name:'multi-step-form',props:{}}, tab
 ]), { title:'Production module test', bundlePath: bundle }));
 
+const spaBundle = await createPageBundle('spa-browser', new Set(['organism:spa']), output);
+const spaConfig = `
+const { createStore } = await import('/assets/js/client/store.js');
+const store = createStore({ state: { items: ['first'], count: 0, text:'<img src=x> & bound', checked:true, title:'Bound title', className:'bound-class', unsafeURL:'javascript:window.spaBindingExecuted=true', unsafeSource:'data:text/html,unsafe', markup:'<img src=x onerror=parent.spaBindingExecuted=true>' }, actions: {
+    add: state => ({ items: [...state.items, 'next'], count: state.count + 1 }),
+    patch: (_, changes) => changes
+} });
+window.spaConfig = { store, routes: [
+    { name: 'home', url: '/spa', template: '<h2 id="spa-heading">Home</h2><a id="spa-item" href="/spa/second" data-fsm-event="GOTO_ITEM" data-param-id="second">Item</a>' },
+    { name: 'item', url: '/spa/:id', template: context => '<h2 id="spa-heading">Item ' + context.id + '</h2><ul>' + store.get('items').map(value => '<li>' + value + '</li>').join('') + '</ul><button id="spa-add" data-action="add">Add</button><a id="spa-home" href="/spa" data-fsm-event="GOTO_HOME">Home</a>' },
+    { name: 'components', url: '/spa-components', template: [{ type: 'atom', name: 'text', props: { is: 'p', slot: '<img src=x> & user text' } }] },
+    { name:'bindings', url:'/spa-bindings', template:'<div id=spa-bound-text data-b0nes-bind=text></div><input id=spa-bound-value data-b0nes-bind=text:value><input id=spa-bound-checked type=checkbox data-b0nes-bind=checked:checked><div id=spa-bound-title data-b0nes-bind=title:title></div><div id=spa-bound-class data-b0nes-bind=className:className></div><a id=spa-bound-url href=/safe data-b0nes-bind=unsafeURL:href>Safe link</a><img id=spa-bound-src src=/safe-image.png data-b0nes-bind=unsafeSource:src><iframe id=spa-bound-frame srcdoc="Safe" data-b0nes-bind=markup:srcdoc></iframe><div id=spa-bound-html data-b0nes-bind=markup:innerHTML>Safe text</div>' },
+    { name: 'widgets', url: '/spa-widgets', template: [{ type:'molecule', name:'tabs', props:{ tabs:[{label:'One',content:'One panel'},{label:'Two',content:'Two panel'}] } }] },
+    { name: 'slow', url: '/spa-slow', template: () => new Promise(resolve => { window.resolveSpaSlow = resolve; }) }
+], onInit: ({ fsm }) => { window.spaTest = { fsm, store }; } };
+`;
+const spaHTML = renderPage(compose([{ type:'organism', name:'spa', props:{ slot:'Readable SPA fallback' } }]), {
+    title:'SPA regression fixture', bundlePath:spaBundle, inlineScripts:[spaConfig]
+});
+
 const server = http.createServer((req, res) => {
     const pathname = new URL(req.url, 'http://localhost').pathname;
     if (pathname === '/assets/js/behaviors/atoms/pending/client.js') {
@@ -52,15 +72,19 @@ const server = http.createServer((req, res) => {
         return;
     }
     if (pathname === '/') { res.setHeader('content-type', 'text/html'); res.end(html); return; }
+    if (pathname.startsWith('/spa')) { res.setHeader('content-type', 'text/html'); res.end(spaHTML); return; }
     if (pathname === '/no-js') {
         res.setHeader('content-type', 'text/html');
         res.end(renderPage(content, { interactive:false, title:'Unenhanced tabs' })); return;
     }
+    const sourceAliases = { '/client/':'src/framework/client/', '/shared/':'src/framework/shared/', '/components/':'src/components/' };
+    const sourceMount = Object.keys(sourceAliases).find(prefix => pathname.startsWith(prefix));
+    const sourcePath = sourceMount ? '/' + sourceAliases[sourceMount] + pathname.slice(sourceMount.length) : pathname;
     const base = pathname.startsWith('/assets/') || pathname === '/production' ? output : root;
-    if (base === root && !pathname.startsWith('/src/') && !pathname.startsWith('/tests/browser/')) {
+    if (base === root && !sourcePath.startsWith('/src/') && !sourcePath.startsWith('/tests/browser/')) {
         res.writeHead(404); res.end(); return;
     }
-    const file = path.resolve(base, '.' + (pathname === '/production' ? '/index.html' : pathname));
+    const file = path.resolve(base, '.' + (pathname === '/production' ? '/index.html' : sourcePath));
     if (!file.startsWith(base + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
         res.writeHead(404); res.end(); return;
     }

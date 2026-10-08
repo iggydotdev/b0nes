@@ -33,6 +33,8 @@ export interface PageMeta {
   interactive?: boolean;
   /** Current page path for resolving relative assets */
   currentPath?: string;
+  /** Shared directory URL for co-located assets. */
+  assetBasePath?: string;
   /** Production bundle path */
   bundlePath?: string;
   /** Any additional meta tag properties */

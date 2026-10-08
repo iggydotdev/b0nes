@@ -11,6 +11,7 @@ import { copyColocatedAssets } from './pipeline/colocatedAssets.js';
 import { copyComponentBehaviors } from './pipeline/copyComponentBehaviors.js';
 import { compose, clearCompositionCache } from '../core/compose.js';
 import { tabs } from '../../components/molecules/tabs/tabs.js';
+import { image } from '../../components/atoms/image/image.js';
 import { box } from '../../components/atoms/box/box.js';
 import { resolveAssetPath } from '../server/handlers/resolveAssetPath.js';
 
@@ -69,7 +70,7 @@ test('component and metadata asset URLs match directory and HTML routes', () => 
 test('public assets exclude tests while preserving runtime modules', async t => {
     const dir = fixture(t), out = path.join(dir,'public');
     const filePath = path.join(dir,'src/pages/about/index.js'); fs.mkdirSync(path.dirname(filePath),{recursive:true});
-    for (const name of ['index.js','index.test.js','foo.spec.js','[slug].js','script.js','style.css']) {
+    for (const name of ['index.js','index.test.js','foo.spec.js','[slug].js',':slug.js','script.js','style.css']) {
         fs.writeFileSync(path.join(path.dirname(filePath),name),'');
     }
     copyColocatedAssets(filePath,out);
@@ -94,4 +95,21 @@ test('serialized component dependencies survive top-level, nested, and cached re
         }
     }
     assert.throws(() => compose([{html:'<p>x</p>',dependencies:['atom:../../bad']}],{strict:true}),/Invalid serialized/);
+});
+
+test('direct helper assets retain their snapshot and resolve through nested and serialized components', () => {
+    const props = { src: './photo.png', alt: '<unsafe>' };
+    const tree = [box({ slot: image(props) })];
+    props.src = './edited.png';
+    for (const input of [tree, JSON.parse(JSON.stringify(tree))]) {
+        for (const assetBasePath of ['/posts/', '/catalog/%5Bcategory%5D/']) {
+            const context = { assetBasePath, route: { pattern: { pathname: '/catalog/books/guide' } }, strict: true };
+            for (let attempt = 0; attempt < 2; attempt++) {
+                const output = compose(input, context);
+                assert.ok(output.includes(`src="${assetBasePath}photo.png"`));
+                assert.ok(output.includes('alt="&lt;unsafe&gt;"'));
+                assert.ok(!output.includes('edited.png'));
+            }
+        }
+    }
 });

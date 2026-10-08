@@ -3,7 +3,7 @@
 > A zero-dependency SSG/SSR framework with built-in state management and component composition
 > GitHub: https://github.com/iggydotdev/b0nes
 > npm: https://www.npmjs.com/package/b0nes
-> Version: 0.2.1
+> Version: 0.3.0
 
 ## Core Philosophy
 
@@ -25,15 +25,15 @@ Perfect for: blogs, marketing sites, documentation, landing pages, e-commerce pr
 git clone https://github.com/iggydotdev/b0nes.git
 cd b0nes
 # No npm install needed!
-# Requires Node.js >= 22 (Active LTS)
+# Requires Node.js >= 22
 ```
 
-### Examples: git vs npm (for agents)
+### Scaffolding and recipes (for agents)
 
-- **Full demos** (`talk`, `spa`, `playground`, `social-demo`, …) live only in the **git repo** for local validation (`npm run dev`).
-- **npm package** ships framework + scaffold templates only: `basic`, `blog`, `documentation` (used by `npx b0nes`).
-- When generating a new site for a user, prefer `npx b0nes <name> --template basic|blog|docs` — do not assume talk/SPA demos exist in `node_modules/b0nes`.
-- To explore every example, clone the GitHub repo.
+- Bulky starter templates and demo pages have been removed from both the checkout and npm package.
+- Run `npx b0nes <name>` to copy the framework and components and generate a minimal home page.
+- Follow `docs/RECIPES.md` for static pages, blogs, tabs, and SPA setup; the CLI copies this guide into new projects.
+- Do not use `--template`; that option is unsupported.
 
 ## Quick Start
 
@@ -66,7 +66,7 @@ b0nes **scaffolds by copy**: `src/framework` lives inside the user project. It i
 ### Commands
 ```bash
 npx b0nes@latest upgrade --dry-run
-npx b0nes@latest upgrade              # replaces src/framework/**
+npx b0nes@latest upgrade              # framework + required shared rendering utilities
 npx b0nes upgrade --components        # + stock atoms/molecules/organisms/utils
 npx b0nes upgrade --force             # allow overwrite of locally edited stock files
 npx b0nes upgrade --yes               # non-interactive
@@ -75,9 +75,15 @@ npx b0nes upgrade --yes               # non-interactive
 ### Ownership (never tell users to hand-merge pages for routine upgrades)
 | Tier | Paths | On upgrade |
 |------|-------|------------|
-| Framework | `src/framework/**` | Replaced (default) |
-| Stock components | built-in atoms/molecules/organisms/utils | Only with `--components` |
+| Framework | `src/framework/**` + required shared rendering utilities | Replaced (default) |
+| Stock components | built-in atoms/molecules/organisms + remaining utilities + registry | Only with `--components` |
 | User land | `src/pages/**`, `public/**`, custom generated components | **Never** touched |
+
+Required default utilities under `src/components/utils/`: `html.js`, `escapeHtml.js`,
+`escapeAttr.js`, `safeUrl.js`, `attrsToString.js`, `processSlot.js`, and `componentError.js`.
+Custom utilities and the generator remain outside the default upgrade. Differing
+shared utilities without a recorded checksum require `--force`; replacements are
+backed up unless `--no-backup` is requested.
 
 ### Metadata
 - Create stamps `.b0nes/manifest.json` + `.b0nes/checksums.json`
@@ -128,18 +134,20 @@ npx b0nes upgrade --yes               # non-interactive
 
 ### Component API Pattern
 
-ALL components follow this pattern:
+Custom components can follow this pattern. `defineComponent` marks the rendered
+result as trusted HTML; the renderer must escape its inputs before returning it:
 
 ```javascript
-import { processSlotTrusted } from '../../utils/processSlot.js';
+import { defineComponent } from '../../utils/html.js';
+import { processSlot } from '../../utils/processSlot.js';
 import { normalizeClasses } from '../../utils/normalizeClasses.js';
 import { validateProps, validatePropTypes } from '../../utils/componentError.js';
 import { attrsToString } from '../../utils/attrsToString.js';
 
-export const componentName = ({
+export const componentName = defineComponent(({
     attrs = '',      // Prefer object form: { id: 'x' }; string form is legacy
     className = '',  // CSS classes
-    slot,            // Content — when called via compose(), already safe HTML
+    slot,            // Plain text, rendered components, or explicit trusted HTML
     // ... component-specific props
 }) => {
     // 1. Validate required props
@@ -157,14 +165,12 @@ export const componentName = ({
     const attrsStr = attrsToString(attrs); // object form escapes values
     const classes = normalizeClasses(['base-class', className]);
     
-    // 4. Process slot content
-    // processSlotTrusted is correct HERE because compose() already escaped
-    // plain-text slots before calling the component. Do NOT re-escape.
-    const slotContent = processSlotTrusted(slot);
+    // 4. Escape plain text; preserve marked component results and explicit HTML
+    const slotContent = processSlot(slot);
     
-    // 5. Return HTML string
-    return `<element class="${classes}"${attrsStr}>${slotContent}</element>`;
-};
+    // 5. Return escaped markup; the wrapper records its component dependency
+    return `<div class="${classes}"${attrsStr}>${slotContent}</div>`;
+}, 'atom:component-name');
 ```
 
 ## Component Usage
@@ -173,15 +179,20 @@ export const componentName = ({
 ```javascript
 import { button } from './components/atoms/button/button.js';
 
-const html = button({ 
+const rendered = button({
     type: 'submit', 
     slot: 'Click Me', 
     className: 'primary' 
 });
-// Returns: '<button type="submit" class="btn primary">Click Me</button>'
+// String(rendered): '<button type="submit" class="btn primary">Click Me</button>'
 ```
 
-**Important:** Direct atom/molecule calls bypass `compose`. Prefer `compose([...])` for page content and any untrusted input so escape-by-default applies.
+**Important:** Built-in direct calls escape plain-text content too. They return
+immutable `TrustedHTML` string objects, preserving nested markup and behavior
+dependencies. Pass arrays of rendered components instead of concatenating or
+joining them, which loses the marker. Use `String(result)` or `toHTMLString(result)`
+at HTTP/file boundaries. Use `compose([...])` for component descriptors; it returns
+a primitive HTML string. Custom renderers must follow the same escaping contract.
 
 ### Composition Usage (in pages)
 ```javascript
@@ -210,7 +221,10 @@ export const components = [
 
 ## Composition & Escape-by-Default (CRITICAL for agents)
 
-`compose` is the **trust boundary**. Always emit a **JSON component tree**, then call `compose`. Never inject raw HTML strings into slots unless you use the explicit `{ html }` opt-in.
+For pages and MCP tools, emit a **JSON component tree**, then call `compose`.
+Built-in renderers and composition escape plain-text content while preserving
+marked component results. `html(value)` and `{ html: value }` explicitly assert
+that markup is trusted; neither is a sanitizer. Never wrap user input in them.
 
 ### Pipeline
 
@@ -233,6 +247,8 @@ Any input (pages, MCP tools, helpers)
 |-----------|---------|-------------------|
 | Plain text | `'Hello <world>'` | Escapes → `Hello &lt;world&gt;` |
 | Component node | `{ type: 'atom', name: 'button', props: {…} }` | Renders real HTML (not re-escaped) |
+| Rendered component | `button({ slot: 'Save' })` | Preserves marked markup and behavior dependencies |
+| Explicit HTML | `html('<em>Trusted</em>')` | Inserts trusted markup as-is; accepts rendered components too |
 | Raw HTML opt-in | `{ html: '<em>…</em>' }` | Inserts as-is — author owns risk |
 | Bind marker | `'Hi {{user.name}}'` | Escapes text; keeps `<span data-b0nes-bind>` real |
 | number / boolean | `42` | `String(x)` (safe) |
@@ -291,9 +307,10 @@ compose([{
 { type: 'atom', name: 'text', props: { is: 'p', slot: '<strong>bold</strong>' } }
 
 // ❌ Building pages by concatenating HTML strings outside compose
-const html = '<div>' + userContent + '</div>';
+const unsafePage = '<div>' + userContent + '</div>';
 
-// ❌ Relying on processSlotTrusted for untrusted user input at the page layer
+// ❌ Marking untrusted user input as HTML
+html(userInput);
 ```
 
 ### Attributes
@@ -306,9 +323,14 @@ attrs: { id: 'main', 'aria-label': userLabel, 'data-param-id': id }
 attrs: `id="main" aria-label="${userLabel}"`
 ```
 
-### Why processSlotTrusted exists in atoms
+### Component trust contract
 
-Atoms use `processSlotTrusted(slot)` because when they are reached **through compose**, `slot` is already resolved safe HTML (escaped text + rendered children). Re-escaping there would turn real `<button>` output into `&lt;button&gt;`. Escape once, at compose. Components trust the result.
+Built-in renderers use `processSlot(slot)`: plain strings are escaped, while
+`TrustedHTML` results and explicit `{ html }` forms retain their markup. Composition
+passes resolved slots with this marker so renderers do not double-escape them.
+`defineComponent(render, 'atom:my-name')` marks a renderer's output and collects
+nested behavior dependencies; it does not sanitize an unsafe renderer. See
+`docs/HTML.md` for direct calls, serialized HTML, and script handling.
 
 ## Routing
 
@@ -885,23 +907,26 @@ Serve the `public/` directory on any static host:
 ## Utility Functions
 
 ### processSlot(slot, options)
-Low-level slot helpers. **Prefer compose for page content** — it already escapes plain text.
+Escapes plain text and preserves marked component results, explicit HTML, and
+arrays. Use `compose` to resolve component descriptors.
 
 ```javascript
-import { processSlot, processSlotTrusted, processSlotUser } from './components/utils/processSlot.js';
+import { processSlot } from './components/utils/processSlot.js';
+import { html } from './components/utils/html.js';
+import { button } from './components/atoms/button/button.js';
 
-// Escapes HTML (user input) — default escape: true
 const safe = processSlot('<script>alert(1)</script>');
 // → '&lt;script&gt;alert(1)&lt;/script&gt;'
 
-processSlotUser(userInput); // always escape
+const nested = processSlot(button({ slot: 'Save' }));
+// → actual button markup, without double escaping
 
-// Trusts HTML — used INSIDE atoms after compose has already made slot safe
-const trusted = processSlotTrusted('<button>Click</button>');
-// → '<button>Click</button>'
+const trusted = processSlot(html('<strong>Developer-authored</strong>'));
 ```
 
-Do **not** call `processSlotTrusted` on untrusted user strings at the page/MCP layer. Put user strings in the tree and let `compose` escape them.
+Do not mark untrusted input with `html()`. The compatibility helper
+`processSlotTrusted` and `processSlot(..., { escape: false })` bypass escaping;
+new renderers should use the default `processSlot()` contract instead.
 
 ### attrsToString(attrs)
 Serializes attrs for HTML. Object form escapes values and validates names; string form is legacy pass-through.
@@ -964,11 +989,12 @@ This avoids:
 | Layer | Behavior |
 |-------|----------|
 | `compose` / `composeSlot` | Escapes plain strings; renders component nodes; allows `{ html }` opt-in |
-| Atoms (`processSlotTrusted`) | Trust already-composed slot HTML (do not double-escape) |
-| `attrsToString({…})` | Escapes attribute values; validates names |
+| Built-in renderers (`processSlot`) | Escape plain text; preserve marked component results and explicit HTML |
+| `defineComponent(render, identifier)` | Marks renderer output and collects dependencies; renderer must escape its inputs |
+| `attrsToString({…})` | Escapes values, validates names, rejects executable attributes and URL schemes |
 | `attrs` string form | Legacy pass-through — trusted values only |
 | `escapeHtml()` / `escapeAttr()` | Manual helpers when needed outside compose |
-| `{ html: '…' }` | Explicit raw HTML — use only for trusted pipelines (markdown, CMS) |
+| `html(value)` / `{ html: '…' }` | Explicit trusted markup; never a sanitizer for arbitrary markdown/CMS input |
 
 ```javascript
 // Safe — script becomes text
@@ -1074,8 +1100,8 @@ connectFSMtoDOM(fsm, document.getElementById('app'), routes);
 - Fix: nest component nodes, or use `{ html: '…' }` only for trusted markup.
 
 ### Nested components became `&lt;button&gt;` / double-escaped
-- Something re-escaped after compose (or escaped inside an atom incorrectly).
-- Atoms should use `processSlotTrusted` on the composed `slot`, not `processSlotUser`.
+- Preserve the `TrustedHTML` marker: pass rendered components directly or in arrays. Concatenation and `.join()` produce plain strings that are escaped.
+- Custom renderers should use `defineComponent` and default `processSlot`; do not blindly trust string slots.
 
 ### Tests failing
 - String comparison is exact (whitespace matters)
@@ -1111,7 +1137,7 @@ connectFSMtoDOM(fsm, document.getElementById('app'), routes);
 - **Pages/MCP: always emit JSON trees and run `compose`**
 - **Never put raw HTML tags in string slots** (use nested nodes or `{ html }`)
 - Prefer `attrs: { … }` objects over attribute strings
-- Use `processSlotTrusted()` inside atoms (slot already safe from compose)
+- Use default `processSlot()` inside renderers, and `defineComponent()` to mark their escaped output
 - Use `attrsToString()` / `normalizeClasses()` for attrs and classes
 - Return template literals for HTML
 - Client behaviors must return a cleanup function when they attach listeners
@@ -1137,7 +1163,7 @@ connectFSMtoDOM(fsm, document.getElementById('app'), routes);
 
 ## Version Info
 
-Current: v0.2.1
+Current: v0.3.0
 Node: >=22.0.0
 License: MIT
 
@@ -1166,4 +1192,4 @@ License: MIT
 13. FSM Router combines state machines with URL/template rendering
 14. Import compose from `./framework/core/compose.js` (not the old `./framework/compose.js` path)
 15. **Upgrades:** `npx b0nes@latest upgrade` — never “npm update b0nes” as the primary story for vendored apps; never touch `src/pages` during upgrade
-16. Full examples (talk/spa/…) are git-only; npm ships basic/blog/documentation templates only
+16. Run `npx b0nes <name>` for a minimal scaffold; use `docs/RECIPES.md` instead of removed demos or `--template`

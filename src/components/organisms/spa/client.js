@@ -1,160 +1,78 @@
-// src/components/organisms/spa/organisms.spa.client.js
-import { createRouterFSM, connectFSMtoDOM } from '/client/fsm.js';
-import { compose } from '/client/compose.js'; // Client-side compose for dynamic templates
+import { safeUrl } from '../../utils/safeUrl.js';
 
-export const client = async (root) => {
+const textProperties = new Set(['textContent', 'innerText', 'value', 'title', 'className', 'placeholder', 'alt', 'ariaLabel', 'ariaDescription']);
+const booleanProperties = new Set(['checked', 'disabled', 'selected', 'hidden', 'multiple', 'readOnly', 'required', 'open']);
 
-    console.log(root);
-    // Helper to wait for config if it's not there yet (scripts might be loading)
-    const getSpaConfig = async (retries = 5, delay = 50) => {
-        for (let i = 0; i < retries; i++) {
-            if (window.spaConfig) return window.spaConfig;
-            await import('../../../pages/examples/spa/spa-config.js');
-        }
-        return null;
-    };
+// Native module URLs differ between source development and static build output.
+const runtimeBase = new URL(import.meta.url).pathname.startsWith('/assets/')
+    ? '/assets/js/client/' : '/client/';
+const { createRouterFSM, connectFSMtoDOM } = await import(new URL(runtimeBase + 'fsm.js', import.meta.url));
 
-    try {
-        const config = await getSpaConfig();
-        
-        // Check for user config
-        if (!config) {
-            console.error('[SPA] No window.spaConfig found after waiting. Configure your SPA in the page file!');
-            root.innerHTML = '<p style="color:red;">SPA Error: Missing window.spaConfig</p>';
-            return;
-        }
-    
-        const { routes, store, onInit } = config;
-        
-        if (!routes || routes.length === 0) {
-            console.error('[SPA] No routes provided in window.spaConfig');
-            return;
-        }
-        
-        // Custom render function (override default to use compose)
-        const renderRoute = async (stateName, data = {}) => {
-            const route = routes.find(r => r.name === stateName);
-            if (!route) return;
-            
-            // Get template (call if function)
-            let template = route.template;
-            if (typeof template === 'function') {
-                template = template(data);
-            }
-            
-            // Compose and render
-            const html = await compose(template);
-            root.innerHTML = html;
-        };
-        
-
-        // Set up FSM router
-        const { fsm } = createRouterFSM(routes);
-
-        // 🔗 Reactivity: Granular updates instead of full re-renders
-        const updateBindings = () => {
-            root.querySelectorAll('[data-b0nes-bind]').forEach(el => {
-                const bindings = el.dataset.b0nesBind.split(',');
-                
-                bindings.forEach(binding => {
-                    const [path, targetProp] = binding.split(':');
-                    let value = store.get(path);
-                    
-                    // Fallback to computed if needed
-                    if (value === undefined && store.computed) {
-                        value = store.computed(path);
-                    }
-
-                    if (targetProp) {
-                        // Explicit property binding (e.g. path:value, path:checked)
-                        if (targetProp === 'checked') {
-                            el.checked = Boolean(value);
-                        } else {
-                            // For other properties (value, disabled, etc)
-                            const newVal = value !== undefined ? String(value) : '';
-                            if (el[targetProp] !== newVal) el[targetProp] = newVal;
-                        }
-                    } else {
-                        // Default smart binding
-                        if (el.type === 'checkbox' || el.type === 'radio') {
-                            el.checked = Boolean(value);
-                        } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
-                            const newVal = value !== undefined ? String(value) : '';
-                            if (el.value !== newVal) el.value = newVal;
-                        } else {
-                            const newText = String(value !== undefined ? value : '');
-                            if (el.textContent !== newText) el.textContent = newText;
-                        }
-                    }
-                });
-            });
-        };
-
-        const cleanup = await connectFSMtoDOM(fsm, root, routes, {
-            onRender: () => {
-                console.log('[SPA] Render complete, syncing bindings');
-                updateBindings();
+/** Enhance the server-rendered SPA using configuration loaded by the page. */
+export const client = (root) => {
+    const config = window.spaConfig;
+    if (!config || !Array.isArray(config.routes) || !config.routes.length) {
+        throw new Error('[SPA] Define window.spaConfig.routes before initializing the SPA');
+    }
+    const { routes, store, onInit } = config;
+    const { fsm, routes: normalizedRoutes } = createRouterFSM(routes);
+    const updateBindings = () => {
+        if (!store) return;
+        root.querySelectorAll('[data-b0nes-bind]').forEach(element => {
+            for (const binding of element.dataset.b0nesBind.split(',')) {
+                const [path, property] = binding.trim().split(':');
+                let value = store.get(path);
+                if (value === undefined && store.computed) value = store.computed(path);
+                const target = property || (['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName) ?
+                    (['checkbox', 'radio'].includes(element.type) ? 'checked' : 'value') : 'textContent');
+                // Bind only supported text/boolean properties. HTML, event-handler,
+                // and arbitrary DOM-property sinks are deliberately excluded.
+                let next;
+                if (booleanProperties.has(target)) next = Boolean(value);
+                else if (textProperties.has(target)) {
+                    if (['SCRIPT', 'STYLE'].includes(element.tagName)) continue;
+                    next = String(value ?? '');
+                } else if (target === 'href' || target === 'src') {
+                    try { next = safeUrl(value, { navigation: target === 'href' }); }
+                    catch { console.warn(`[SPA] Ignoring unsafe ${target} binding`); continue; }
+                } else continue;
+                if (element[target] !== next) element[target] = next;
             }
         });
-
-        // Wire up store if provided
-        let storeUnsubscribe;
-        if (store) {
-            let lastTodosLength = store.get('todos')?.length;
-            
-            storeUnsubscribe = store.subscribe(() => {
-                console.log('[SPA] Store updated, sync bindings');
-                updateBindings();
-                
-                const newTodosLength = store.get('todos')?.length;
-                if (newTodosLength !== lastTodosLength) {
-                    console.log('[SPA] Structure changed, full re-render');
-                    renderRoute(fsm.getState(), fsm.getContext());
-                    lastTodosLength = newTodosLength;
-                }
-            });
+    };
+    const destroyChildren = () => root.querySelectorAll('[data-b0nes]').forEach(element => {
+        try { window.b0nes?.destroy(element); }
+        catch (error) { console.error('[SPA] Child behavior cleanup failed:', error); }
+    });
+    const connection = connectFSMtoDOM(fsm, root, normalizedRoutes, {
+        onBeforeRender: destroyChildren,
+        onRender: () => { updateBindings(); window.b0nes?.init(root); }
+    });
+    // Templates may contain any data-dependent structure, not only a todo list.
+    const unsubscribe = store?.subscribe(() => {
+        const route = normalizedRoutes.find(candidate => candidate.name === fsm.getState());
+        if (typeof route?.template === 'function') void connection.render();
+        else updateBindings();
+    });
+    const handleStoreClick = event => {
+        const target = event.target.closest?.('[data-action], [data-action-name]');
+        if (!store || !target || !root.contains(target)) return;
+        if (!['checkbox', 'radio'].includes(target.type)) event.preventDefault();
+        const rawId = target.dataset.id;
+        const payload = rawId === undefined ? undefined : (/^-?\d+(?:\.\d+)?$/.test(rawId) ? Number(rawId) : rawId);
+        store.dispatch(target.dataset.action || target.dataset.actionName, payload);
+    };
+    root.addEventListener('click', handleStoreClick);
+    const cleanup = () => {
+        connection();
+        try { destroyChildren(); }
+        finally {
+            try { unsubscribe?.(); }
+            finally { root.removeEventListener('click', handleStoreClick); }
         }
-        
-        // Generic event delegation for store actions
-        const handleStoreClick = (e) => {
-            console.log('[SPA] Click detected on:', e.target);
-            
-            // Store actions (if store exists)
-            // We check for data-action or data-action-name
-            const target = e.target.closest('[data-action], [data-action-name]');
-            
-            if (target && store) {
-                // Determine if we should prevent default
-                const isCheckable = target.type === 'checkbox' || target.type === 'radio';
-                if (!isCheckable) e.preventDefault();
-                
-                const id = target.dataset.id ? Number(target.dataset.id) : undefined;
-                const action = target.dataset.action || target.dataset.actionName;
-                
-                if (action) {
-                    console.log('[SPA] Dispatching action:', action, 'with payload:', id);
-                    store.dispatch(action, id);
-                } else {
-                    console.warn('[SPA] Element matched action selector but no action name found in dataset:', target.dataset);
-                }
-            }
-        };
-        
-        root.addEventListener('click', handleStoreClick);
-        
-        // Call user's onInit if provided
-        if (onInit && typeof onInit === 'function') {
-            onInit({ fsm, store, root });
-        }
-        
-        // Cleanup function
-        return () => {
-            cleanup();
-            if (storeUnsubscribe) storeUnsubscribe();
-            root.removeEventListener('click', handleStoreClick);
-        };
-    } catch (error) {
-        console.error('[SPA] Initialization failed:', error);
-        root.innerHTML = `<p style="color:red;">SPA Initialization Error: ${error.message}</p>`;
-    }
+    };
+    try { onInit?.({ fsm, store, root }); }
+    catch (error) { cleanup(); throw error; }
+    // A synchronous cleanup is required by b0nes.init()/destroy().
+    return cleanup;
 };

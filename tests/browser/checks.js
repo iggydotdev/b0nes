@@ -105,6 +105,94 @@ try {
         host.querySelector('.modal-body button')?.textContent === '<img src=x> & save' && !host.querySelector('img'));
     check('client titles escape exactly once', host.querySelector('.modal-title')?.textContent === 'A & B');
     frame.remove();
+    const waitFor = async condition => {
+        for (let attempt = 0; attempt < 100; attempt++) {
+            if (condition()) return;
+            await new Promise(resolve => setTimeout(resolve, 20));
+        }
+        throw Error('SPA view did not reach the expected state');
+    };
+    const spaFrame = document.createElement('iframe');
+    spaFrame.src = '/spa/first?view=all#details'; document.body.append(spaFrame);
+    await new Promise((resolve, reject) => { spaFrame.onload = resolve; spaFrame.onerror = reject; });
+    const spaWindow = spaFrame.contentWindow, spaDocument = spaFrame.contentDocument;
+    const heading = () => spaDocument.getElementById('spa-heading')?.textContent;
+    await waitFor(() => heading() === 'Item first');
+    await spaWindow.b0nes.whenReady();
+    const spaRoot = spaDocument.querySelector('[data-b0nes="organisms:spa"]');
+    check('production SPA renders compiled HTML at the initial dynamic URL',
+        heading() === 'Item first' && spaWindow.location.search === '?view=all' && spaWindow.location.hash === '#details');
+    check('SPA behavior registers a synchronous cleanup', typeof spaWindow.b0nes.instanceCleanup.get(spaRoot) === 'function');
+    spaDocument.getElementById('spa-add').click();
+    await waitFor(() => spaRoot.querySelectorAll('li').length === 2);
+    check('SPA refreshes generic store-dependent structure', spaRoot.querySelectorAll('li').length === 2);
+    spaDocument.getElementById('spa-home').click();
+    await waitFor(() => heading() === 'Home');
+    check('SPA click navigation updates state and URL', spaWindow.spaTest.fsm.is('home') && spaWindow.location.pathname === '/spa');
+    spaDocument.getElementById('spa-item').click();
+    await waitFor(() => heading() === 'Item second');
+    const historyLength = spaWindow.history.length;
+    spaWindow.history.back();
+    await waitFor(() => heading() === 'Home');
+    check('SPA back renders the previous route without adding history', spaWindow.location.pathname === '/spa' && spaWindow.history.length === historyLength);
+    spaWindow.history.back();
+    await waitFor(() => heading() === 'Item first');
+    check('SPA back restores the original dynamic route parameters', spaWindow.spaTest.fsm.getContext().id === 'first');
+    spaWindow.history.forward();
+    await waitFor(() => heading() === 'Home');
+    spaWindow.history.forward();
+    await waitFor(() => heading() === 'Item second');
+    check('SPA forward restores dynamic state and view', spaWindow.spaTest.fsm.is('item') && spaWindow.spaTest.fsm.getContext().id === 'second');
+    spaWindow.spaTest.fsm.send('GOTO_COMPONENTS');
+    await waitFor(() => spaRoot.textContent === '<img src=x> & user text');
+    check('SPA component templates retain escaped slots', !spaRoot.querySelector('img'));
+    spaWindow.spaTest.fsm.send('GOTO_BINDINGS');
+    await waitFor(() => spaDocument.getElementById('spa-bound-text')?.textContent === '<img src=x> & bound');
+    check('SPA text/value bindings display markup as text',
+        spaDocument.getElementById('spa-bound-value').value === '<img src=x> & bound' && !spaDocument.getElementById('spa-bound-text').querySelector('img'));
+    check('SPA checked/title/className bindings remain supported',
+        spaDocument.getElementById('spa-bound-checked').checked && spaDocument.getElementById('spa-bound-title').title === 'Bound title' && spaDocument.getElementById('spa-bound-class').className === 'bound-class');
+    check('SPA rejects executable URL bindings and HTML property sinks',
+        spaDocument.getElementById('spa-bound-url').getAttribute('href') === '/safe' &&
+        spaDocument.getElementById('spa-bound-src').getAttribute('src') === '/safe-image.png' &&
+        spaDocument.getElementById('spa-bound-frame').getAttribute('srcdoc') === 'Safe' &&
+        spaDocument.getElementById('spa-bound-html').textContent === 'Safe text' && !spaWindow.spaBindingExecuted);
+    const boundInput = spaDocument.getElementById('spa-bound-value');
+    boundInput.focus();
+    spaWindow.spaTest.store.dispatch('patch', { text:'Updated text', checked:false, unsafeURL:'/allowed', unsafeSource:'/allowed-image.png' });
+    check('static SPA bindings update safely while preserving the focused input',
+        spaDocument.getElementById('spa-bound-value') === boundInput && spaDocument.activeElement === boundInput && boundInput.value === 'Updated text' && !spaDocument.getElementById('spa-bound-checked').checked &&
+        spaDocument.getElementById('spa-bound-url').getAttribute('href') === '/allowed' && spaDocument.getElementById('spa-bound-src').getAttribute('src') === '/allowed-image.png');
+    spaWindow.spaTest.fsm.send('GOTO_WIDGETS');
+    await waitFor(() => spaRoot.querySelector('[role=tab]'));
+    await spaWindow.b0nes.whenReady();
+    check('SPA initializes behaviors in newly rendered views', spaRoot.querySelectorAll('[data-b0nes-init=true]').length === 1 && spaRoot.querySelectorAll('.tab-panel[hidden]').length === 1);
+    spaWindow.spaTest.fsm.send('GOTO_SLOW');
+    spaWindow.spaTest.fsm.send('GOTO_HOME');
+    await waitFor(() => heading() === 'Home');
+    check('SPA navigation disposes the previous view behaviors', spaWindow.b0nes.getMemoryStats().activeInstances === 1);
+    spaWindow.resolveSpaSlow('<h2 id="spa-heading">Stale</h2>');
+    await new Promise(resolve => setTimeout(resolve, 40));
+    check('late async SPA templates cannot overwrite newer navigation', heading() === 'Home');
+    spaWindow.spaTest.fsm.send('GOTO_SLOW');
+    const pathBeforeCleanup = spaWindow.location.pathname;
+    let throwingCleanupCalls = 0;
+    spaWindow.b0nes.register('atoms:throw-cleanup', () => () => { throwingCleanupCalls++; throw Error('Expected cleanup regression error'); });
+    const throwingChild = spaDocument.createElement('div'); throwingChild.dataset.b0nes = 'atoms:throw-cleanup'; spaRoot.append(throwingChild);
+    const cleanupAction = spaDocument.createElement('button'); cleanupAction.dataset.action = 'add'; spaRoot.append(cleanupAction);
+    spaWindow.b0nes.init(throwingChild);
+    spaWindow.b0nes.destroy(spaRoot);
+    const beforeCleanup = spaRoot.innerHTML;
+    check('SPA cleanup continues after a child behavior throws', throwingCleanupCalls === 1 && spaWindow.b0nes.getMemoryStats().activeInstances === 0);
+    spaWindow.resolveSpaSlow('<h2>Disposed</h2>');
+    spaWindow.spaTest.store.dispatch('add');
+    const countAfterCleanup = spaWindow.spaTest.store.get('count'); cleanupAction.click();
+    check('SPA removes store-action listeners despite child cleanup errors', spaWindow.spaTest.store.get('count') === countAfterCleanup);
+    spaWindow.spaTest.fsm.send('GOTO_ITEM', { id: 'after-cleanup' });
+    await new Promise(resolve => setTimeout(resolve, 40));
+    check('destroying SPA detaches rendering, store, and history listeners',
+        spaRoot.innerHTML === beforeCleanup && spaWindow.location.pathname === pathBeforeCleanup && spaWindow.b0nes.getMemoryStats().activeInstances === 0);
+    spaFrame.remove();
     results.textContent = checks.join('\n') + '\nALL ' + checks.length + ' BROWSER CHECKS PASSED';
 } catch (error) {
     results.textContent = checks.join('\n') + '\nFAIL ' + error.message;

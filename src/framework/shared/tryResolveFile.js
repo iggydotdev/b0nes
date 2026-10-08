@@ -1,125 +1,103 @@
+import path from 'node:path';
+import { readFile, realpath, stat } from 'node:fs/promises';
+import { ENV } from '../config/envs.js';
+import { validateAndSanitizePath } from './sanitizePaths.js';
+import { PUBLIC_BASE, PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE, UTILS_BASE } from '../server/handlers/getServerConfig.js';
 
-import path from "path";
-import { readFile, stat } from "fs/promises";
-import { ENV } from "../config/envs.js";
-import { validateAndSanitizePath } from "./sanitizePaths.js";
-import { PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE, UTILS_BASE } from "../server/handlers/getServerConfig.js";
+const missing = () => ({ content: null, found: false });
+const isPageModule = file => /^(index|page)\.js$/.test(file) || /^[\[:].*\.js$/.test(file);
 
-/**
- * Updated tryResolveFile with security validation
- */
+// Check the real target too: a public symlink must not expose another directory
+// or bypass the forbidden-name checks (for example, an alias to .env.js).
+async function readWithinBase(filename, baseDir) {
+    const validation = validateAndSanitizePath(path.relative(baseDir, filename), baseDir);
+    if (!validation.safe) return missing();
+    try {
+        const [base, target] = await Promise.all([realpath(baseDir), realpath(validation.sanitized)]);
+        const relative = path.relative(base, target);
+        const targetValidation = validateAndSanitizePath(relative, base);
+        if (!targetValidation.safe || (baseDir === PAGES_BASE && isPageModule(path.basename(target)))) return missing();
+        if (!(await stat(target)).isFile()) return missing();
+        return { content: await readFile(target), found: true, path: target };
+    } catch {
+        return missing();
+    }
+}
+
+function publicPaths(pathname) {
+    // Keep legacy runtime URLs, but resolve every alias inside the build output.
+    const aliases = [
+        ['client/', 'assets/js/client/'],
+        ['utils/', 'assets/js/utils/'],
+        ['shared/', 'assets/js/shared/'],
+        ['components/', 'assets/js/behaviors/'],
+        ['assets/js/components/', 'assets/js/behaviors/'],
+        ['templates/', 'assets/js/behaviors/organisms/templates/']
+    ];
+    for (const [prefix, destination] of aliases) {
+        if (pathname.startsWith(prefix)) return [destination + pathname.slice(prefix.length)];
+    }
+    if (/^(atoms|molecules|organisms)\//.test(pathname)) return ['assets/js/behaviors/' + pathname];
+    if (pathname === 'assets/js/b0nes.js') return ['assets/js/client/b0nes.js'];
+    return [pathname];
+}
+
+async function resolvePublicFile(pathname) {
+    for (const candidate of publicPaths(pathname)) {
+        const validation = validateAndSanitizePath(candidate, PUBLIC_BASE);
+        if (!validation.safe) continue;
+        const result = await readWithinBase(validation.sanitized, PUBLIC_BASE);
+        if (result.found) return result;
+    }
+    return missing();
+}
+
+/** Resolve HTTP assets without falling back to server-side pages in production. */
 export async function tryResolveFile(pathname) {
-    // Define allowed base directories
-    const allowedBases = ENV.isDev
-        ? [PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE, UTILS_BASE].filter(Boolean)
-        : [CLIENT_BASE, COMPONENTS_BASE, PAGES_BASE, UTILS_BASE].filter(Boolean);
- 
-    
- 
-    // Common suffixes to attempt for URLs that are directory-like or extension-less
-    const candidateSuffixes = ['', '.js', '.html', '/index.js', '/index.html'];
+    if (typeof pathname !== 'string') return missing();
+    try { pathname = decodeURIComponent(pathname).replace(/^\/+/, ''); }
+    catch { return missing(); }
+    if (!ENV.isDev) return resolvePublicFile(pathname);
 
-    
-    // ⭐ NEW: Special handling for co-located assets (CSS, images in same folder as page)
-    // Extract the page path and asset filename
-    // e.g., /examples/talk/custom.css → look in pages/examples/talk/custom.css
-    if (pathname.match(/\.(css|jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf)$/)) {
-        console.log(`[Server] 🔍 Co-located asset detected: ${pathname}`);
-        
-        // Try to find it in PAGES_BASE first (co-located with pages)
-        const validation = validateAndSanitizePath(pathname, PAGES_BASE);
-        
-        if (validation.safe) {
-            try {
-                const stats = await stat(validation.sanitized);
-                if (stats.isFile()) {
-                    const content = await readFile(validation.sanitized);
-                    console.log(`[Server] ✅ Found co-located asset: ${validation.sanitized}`);
-                    return { content, found: true, path: validation.sanitized };
-                }
-            } catch (err) {
-                console.log(`[Server] ⚠️ Co-located asset not found in PAGES_BASE: ${pathname}`);
-            }
-        }
-    }
-
-
-
-    for (const baseDir of allowedBases) {
-        let lookupPath = pathname;
-
-        // Strip logical prefixes if they match the current base directory
-        // Robust handling for various asset URL formats - recursively strip assets/js/ etc.
-        let stripped;
+    // Development serves co-located browser assets and framework modules from
+    // source, but page entry modules stay server-only.
+    const suffixes = path.extname(pathname) ? [''] : ['', '.js', '.html', '/index.html'];
+    const mounts = [
+        ['assets/js/client/', CLIENT_BASE], ['client/', CLIENT_BASE],
+        ['assets/js/shared/', UTILS_BASE], ['assets/js/utils/', UTILS_BASE],
+        ['shared/', UTILS_BASE], ['utils/', UTILS_BASE],
+        ['assets/js/behaviors/', COMPONENTS_BASE], ['assets/js/components/', COMPONENTS_BASE],
+        ['assets/components/', COMPONENTS_BASE], ['components/', COMPONENTS_BASE]
+    ];
+    const mount = mounts.find(([prefix]) => pathname.startsWith(prefix));
+    const isLegacyRuntime = pathname === 'assets/js/b0nes.js';
+    const isComponent = /^(atoms|molecules|organisms)\//.test(pathname);
+    const bases = mount ? [mount[1]] : isLegacyRuntime ? [CLIENT_BASE] : isComponent ? [COMPONENTS_BASE]
+        : [PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE, UTILS_BASE];
+    for (const baseDir of bases) {
+        let lookup = pathname;
+        let previous;
         do {
-            stripped = false;
-            for (const p of ['assets', 'js', 'styles', 'images']) {
-                if (lookupPath.startsWith(`/${p}/`)) {
-                    lookupPath = lookupPath.slice(p.length + 2);
-                    stripped = true;
-                } else if (lookupPath.startsWith(`${p}/`)) {
-                    lookupPath = lookupPath.slice(p.length + 1);
-                    stripped = true;
-                }
-            }
-        } while (stripped);
+            previous = lookup;
+            lookup = lookup.replace(/^(assets|js|styles|images)\//, '');
+        } while (lookup !== previous);
+        if (baseDir === COMPONENTS_BASE) lookup = lookup.replace(/^(behaviors|components)\//, '');
+        else if (baseDir === CLIENT_BASE) lookup = lookup.replace(/^client\//, '');
+        else if (baseDir === PAGES_BASE) lookup = lookup.replace(/^pages\//, '');
+        else if (baseDir === UTILS_BASE) lookup = lookup.replace(/^(shared|utils)\//, '');
 
-        if (baseDir === COMPONENTS_BASE) {
-            if (lookupPath.startsWith('behaviors/')) lookupPath = lookupPath.slice(10);
-            if (lookupPath.startsWith('/components/')) lookupPath = lookupPath.slice(12);
-            else if (lookupPath.startsWith('components/')) lookupPath = lookupPath.slice(11);
-        } else if (baseDir === CLIENT_BASE) {
-            if (lookupPath.startsWith('/client/')) lookupPath = lookupPath.slice(8);
-            else if (lookupPath.startsWith('client/')) lookupPath = lookupPath.slice(7);
-        } else if (baseDir === PAGES_BASE) {
-            if (lookupPath.startsWith('/pages/')) lookupPath = lookupPath.slice(7);
-            else if (lookupPath.startsWith('pages/')) lookupPath = lookupPath.slice(6);
-        } else if (baseDir === UTILS_BASE) {
-            if (lookupPath.startsWith('shared/')) lookupPath = lookupPath.slice(7);
-            if (lookupPath.startsWith('/utils/')) lookupPath = lookupPath.slice(7);
-            else if (lookupPath.startsWith('utils/')) lookupPath = lookupPath.slice(6);
-        }
-
-        const validation = validateAndSanitizePath(lookupPath, baseDir);
-        if (validation.safe) {
-            for (const suffix of candidateSuffixes) {
-                const candidatePath = validation.sanitized + suffix;
-                try {
-                    const stats = await stat(candidatePath);
-                    if (stats.isFile()) {
-                        const content = await readFile(candidatePath);
-                        console.log(`[Server] ✅ Serving validated file: ${candidatePath}`);
-                        return { content, found: true, path: candidatePath };
-                    }
-                } catch (_) {
-                    // File not found, try next suffix/base
-                }
-            }
-        }
-        
-        // --- HEURISTIC: If base is PAGES_BASE, try resolving under an 'examples' subdirectory ---
-        if (baseDir === PAGES_BASE) {
-            const parts = pathname.split('/').filter(Boolean);
-            if (parts.length && parts[0] !== 'examples') {
-                const altPath = '/' + path.posix.join('examples', ...parts);
-                const altValidation = validateAndSanitizePath(altPath, baseDir);
-                if (altValidation.safe) {
-                    for (const suffix of candidateSuffixes) {
-                        const candidate = altValidation.sanitized + suffix;
-                        try {
-                            const s = await stat(candidate);
-                            if (!s.isFile()) continue;
-                            const content = await readFile(candidate);
-                            console.log(`[Server] ✅ Serving validated file (heuristic): ${candidate}`);
-                            return { content, found: true, path: candidate };
-                        } catch (_) { /* try next */ }
-                    }
-                }
+        if (mount) lookup = pathname.slice(mount[0].length);
+        if (isLegacyRuntime) lookup = 'b0nes.js';
+        const lookups = [lookup];
+        if (baseDir === PAGES_BASE && !pathname.startsWith('examples/')) lookups.push('examples/' + pathname);
+        for (const requestPath of lookups) {
+            const validation = validateAndSanitizePath(requestPath, baseDir);
+            if (!validation.safe) continue;
+            for (const suffix of suffixes) {
+                const result = await readWithinBase(validation.sanitized + suffix, baseDir);
+                if (result.found) return result;
             }
         }
     }
-    
-    console.warn(`[Server] ❌ File not found for pathname: ${pathname}`);
-    
-    return { content: null, found: false };
+    return resolvePublicFile(pathname);
 }
