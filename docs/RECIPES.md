@@ -54,3 +54,61 @@ widgets require JavaScript; offer a normal link or visible content when users
 need an alternative. The framework does not guarantee WCAG conformance for an
 application: test its actual content, styles, keyboard flow, and assistive technology.
 See [HTML and migration](HTML.md) for nesting components and intentional scripts.
+
+
+## SPA navigation
+
+Keep SPA configuration in your page's browser script. For example,
+`src/pages/app/index.js` can export:
+
+```js
+export const meta = { title: 'App', scripts: ['./spa-config.js'] };
+export const components = [
+  { type: 'organism', name: 'spa', props: { slot: 'App content is available here.' } }
+];
+```
+
+Create `src/pages/app/spa-config.js` and set the configuration before the runtime
+initializes the SPA. Avoid awaiting asynchronous work before this assignment:
+
+```js
+window.spaConfig = {
+  routes: [
+    {
+      name: 'home', url: '/app',
+      template: '<h2>Home</h2><a href="/app/details" data-fsm-event="GOTO_DETAILS">Details</a>'
+    },
+    {
+      name: 'details', url: '/app/details',
+      template: [
+        { type: 'atom', name: 'text', props: { is: 'h2', slot: 'Details' } },
+        { type: 'atom', name: 'link', props: { url: '/app', slot: 'Home',
+            attrs: { 'data-fsm-event': 'GOTO_HOME' } } }
+      ]
+    }
+  ]
+};
+```
+
+Route templates accept compiled HTML strings, component descriptors, or functions
+returning either (including async functions). Whole HTML strings are trusted
+compiled markup; use component props for user text so it is escaped. Dynamic URL
+parameters such as `/app/:id` reach template functions through their context;
+triggers pass parameters with `data-param-id` or a JSON `data-fsm-data` attribute.
+Back and forward navigation restores the matching route and its parameters.
+Provide server pages or an appropriate hosting fallback for URLs users can open
+directly, and include readable initial content for users without JavaScript.
+
+An optional `store` refreshes function templates after changes; static templates
+update their `data-b0nes-bind` properties without rebuilding the view. Bindings
+support text (`textContent`, `innerText`, `value`, `title`, `className`,
+`placeholder`, `alt`, `ariaLabel`, `ariaDescription`) and boolean properties
+(`checked`, `disabled`, `selected`, `hidden`, `multiple`, `readOnly`, `required`,
+`open`). `href` and `src` bindings reject executable URL schemes; HTML properties
+such as `innerHTML` and `srcdoc` and event-handler properties are unsupported.
+Entry-hook context updates supply the template data and navigation URL. Replaced
+views dispose their previous behaviors and initialize newly rendered components.
+`onInit({ fsm, store, root })` exposes the router for custom controls. Destroying
+the SPA through `window.b0nes.destroy(root)` removes its listeners and subscriptions.
+For direct `connectFSMtoDOM()` use, call the returned cleanup function to detach,
+or its `render()` method to refresh the current template without changing history.

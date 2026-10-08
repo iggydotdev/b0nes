@@ -598,6 +598,11 @@ meta: {
 
 b0nes includes a **Redux-style store** without the complexity:
 
+`dispatch()` returns committed state for synchronous actions, or a Promise for
+asynchronous actions. Use `await store.dispatch('load', payload)` when an action
+returns a promise. Middleware `next()` commits and returns that state; asynchronous
+middleware must return or await `next()`. Persistence runs after the commit.
+
 ### Basic Store
 
 ```javascript

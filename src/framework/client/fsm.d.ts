@@ -182,6 +182,8 @@ export function createRouterFSM(routes: RouterFSMRoute[]): RouterFSMResult;
 
 /** Options for connectFSMtoDOM */
 export interface ConnectFSMtoDOMOptions {
+  /** Callback before replacing the previous view, for child-behavior cleanup. */
+  onBeforeRender?: (info: { stateName: string; data?: unknown }) => void;
   /** Callback after each render */
   onRender?: (info: { stateName: string; data?: unknown }) => void;
 }
@@ -191,13 +193,13 @@ export interface ConnectFSMtoDOMOptions {
  *
  * @param fsm - The FSM instance
  * @param rootEl - The DOM element to render into
- * @param routes - Route definitions with URLPattern
+ * @param routes - Route definitions (patterns are compiled when absent)
  * @param options - Optional configuration
- * @returns A cleanup function to disconnect
+ * @returns A cleanup function to disconnect, with render() to refresh the view
  */
 export function connectFSMtoDOM(
   fsm: FSM,
   rootEl: HTMLElement,
-  routes: Array<RouterFSMRoute & { pattern: InstanceType<typeof URLPattern> }>,
+  routes: RouterFSMRoute[],
   options?: ConnectFSMtoDOMOptions
-): () => void;
+): (() => void) & { render(): Promise<void> };

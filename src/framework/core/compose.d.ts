@@ -31,6 +31,10 @@ export interface ComponentProps {
 export interface ComposeContext {
   /** Set of component dependencies tracked during composition */
   dependencies?: Set<string>;
+  /** Shared directory URL for co-located assets (takes precedence over route URL). */
+  assetBasePath?: string;
+  /** Fail instead of rendering error placeholders. */
+  strict?: boolean;
   /** Route information for asset path rewriting */
   route?: {
     pattern?: {

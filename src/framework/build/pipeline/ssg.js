@@ -19,6 +19,9 @@ import { copyComponentBehaviors } from './copyComponentBehaviors.js';
 import { compileTemplatesFresh } from './templateWorker.js';
 import { createPageBundle } from './bundle.js';
 import { compose } from '../../core/compose.js';
+import { PAGES_BASE } from '../../server/handlers/getServerConfig.js';
+import { pageAssetBasePath } from '../../shared/pageAssetPath.js';
+import { assertSafeOutputPath, assertSafeSourcePath, ensureSafeOutputDirectory } from './outputPath.js';
 
 
 /**
@@ -75,7 +78,7 @@ export async function safeBuildRoute(route, outputDir, options) {
         
         // Copy co-located assets FIRST (CSS, images, etc. in same folder as page)
         if (route.filePath) {
-            const assetStats = copyColocatedAssets(route.filePath, outputDir, { verbose });
+            const assetStats = copyColocatedAssets(route.filePath, outputDir, { verbose, pagesDir: options.pagesDir });
             if (assetStats.errors.length) {
                 throw new Error(`Failed to copy route assets: ${assetStats.errors.map(item => `${item.file}: ${item.error}`).join('; ')}`);
             }
@@ -147,13 +150,14 @@ export async function safeBuildRoute(route, outputDir, options) {
             
             // Convert auto-route format to generateRoute format
             const staticRoute = {
+                ...route,
                 pattern: route.pattern,
                 components: page.components || page.default || [],
                 meta: page.meta || {}
             };
             
             // Create a special context for composition that includes our dependency tracker
-            const context = { route, dependencies, strict: !options.allowRenderErrors };
+            const context = { route, assetBasePath: pageAssetBasePath(route.filePath, route.pattern.pathname, options.pagesDir), dependencies, strict: !options.allowRenderErrors };
             
             // Compose components to HTML
             const content = compose(staticRoute.components, context);
@@ -251,6 +255,7 @@ export const build = async (outputDir = 'public', options = {}) => {
     // ============================================
     // STEP 1: Clean output directory
     // ============================================
+    assertSafeOutputPath(outputDir, path.resolve(outputDir));
     if (clean) {
         if (fs.existsSync(outputDir)) {
             fs.rmSync(outputDir, { recursive: true, force: true });
@@ -260,16 +265,15 @@ export const build = async (outputDir = 'public', options = {}) => {
     // ============================================
     // STEP 2: Ensure output directory exists
     // ============================================
-    if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-    }
+    ensureSafeOutputDirectory(outputDir, outputDir);
 
     // ============================================
     // STEP 3: 🎯 COMPILE SPA TEMPLATES (RECURSIVE)
     // ============================================
     console.log('📦 Compiling SPA templates...\n');
     try {
-        const pagesDir = path.resolve(process.cwd(), 'src/pages');
+        const pagesDir = PAGES_BASE;
+        assertSafeSourcePath(path.dirname(pagesDir), pagesDir);
         
         /**
          * Recursively find all 'templates' directories
@@ -281,7 +285,8 @@ export const build = async (outputDir = 'public', options = {}) => {
             const list = fs.readdirSync(dir);
             for (const file of list) {
                 const fullPath = path.join(dir, file);
-                const stat = fs.statSync(fullPath);
+                assertSafeSourcePath(pagesDir, fullPath);
+                const stat = fs.lstatSync(fullPath);
                 
                 if (stat && stat.isDirectory()) {
                     if (file === 'templates') {
@@ -310,7 +315,7 @@ export const build = async (outputDir = 'public', options = {}) => {
 
                 await compileTemplatesFresh(spaDir, compiledOutputPath, {
                     verbose, 
-                    mode: 'individual', allowRenderErrors
+                    mode: 'individual', allowRenderErrors, outputDir
                 });
             }
             console.log(`✅ ${templateDirs.length} SPA template directory(s) compiled!\n`);

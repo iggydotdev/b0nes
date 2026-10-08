@@ -1,6 +1,7 @@
 import { renderPage } from '../../core/render.js';
 import { getRoutes } from './autoRoutes.js';
 import { compose } from '../../core/compose.js';
+import { pageAssetBasePath } from '../../shared/pageAssetPath.js';
 
 /**
  * Serve pages based on route matching
@@ -50,12 +51,14 @@ export const servePages = async (req, res, url) => {
                     return;
                 }
             }
-            // Provide `currentPath` so renderPage can correctly resolve relative assets.
+            const assetBasePath = pageAssetBasePath(matchedRoute.filePath, url.pathname);
+            const resolvedRoute = { ...matchedRoute, pattern: { pathname: url.pathname } };
             const meta = {
                 ...(page.meta || {}),
-                currentPath: matchedRoute.pattern.pathname 
+                currentPath: url.pathname,
+                assetBasePath
             };
-            const html = renderPage(compose(components), meta);
+            const html = renderPage(compose(components, { route: resolvedRoute, assetBasePath }), meta);
             
             res.writeHead(200, { 
                 'content-type': 'text/html',

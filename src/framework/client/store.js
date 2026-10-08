@@ -12,11 +12,20 @@
  * });
  */
 
+const isThenable = value => value !== null &&
+    (typeof value === 'object' || typeof value === 'function') &&
+    typeof value.then === 'function';
+
+// Keep synchronous actions synchronous while supporting promises and thenables.
+const resolveResult = (result, onResolved) => isThenable(result)
+    ? Promise.resolve(result).then(onResolved)
+    : onResolved(result);
+
 /**
  * Creates a reactive state store
  * @param {Object} config - Store configuration
  * @param {Object} config.state - Initial state
- * @param {Object} [config.actions={}] - Action functions
+ * @param {Object} [config.actions={}] - Functions receiving (state, payload, { getState, dispatch })
  * @param {Object} [config.getters={}] - Computed getters
  * @param {Array} [config.middleware=[]] - Middleware functions
  * @returns {Object} Store instance
@@ -35,7 +44,6 @@ export const createStore = ({ state: initialState, actions = {}, getters = {}, m
     
     // Cache for computed getters
     const getterCache = new Map();
-    let previousState = null;
 
     /**
      * Deep freeze objects to prevent mutations
@@ -143,10 +151,12 @@ export const createStore = ({ state: initialState, actions = {}, getters = {}, m
     };
 
     /**
-     * Dispatch an action to update state
+     * Dispatch an action to update state. Actions return partial state updates;
+     * middleware's next() returns the committed state, or a promise for it.
+     * Middleware must return or await next() when continuing an async action.
      * @param {string} actionName - Name of action to dispatch
      * @param {*} [payload] - Payload data for action
-     * @returns {Object} Updated state
+     * @returns {Object|Promise<Object>} This action's committed state
      */
     const dispatch = (actionName, payload) => {
         const action = actions[actionName];
@@ -160,40 +170,17 @@ export const createStore = ({ state: initialState, actions = {}, getters = {}, m
             return state;
         }
 
-        // Run through middleware chain
-        let middlewareChain = [...middleware];
-        
-        const executeMiddleware = (index) => {
-            if (index >= middlewareChain.length) {
-                // All middleware executed, run the action
-                return action(state, payload);
-            }
+        const middlewareChain = [...middleware];
+        let committedState;
 
-            const mw = middlewareChain[index];
-            return mw({
-                getState,
-                dispatch,
-                action: actionName,
-                payload
-            }, () => executeMiddleware(index + 1));
-        };
-
-        try {
-            // Execute middleware chain
-            const updates = executeMiddleware(0);
-
+        const commit = updates => {
             if (!updates || typeof updates !== 'object') {
                 console.warn(`[Store] Action "${actionName}" must return an object`);
                 return state;
             }
 
-            // Store previous state for comparison
-            previousState = state;
-
-            // Merge updates with state
+            const previousState = state;
             const newState = deepFreeze({ ...state, ...updates });
-            
-            // Record change
             const change = {
                 action: actionName,
                 payload,
@@ -202,25 +189,42 @@ export const createStore = ({ state: initialState, actions = {}, getters = {}, m
                 timestamp: Date.now()
             };
 
-            // Update state
             state = newState;
-
-            // Clear getter cache
+            committedState = newState;
             getterCache.clear();
-
-            // Add to history
             history.push(change);
-            if (history.length > maxHistory) {
-                history.shift();
-            }
-
-            // Notify subscribers
+            if (history.length > maxHistory) history.shift();
             notify(change);
 
-            return state;
-        } catch (error) {
+            // A subscriber may dispatch again. Keep this action's own snapshot.
+            return newState;
+        };
+
+        const executeMiddleware = index => {
+            if (index >= middlewareChain.length) {
+                return resolveResult(action(state, payload, { getState, dispatch }), commit);
+            }
+
+            return middlewareChain[index]({
+                getState,
+                dispatch,
+                action: actionName,
+                payload
+            }, () => executeMiddleware(index + 1));
+        };
+
+        const handleError = error => {
             console.error(`[Store] Error in action "${actionName}":`, error);
-            return state;
+            return committedState ?? state;
+        };
+
+        try {
+            const result = executeMiddleware(0);
+            return isThenable(result)
+                ? Promise.resolve(result).then(() => committedState ?? state, handleError)
+                : committedState ?? state;
+        } catch (error) {
+            return handleError(error);
         }
     };
 
@@ -256,7 +260,7 @@ export const createStore = ({ state: initialState, actions = {}, getters = {}, m
      * Reset store to initial state
      */
     const reset = () => {
-        previousState = state;
+        const previousState = state;
         state = deepFreeze({ ...initialState });
         getterCache.clear();
         history.length = 0;
@@ -286,7 +290,7 @@ export const createStore = ({ state: initialState, actions = {}, getters = {}, m
         }
 
         const change = history[index];
-        previousState = state;
+        const previousState = state;
         state = deepFreeze({ ...change.state });
         getterCache.clear();
 
@@ -344,10 +348,13 @@ export const combineModules = (modules) => {
 
         // Namespace actions
         Object.entries(module.actions || {}).forEach(([actionName, actionFn]) => {
-            actions[`${name}/${actionName}`] = (globalState, payload) => {
+            actions[`${name}/${actionName}`] = (globalState, payload, context) => {
                 const moduleState = globalState[name];
-                const updates = actionFn(moduleState, payload);
-                return { [name]: { ...moduleState, ...updates } };
+                return resolveResult(actionFn(moduleState, payload, context), updates => {
+                    if (!updates || typeof updates !== 'object') return updates;
+                    const currentModuleState = context ? context.getState()[name] : moduleState;
+                    return { [name]: { ...currentModuleState, ...updates } };
+                });
             };
         });
 
@@ -376,13 +383,26 @@ export const loggerMiddleware = ({ getState, action, payload }, next) => {
     console.group(`[Store] ${action}`);
     console.log('Payload:', payload);
     console.log('State before:', getState());
-    
-    const result = next();
-    
-    console.log('State after:', getState());
-    console.groupEnd();
-    
-    return result;
+
+    const logAfter = result => {
+        console.log('State after:', getState());
+        console.groupEnd();
+        return result;
+    };
+    const closeOnError = error => {
+        console.groupEnd();
+        throw error;
+    };
+
+    let result;
+    try {
+        result = next();
+    } catch (error) {
+        return closeOnError(error);
+    }
+    return isThenable(result)
+        ? Promise.resolve(result).then(logAfter, closeOnError)
+        : logAfter(result);
 };
 
 /**
@@ -392,15 +412,14 @@ export const loggerMiddleware = ({ getState, action, payload }, next) => {
  */
 export const persistenceMiddleware = (key) => {
     return ({ getState }, next) => {
-        const result = next();
-        
-        try {
-            localStorage.setItem(key, JSON.stringify(getState()));
-        } catch (error) {
-            console.error('[Store] Persistence error:', error);
-        }
-        
-        return result;
+        return resolveResult(next(), result => {
+            try {
+                localStorage.setItem(key, JSON.stringify(getState()));
+            } catch (error) {
+                console.error('[Store] Persistence error:', error);
+            }
+            return result;
+        });
     };
 };
 
@@ -423,23 +442,20 @@ export const loadPersistedState = (key) => {
  * DevTools middleware - integrates with Redux DevTools
  */
 export const devToolsMiddleware = ({ getState, action, payload }, next) => {
-    const result = next();
-    
-    // Send to Redux DevTools if available
-    if (window.__REDUX_DEVTOOLS_EXTENSION__) {
-        window.__REDUX_DEVTOOLS_EXTENSION__.send(
-            { type: action, payload },
-            getState()
-        );
-    }
-    
-    return result;
+    return resolveResult(next(), result => {
+        // This middleware can also run outside a browser.
+        const extension = globalThis.window?.__REDUX_DEVTOOLS_EXTENSION__;
+        if (extension) {
+            extension.send({ type: action, payload }, getState());
+        }
+        return result;
+    });
 };
 
 /**
  * Async action helper
  * @param {Function} asyncFn - Async function
- * @returns {Function} Action that dispatches loading/success/error
+ * @returns {Function} Async action that returns updates or an error update
  */
 export const createAsyncAction = (asyncFn) => {
     return async (state, payload) => {

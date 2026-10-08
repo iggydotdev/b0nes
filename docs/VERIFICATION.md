@@ -7,7 +7,9 @@ All tests and build tooling use Node built-ins. No npm dependencies are required
 Run `npm test` on Node 22 or newer. Build tests use temporary projects and cover
 sequential/parallel output, dynamic routes, page edits, clean/custom output,
 transitive module changes, generated ESM entries, and failed data generation.
-Store tests cover ordinary, nested, computed, unchanged, and reentrant notifications.
+Store tests cover ordinary, nested, computed, unchanged, and reentrant notifications,
+asynchronous actions, concurrent module updates, post-commit persistence, and action
+failures that leave state and history unchanged. Synchronous actions stay synchronous.
 Composition tests cover dependency replay through cached ancestors and route context.
 HTTP tests start real servers and verify malformed requests return 400 without
 interrupting later requests. They check production source isolation, symlink
@@ -32,6 +34,11 @@ The Chromium CI job runs the same page with `npm run test:browser:ci`.
 Set `CHROME_BIN` to an installed Chromium executable if it is not `google-chrome`.
 The runner uses Node child processes and the fixture's HTTP result endpoint; it
 adds no npm dependencies. It fails on assertions, early exit, or a 45-second timeout.
+
+SPA checks cover compiled strings, dynamic URL parameters, back/forward navigation,
+entry-hook context, stale asynchronous templates, store-driven views, safe bindings,
+and child behavior cleanup. Load page-owned `window.spaConfig` before enhancement;
+see [SPA recipes](RECIPES.md#spa-navigation).
 
 The browser checks also cover nested component controls, category-qualified
 behavior registration, cleanup without callbacks, and production client composition
@@ -67,8 +74,15 @@ Symlinks that leave the asset root, or point to forbidden files, return 404.
 
 Development reads co-located assets and browser modules from source, while page
 entry modules (`index.js`, `page.js`, `[slug].js`, and `:slug.js`) stay server-only.
-The build excludes these page modules from co-located assets. Other co-located
+The build excludes these page modules from co-located assets.
+Co-located assets stay at the source directory's URL: `src/pages/posts/[slug].js`
+shares `/posts/style.css` across its generated pages. Both component and metadata
+URLs use that same base in SSG and SSR. Dynamic folder names are percent-encoded
+in shared asset URLs. Direct helper results with relative assets retain the props
+needed for context resolution, including nested and JSON-serialized results with
+plain props. Composition cache keys include this asset base. Other co-located
 JavaScript and JSON files are public assets; keep private helpers and data elsewhere.
+Build copies reject source symlinks and output symlinks instead of following them.
 Run `npm run build:clean` after upgrading to remove any source files published by
 an older build.
 
