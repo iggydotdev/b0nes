@@ -7,30 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-08
+
 ### Added
 
-- **`b0nes upgrade`** — re-sync vendored `src/framework` from the b0nes package into an existing project (`--dry-run`, `--components`, `--force`, `--yes`, backups under `.b0nes/backups/`)
-- **`.b0nes/manifest.json` + checksums** — stamped on `npx b0nes <name>`; tracks framework version and detects locally modified stock files
-- **`docs/UPGRADE.md`** — ownership model (framework / stock components / user land) and upgrade contract
-
-### Changed
-
-- **Node engine** - Minimum Node.js version lowered from `>=24` to `>=22` (Active LTS; Node 20 is EOL)
-- **npm package size** - Heavy demos excluded from the published tarball via `.npmignore` (talk deck, SPA/playground/social demos, large PNGs). Full examples remain in the git repo for local validation. Scaffold templates (`basic`, `blog`, `documentation`) still ship with npm for `npx b0nes`.
-- CI matrix tests Node 22 and 24; npm publish uses Node 22
-- CLI entry is multi-command (`bin/b0nes.js`): `create` / default scaffold + `upgrade`
+- Explicit trusted markup through `html()`, component results wrapped by `defineComponent()`, and JSON script payloads escaped by `scriptData()`.
+- `b0nes upgrade` with dry runs, checksums, local-edit protection, and backups. Default upgrades include the shared rendering utilities required by the framework.
+- A minimal dependency-free scaffold and [page recipes](docs/RECIPES.md) in place of bundled starter templates.
+- Automatic GitHub and npm releases after a version-bumping PR merges into `main`. CI validates Node 22, Node 24, and Chromium before publishing the exact merge commit; versions remain on `0.x.x`.
 
 ### Fixed
 
-- `setErrorFallback` no longer throws (proper mutable renderer API)
-- Relative asset path rewriting now applies to rendered props
-- Modal/tabs client behaviors return cleanup functions
-- FSM connector params use `data-param-*` / `data-fsm-data` (no TODO heuristic)
-- Escape-by-default in `compose` (plain text escaped; component nodes trusted; `{ html }` opt-in)
+- Builds report page failures instead of silently publishing stale HTML; dynamic SSG routes participate in route discovery, and production pages use valid native JavaScript modules.
+- Render-cache hits retain nested component dependencies, and filtered store subscriptions receive matching updates.
+- Production servers protect source modules and contain filesystem access, reject malformed requests, and prevent symlink escapes during serving and asset copying.
+- SPA rendering, navigation history, route lifecycle callbacks, cleanup, and asynchronous navigation races.
+- Asynchronous store middleware returns the committed state; persistence runs after the commit completes.
+- Dynamic SSG and SSR pages resolve the same relative asset URLs, including nested component helpers and serialized component results.
+- Default upgrades include required shared utilities when upgrading older projects; the lockfile CLI entry now matches `bin/b0nes.js`.
+- Component text, attributes, and URL handling; keyboard/focus behavior and cleanup in interactive components.
 
-### Documentation
+### Changed
 
-- README and `llms.txt` document composition security, FSM params, examples git-vs-npm policy, and upgrade path
+- Node.js 22 or newer is required. CI checks Node 22 and 24; npm publishing uses Node 24.
+- The CLI entry supports both project creation and upgrades. Removed starter templates are replaced by the minimal scaffold and documented recipes.
+- Builds load page modules in fresh workers so edits are reflected on subsequent builds. Published pages do not reuse persistent HTML caches.
+- Runtime and development dependencies remain at zero.
+
+### Breaking / migration
+
+- Plain strings in slots are escaped as text. Use component results or nested component descriptors for structure, and `html()` / `{ html: '...' }` only for markup you trust. Custom components should use `defineComponent()` and escape their own inputs; `html()` is a trust assertion, not a sanitizer.
+- Use `npx b0nes <name>` for the minimal scaffold; the removed `--template` options are no longer supported. See [page recipes](docs/RECIPES.md) for larger starting points.
+- After upgrading an existing project, run `npm run build:clean` to remove files left by older builds. Check [the upgrade contract](docs/UPGRADE.md) before applying changes to locally edited framework files.
+- Asynchronous store middleware must return or await `next(action)` so dispatch and persistence can wait for the commit.
 
 ---
 
