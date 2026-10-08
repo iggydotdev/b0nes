@@ -69,7 +69,7 @@ test('component and metadata asset URLs match directory and HTML routes', () => 
 test('public assets exclude tests while preserving runtime modules', async t => {
     const dir = fixture(t), out = path.join(dir,'public');
     const filePath = path.join(dir,'src/pages/about/index.js'); fs.mkdirSync(path.dirname(filePath),{recursive:true});
-    for (const name of ['index.js','index.test.js','foo.spec.js','[slug].js','script.js','style.css']) {
+    for (const name of ['index.js','index.test.js','foo.spec.js','[slug].js',':slug.js','script.js','style.css']) {
         fs.writeFileSync(path.join(path.dirname(filePath),name),'');
     }
     copyColocatedAssets(filePath,out);

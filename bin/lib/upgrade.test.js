@@ -3,16 +3,18 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildUpgradePlan, runUpgrade, readPackageVersion } from './upgrade.js';
 import {
   writeManifest,
   writeChecksums,
   createInitialManifest,
   buildChecksums,
-  readManifest
+  readManifest,
+  readChecksums,
+  listFiles
 } from './manifest.js';
-import { FRAMEWORK_PATHS } from './paths.js';
+import { FRAMEWORK_PATHS, FRAMEWORK_UTILS_PATHS, COMPONENT_PATHS, DEFAULT_POLICY } from './paths.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(__dirname, '../..');
@@ -149,4 +151,105 @@ test('local-modified without --force returns exit 2', async () => {
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+// An older project has string-based slot utilities and no trusted HTML or URL
+// utility. Its component library stays user-owned during a default upgrade.
+const createLegacyProject = () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'b0nes-legacy-up-'));
+  const write = (rel, body) => {
+    const dest = path.join(tmp, rel);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, body);
+  };
+  write('package.json', JSON.stringify({ type: 'module' }));
+  write('src/framework/placeholder.js', '// previous framework\n');
+  write('src/components/utils/processSlot.js', `export const processSlotTrusted = value =>
+    typeof value === 'string' ? value : '';
+`);
+  write('src/components/utils/componentError.js', `export const validatePropTypes = (props, schema) => {
+    for (const [key, type] of Object.entries(schema)) {
+      if (typeof props[key] !== type) throw new TypeError('Unexpected prop type');
+    }
+};
+`);
+  write('src/components/utils/attrsToString.js', `export const attrsToString = value => value || '';
+`);
+  for (const name of ['escapeHtml.js', 'escapeAttr.js']) {
+    write(`src/components/utils/${name}`, fs.readFileSync(path.join(packageRoot, 'src/components/utils', name)));
+  }
+  write('src/components/library.js', `import { processSlotTrusted } from './utils/processSlot.js';
+import { validatePropTypes } from './utils/componentError.js';
+export default { atoms: { text: props => {
+  validatePropTypes(props, { slot: 'string' });
+  return '<p>' + processSlotTrusted(props.slot) + '</p>';
+} }, molecules: {}, organisms: {} };
+`);
+  write('src/components/utils/custom.js', 'export const custom = true;\n');
+  write('src/pages/index.js', 'export const components = []; // user page\n');
+  const manifest = createInitialManifest({ frameworkVersion: '0.2.1', template: 'basic' });
+  manifest.policy.frameworkPaths = ['src/framework'];
+  writeManifest(tmp, manifest);
+  writeChecksums(tmp, buildChecksums(tmp, ['src/framework', ...COMPONENT_PATHS]));
+  return tmp;
+};
+
+test('default upgrade installs shared utilities and renders an older component library', async t => {
+  const tmp = createLegacyProject();
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+  const preserved = ['src/components/library.js', 'src/components/utils/custom.js', 'src/pages/index.js'];
+  const originals = buildChecksums(tmp, preserved);
+
+  assert.equal(await runUpgrade({ packageRoot, projectRoot: tmp, yes: true }), 0);
+  assert.deepEqual(buildChecksums(tmp, preserved), originals);
+  assert.deepEqual(readManifest(tmp).policy, DEFAULT_POLICY);
+  const checksums = readChecksums(tmp);
+  for (const rel of FRAMEWORK_UTILS_PATHS) assert.equal(checksums[rel], buildChecksums(packageRoot, [rel])[rel]);
+
+  const { compose } = await import(pathToFileURL(path.join(tmp, 'src/framework/core/compose.js')));
+  const nested = { type: 'atom', name: 'text', props: { slot: 'Nested' } };
+  assert.equal(compose([{ type: 'atom', name: 'text', props: { slot: ['<unsafe>', nested] } }], { strict: true }),
+    '<p>&lt;unsafe&gt;<p>Nested</p></p>');
+  const { generateStylesheetTag } = await import(pathToFileURL(path.join(tmp, 'src/framework/build/pipeline/generateStylesheetTag.js')));
+  assert.match(generateStylesheetTag({ href: '/site.css' }), /href="\/site.css"/);
+  assert.throws(() => generateStylesheetTag({ href: 'javascript:alert(1)' }), /Unsupported URL protocol/);
+
+  // Ownership metadata also migrates when the project files already match.
+  const manifest = readManifest(tmp);
+  manifest.policy.frameworkPaths = ['src/framework'];
+  writeManifest(tmp, manifest);
+  assert.equal(await runUpgrade({ packageRoot, projectRoot: tmp, yes: true }), 0);
+  assert.deepEqual(readManifest(tmp).policy, DEFAULT_POLICY);
+});
+
+test('default upgrade preserves modified shared utilities unless forced and backs them up', async t => {
+  const tmp = createLegacyProject();
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+  const rel = 'src/components/utils/processSlot.js';
+  const dest = path.join(tmp, rel);
+  fs.appendFileSync(dest, '// local customization\n');
+  const customized = fs.readFileSync(dest, 'utf8');
+
+  assert.equal(await runUpgrade({ packageRoot, projectRoot: tmp, yes: true }), 2);
+  assert.equal(fs.readFileSync(dest, 'utf8'), customized);
+  assert.equal(fs.existsSync(path.join(tmp, 'src/framework/core/compose.js')), false,
+    'a blocked upgrade must not partially install the framework');
+
+  assert.equal(await runUpgrade({ packageRoot, projectRoot: tmp, yes: true, force: true }), 0);
+  assert.equal(fs.readFileSync(dest, 'utf8'), fs.readFileSync(path.join(packageRoot, rel), 'utf8'));
+  const backup = listFiles(tmp, '.b0nes/backups').find(file => file.endsWith(`/${rel}`));
+  assert.ok(backup, 'the customized utility should be backed up');
+  assert.equal(fs.readFileSync(path.join(tmp, backup), 'utf8'), customized);
+});
+
+test('default upgrade refuses differing legacy utilities with no checksum baseline', async t => {
+  const tmp = createLegacyProject();
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+  writeChecksums(tmp, buildChecksums(tmp, ['src/framework']));
+  const rel = 'src/components/utils/processSlot.js';
+  const original = fs.readFileSync(path.join(tmp, rel), 'utf8');
+
+  assert.equal(await runUpgrade({ packageRoot, projectRoot: tmp, yes: true }), 2);
+  assert.equal(fs.readFileSync(path.join(tmp, rel), 'utf8'), original);
+  assert.equal(fs.existsSync(path.join(tmp, 'src/components/utils/html.js')), false);
 });

@@ -38,10 +38,14 @@ Every path under a b0nes project falls into one tier:
 
 | Tier | Paths (default) | On `upgrade` |
 |------|-----------------|--------------|
-| **A — Framework** | `src/framework/**` | **Replaced** with package version (default) |
-| **B — Stock components** | Built-in atoms/molecules/organisms + `utils` + registry | Replaced only with **`--components`** |
+| **A — Framework** | `src/framework/**` + required shared rendering utilities (listed below) | **Replaced** with package version (default) |
+| **B — Stock components** | Built-in atoms/molecules/organisms + remaining utilities + registry | Replaced only with **`--components`** |
 | **C — User land** | `src/pages/**`, `public/**`, project `package.json`, custom component folders | **Never** overwritten |
 | **D — Meta** | `.b0nes/**` | Updated by the CLI (manifest, backups, checksums) |
+
+Default upgrades also include these files under `src/components/utils/`: `html.js`, `escapeHtml.js`, `escapeAttr.js`, `safeUrl.js`, `attrsToString.js`, `processSlot.js`, and `componentError.js`. The framework and components share these rendering contracts; upgrading only `src/framework` can leave missing imports or incompatible slot handling.
+
+Custom utility files and the component generator remain outside the default upgrade. Existing differing shared utilities without a recorded checksum require `--force`, because the CLI cannot distinguish older stock code from local edits. `--force` retains the usual backup behavior.
 
 ### Custom components
 
@@ -49,8 +53,8 @@ A component directory is **user-owned** if it does **not** exist in the b0nes pa
 
 Stock components you *edited* (e.g. changed `button.js`) are still “stock paths”:
 
-- Default upgrade: left alone (only framework updates).
-- `upgrade --components`: overwritten from package; if checksums show local edits, CLI **warns** first (and refuses without `--force` unless `--yes`).
+- Default upgrade: component renderers are left alone; framework code and the shared rendering utilities update.
+- `upgrade --components`: overwritten from package; if checksums show local edits, CLI **warns** first (and refuses without `--force`; `--yes` only skips the interactive confirmation).
 
 ---
 
@@ -77,7 +81,16 @@ Created by `npx b0nes <name>` and updated by `upgrade`:
   "upgradedAt": null,
   "template": "basic",
   "policy": {
-    "frameworkPaths": ["src/framework"],
+    "frameworkPaths": [
+      "src/framework",
+      "src/components/utils/html.js",
+      "src/components/utils/escapeHtml.js",
+      "src/components/utils/escapeAttr.js",
+      "src/components/utils/safeUrl.js",
+      "src/components/utils/attrsToString.js",
+      "src/components/utils/processSlot.js",
+      "src/components/utils/componentError.js"
+    ],
     "componentPaths": [
       "src/components/atoms",
       "src/components/molecules",
@@ -118,7 +131,7 @@ npx b0nes upgrade --no-backup    # not recommended
 3. Read package `version` → target version.
 4. Read project manifest → current version.
 5. Build file plan:
-   - Tier A always (unless `--framework=false` later).
+   - Tier A always, including the required shared rendering utilities.
    - Tier B if `--components`.
 6. For each target file:
    - `missing` | `identical` | `outdated` | `local-modified` (checksum vs last apply) | `local-only` (skip).
@@ -160,10 +173,10 @@ If something goes wrong:
 
 ```bash
 # Restore from CLI backup
-cp -R .b0nes/backups/<timestamp>/src/framework src/framework
+cp -R .b0nes/backups/<timestamp>/src/. src/
 
 # Or git
-git checkout -- src/framework
+git checkout -- src/framework src/components/utils
 ```
 
 ---

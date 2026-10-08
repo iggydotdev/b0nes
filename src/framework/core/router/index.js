@@ -271,7 +271,19 @@ export function createRouter() {
      * Handle an incoming request
      */
     async function handle(req, res) {
-        const url = new URL(req.url, `http://${req.headers.host}`);
+        let url;
+        try {
+            // Host must be an authority, rather than a path or URL with credentials.
+            const host = req.headers.host ?? 'localhost';
+            if (typeof host !== 'string' || /[\\/?#@\s]/.test(host)) {
+                throw new TypeError('Invalid Host header');
+            }
+            url = new URL(req.url, `http://${host}`);
+        } catch {
+            res.writeHead(400, { 'content-type': 'text/plain' });
+            res.end('Bad Request');
+            return;
+        }
         const pathname = url.pathname;
 
         try {

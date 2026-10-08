@@ -234,7 +234,7 @@ b0nes **copies** the framework into your project. Updates are not `npm update` o
 cd my-app
 git status                          # clean tree preferred
 npx b0nes@latest upgrade --dry-run  # see adds / updates / local edits
-npx b0nes@latest upgrade            # write src/framework, backup first
+npx b0nes@latest upgrade            # refresh framework and shared utilities, backup first
 npm test && npm run build
 ```
 
@@ -250,14 +250,14 @@ npm test && npm run build
 
 | Path | Default `upgrade` | With `--components` |
 |------|-------------------|---------------------|
-| `src/framework/**` | ✅ replaced | ✅ |
+| `src/framework/**` + required shared rendering utilities | ✅ replaced | ✅ |
 | Stock components | ❌ left alone | ✅ replaced |
 | Your components (e.g. `generate atom foo`) | ❌ never | ❌ never |
 | `src/pages/**`, `public/**` | ❌ never | ❌ never |
 
 New projects get `.b0nes/manifest.json` (framework version) and checksums so later upgrades can detect **local-modified** stock files and refuse without `--force`.
 
-Legacy projects (no manifest) still work: the CLI detects `src/framework` and writes a manifest on first upgrade.
+Legacy projects (no manifest) still work: the CLI detects `src/framework` and writes a manifest on first upgrade. Differing shared utilities without recorded checksums require `--force`; backups preserve the replaced files.
 
 Full contract: **[docs/UPGRADE.md](docs/UPGRADE.md)**.
 

@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
+const PUBLIC_BASE = path.join(PROJECT_ROOT, 'public');
 // Determine base paths based on environment
 const CLIENT_BASE = ENV.isDev 
     ? path.resolve(__dirname, '../../client')
@@ -14,7 +15,7 @@ const CLIENT_BASE = ENV.isDev
 
 const COMPONENTS_BASE = ENV.isDev
     ? path.resolve(__dirname, '../../../components')
-    : path.resolve(__dirname, '../../../../public/assets/js/components');
+    : path.resolve(__dirname, '../../../../public/assets/js/behaviors');
 
 const PAGES_BASE = path.resolve(__dirname, '../../../pages');
 
@@ -35,6 +36,7 @@ const PRINT_CURRENT_CONFIG = () => {
 
 export {
     PROJECT_ROOT,
+    PUBLIC_BASE,
     CLIENT_BASE,
     COMPONENTS_BASE,
     PAGES_BASE,
@@ -46,6 +48,7 @@ export {
 
 export default {
     PROJECT_ROOT,
+    PUBLIC_BASE,
     CLIENT_BASE,
     COMPONENTS_BASE,
     PAGES_BASE,

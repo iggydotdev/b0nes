@@ -9,6 +9,11 @@ sequential/parallel output, dynamic routes, page edits, clean/custom output,
 transitive module changes, generated ESM entries, and failed data generation.
 Store tests cover ordinary, nested, computed, unchanged, and reentrant notifications.
 Composition tests cover dependency replay through cached ancestors and route context.
+HTTP tests start real servers and verify malformed requests return 400 without
+interrupting later requests. They check production source isolation, symlink
+containment, development asset loading, and legacy runtime URLs. Upgrade tests
+render an older component library after a default upgrade and verify customized
+shared utilities are preserved or backed up when forced.
 
 ## Browser behavior
 
@@ -52,6 +57,20 @@ Production `.bundle.js` files are native ESM registration entries, not concatena
 or minified JavaScript. They load copied behavior modules with their imports intact.
 No external bundler is needed. Shared runtime files retain both the `shared` and
 legacy `utils` URLs.
+
+## Server assets
+
+The production SSR server reads HTTP assets only from `public/`; it does not
+fall back to `src/pages`. Build before starting it. Runtime aliases such as
+`/client/compose.js` and `/utils/urlPattern.js` resolve inside the same public root.
+Symlinks that leave the asset root, or point to forbidden files, return 404.
+
+Development reads co-located assets and browser modules from source, while page
+entry modules (`index.js`, `page.js`, `[slug].js`, and `:slug.js`) stay server-only.
+The build excludes these page modules from co-located assets. Other co-located
+JavaScript and JSON files are public assets; keep private helpers and data elsewhere.
+Run `npm run build:clean` after upgrading to remove any source files published by
+an older build.
 
 ## Dynamic SSG recipe
 

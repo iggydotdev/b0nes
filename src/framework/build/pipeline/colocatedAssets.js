@@ -19,7 +19,7 @@ export const copyColocatedAssets = (pageFilePath, outputDir, options = {}) => {
     const {
         verbose = false,
         // Files to ignore (the actual page files)
-        ignorePatterns = ['index.js', 'page.js', '[*.js', '*.test.js', '*.spec.js'],
+        ignorePatterns = ['index.js', 'page.js', '[*.js', ':*.js', '*.test.js', '*.spec.js'],
         // Only copy these extensions (or all if empty)
         allowedExtensions = ['.css', '.js', '.json', '.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.woff', '.woff2', '.ttf', '.eot']
     } = options;

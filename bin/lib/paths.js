@@ -3,8 +3,19 @@
  * Keep in sync with docs/UPGRADE.md
  */
 
-/** Framework-owned — replaced on default upgrade */
-export const FRAMEWORK_PATHS = ['src/framework'];
+/** Shared render contracts used by both the framework and stock components. */
+export const FRAMEWORK_UTILS_PATHS = [
+  'src/components/utils/html.js',
+  'src/components/utils/escapeHtml.js',
+  'src/components/utils/escapeAttr.js',
+  'src/components/utils/safeUrl.js',
+  'src/components/utils/attrsToString.js',
+  'src/components/utils/processSlot.js',
+  'src/components/utils/componentError.js'
+];
+
+/** Framework-owned — replaced on default upgrade, including required utilities. */
+export const FRAMEWORK_PATHS = ['src/framework', ...FRAMEWORK_UTILS_PATHS];
 
 /**
  * Stock component tree — replaced only with `upgrade --components`.

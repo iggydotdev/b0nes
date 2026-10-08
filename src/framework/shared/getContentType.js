@@ -16,7 +16,9 @@ export function getContentType(pathname) {
         'ico': 'image/x-icon',
         'woff': 'font/woff',
         'woff2': 'font/woff2',
-        'ttf': 'font/ttf'
+        'ttf': 'font/ttf',
+        'eot': 'application/vnd.ms-fontobject',
+        'html': 'text/html'
     };
     return contentTypes[ext] || 'application/octet-stream';
 }
