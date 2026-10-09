@@ -27,12 +27,27 @@
  */
 
 import { createInterface } from 'node:readline';
-import { tools, handleToolCall } from './tools.js';
+import { Console } from 'node:console';
+import { readFileSync } from 'node:fs';
+
+// stdout belongs exclusively to the transport, including logs from component code.
+globalThis.console = new Console({ stdout: process.stderr, stderr: process.stderr });
+const { tools, handleToolCall } = await import('./tools.js');
+const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+let version = typeof pkg.version === 'string' && pkg.version ? pkg.version : 'unknown';
+try {
+    const manifest = JSON.parse(readFileSync(new URL('../../.b0nes/manifest.json', import.meta.url), 'utf8'));
+    if (typeof manifest.frameworkVersion === 'string' && manifest.frameworkVersion && manifest.frameworkVersion !== 'unknown') {
+        version = manifest.frameworkVersion;
+    }
+} catch (error) {
+    if (error.code !== 'ENOENT') console.warn(`Could not read framework version: ${error.message}`);
+}
 
 const PROTOCOL_VERSION = '2025-06-18';
 const SERVER_INFO = {
     name: 'b0nes-mcp',
-    version: '0.2.0'
+    version
 };
 
 // ============================================
@@ -131,8 +146,11 @@ function handleToolsList(id) {
 async function handleToolsCall(id, params) {
     const { name, arguments: args } = params || {};
     
-    if (!name) {
+    if (typeof name !== 'string' || !name) {
         return sendError(id, INVALID_PARAMS, 'Missing tool name');
+    }
+    if (args !== undefined && (!args || typeof args !== 'object' || Array.isArray(args))) {
+        return sendError(id, INVALID_PARAMS, 'Tool arguments must be an object');
     }
     
     // Validate tool exists
@@ -172,7 +190,7 @@ async function dispatch(message) {
     const { id, method, params } = message;
     
     // Notifications (no id) 
-    if (id === undefined || id === null) {
+    if (id === undefined) {
         switch (method) {
             case 'notifications/initialized':
                 return handleInitialized();
@@ -209,7 +227,7 @@ const rl = createInterface({
     terminal: false
 });
 
-rl.on('line', async (line) => {
+async function handleMessage(line) {
     // Skip empty lines
     const trimmed = line.trim();
     if (!trimmed) return;
@@ -222,14 +240,18 @@ rl.on('line', async (line) => {
         return;
     }
     
-    // Basic JSON-RPC validation
-    if (message.jsonrpc !== '2.0') {
-        sendError(message.id ?? null, INVALID_REQUEST, 'Invalid JSON-RPC version (expected "2.0")');
+    const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+    const validId = id => typeof id === 'string' || (typeof id === 'number' && Number.isSafeInteger(id));
+    // MCP requests have string/integer IDs; notifications omit the ID entirely.
+    if (!isObject(message) || message.jsonrpc !== '2.0' ||
+        typeof message.method !== 'string' || !message.method ||
+        (Object.hasOwn(message, 'id') && !validId(message.id))) {
+        sendError(isObject(message) && validId(message.id) ? message.id : null,
+            INVALID_REQUEST, 'Invalid JSON-RPC request');
         return;
     }
-    
-    if (!message.method && message.id === undefined) {
-        sendError(null, INVALID_REQUEST, 'Invalid request: missing method');
+    if (message.params !== undefined && !isObject(message.params)) {
+        if (message.id !== undefined) sendError(message.id, INVALID_PARAMS, 'Parameters must be an object');
         return;
     }
     
@@ -241,11 +263,16 @@ rl.on('line', async (line) => {
             sendError(message.id, INTERNAL_ERROR, `Internal error: ${error.message}`);
         }
     }
-});
+}
 
-rl.on('close', () => {
+// Preserve request order: a subsequent discovery/compose request sees a completed
+// generation or installation. Finish pending requests before closing the stream.
+let pending = Promise.resolve();
+rl.on('line', line => { pending = pending.then(() => handleMessage(line)); });
+
+rl.on('close', async () => {
+    await pending;
     process.stderr.write('[b0nes-mcp] stdin closed, shutting down\n');
-    process.exit(0);
 });
 
 process.on('SIGTERM', () => process.exit(0));

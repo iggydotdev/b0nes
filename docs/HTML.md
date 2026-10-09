@@ -6,7 +6,8 @@ escaped separately; object attributes reject inline event handlers and `srcdoc`.
 URL attributes reject executable schemes such as `javascript:` and `data:`.
 
 ```js
-import { text, button, html, toHTMLString } from './src/index.js';
+import { text, button } from './src/components/atoms/index.js';
+import { html, toHTMLString } from './src/components/utils/index.js';
 const label = text({ is: 'strong', slot: 'Save & continue' });
 const control = button({ slot: label }); // nested component, no double escaping
 const explicit = button({ slot: html('<strong>Save</strong>') });

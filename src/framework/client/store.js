@@ -470,7 +470,12 @@ export const createAsyncAction = (asyncFn) => {
 };
 
 /**
- * Connect store to FSM for coordinated state management
+ * Connect store to FSM for coordinated state management.
+ * A changed fsmEvent requests one transition, either as a string or as
+ * { event, data }. A persistent value is not replayed by unrelated updates.
+ * To repeat a string event, clear fsmEvent between sends; a fresh request object
+ * can repeat an event with data. FSM feedback, reset and time travel never
+ * replay stored requests. Existing requests are not replayed on connection.
  * @param {Object} store - Store instance
  * @param {Object} fsm - FSM instance
  * @returns {Function} Disconnect function
@@ -487,10 +492,12 @@ export const connectStoreToFSM = (store, fsm) => {
 
     // Subscribe to store changes that might trigger FSM events
     const unsubStore = store.subscribe((change) => {
-        // Check if there's an FSM event to trigger
-        const fsmEvent = change.state?.fsmEvent;
-        if (fsmEvent && fsm.can(fsmEvent)) {
-            fsm.send(fsmEvent);
+        if (['fsm/setState', 'RESET', 'TIME_TRAVEL'].includes(change.action)) return;
+        const request = change.state?.fsmEvent;
+        if (Object.is(request, change.previousState?.fsmEvent)) return;
+        const event = typeof request === 'string' ? request : request?.event;
+        if (typeof event === 'string' && event && fsm.can(event)) {
+            fsm.send(event, typeof request === 'object' ? request.data : undefined);
         }
     });
 

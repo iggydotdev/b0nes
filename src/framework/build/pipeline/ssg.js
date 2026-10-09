@@ -97,10 +97,6 @@ export async function safeBuildRoute(route, outputDir, options) {
             
             const results = await generateRoute(routeWithComponents, outputDir, dataArray, options);
             
-            if (results.length === 0) {
-                throw new Error(`Dynamic route "${route.pattern.pathname}" generated no output`);
-            }
-            
             return {
                 success: true,
                 skipped: false,
@@ -210,6 +206,25 @@ const buildStaged = async (outputDir, options = {}) => {
     const errors = [];
     const skipped = [];
     const ssrRoutes = [];
+    const generatedOwners = new Map();
+    const recordGenerated = (result, route) => {
+        const destination = path.resolve(result.file);
+        const key = process.platform === 'win32' ? destination.toLowerCase() : destination;
+        const previous = generatedOwners.get(key);
+        if (previous) {
+            const collision = {
+                success: false,
+                route: result.path,
+                error: `Generated output collision for ${result.path}: ${previous.filePath} (${previous.pattern.pathname}) and ${route.filePath} (${route.pattern.pathname})`
+            };
+            errors.push(collision);
+            if (typeof onError === 'function') {
+                try { onError(collision, route); }
+                catch (error) { console.error('[Build] Error in onError callback:', error); }
+            }
+        } else generatedOwners.set(key, route);
+        generated.push(result);
+    };
     
     // Routes always rebuild: arbitrary module, environment and remote-data
     // dependencies cannot safely be invalidated by a pathname cache.
@@ -330,9 +345,9 @@ const buildStaged = async (outputDir, options = {}) => {
                                 route: result.route
                             });
                         } else if (result.results) {
-                            result.results.forEach(r => generated.push(r));
+                            result.results.forEach(r => recordGenerated(r, route));
                         } else {
-                            generated.push(result.result);
+                            recordGenerated(result.result, route);
                         }
                     } else {
                         errors.push(result);

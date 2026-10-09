@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { inspectPath, copyContainedFile } from './safePaths.js';
+import { withFileTransaction } from './fileTransaction.js';
 import {
   FRAMEWORK_PATHS,
   FRAMEWORK_UTILS_PATHS,
@@ -15,6 +16,7 @@ import {
   BACKUPS_DIR,
   DEFAULT_POLICY
 } from './paths.js';
+import { MANIFEST_FILE, CHECKSUMS_FILE } from './paths.js';
 import {
   readManifest,
   writeManifest,
@@ -280,10 +282,12 @@ export const runUpgrade = async ({
       manifest.frameworkVersion = toVersion;
       manifest.upgradedAt = new Date().toISOString();
       manifest.policy = policy;
-      writeManifest(projectRoot, manifest);
-      writeChecksums(projectRoot, {
-        ...previousChecksums,
-        ...buildChecksums(projectRoot, managedSpecs)
+      await withFileTransaction(projectRoot, [MANIFEST_FILE, CHECKSUMS_FILE], async () => {
+        writeManifest(projectRoot, manifest);
+        writeChecksums(projectRoot, {
+          ...previousChecksums,
+          ...buildChecksums(projectRoot, managedSpecs)
+        });
       });
       log.info(`Manifest set to ${toVersion}`);
     }
@@ -336,24 +340,25 @@ export const runUpgrade = async ({
   }
 
   let written = 0;
-  for (const item of actionable) {
-    await copyFile(packageRoot, projectRoot, item.rel);
-    written++;
-  }
+  await withFileTransaction(projectRoot, [...actionable.map(item => item.rel), MANIFEST_FILE, CHECKSUMS_FILE], async () => {
+    for (const item of actionable) {
+      await copyFile(packageRoot, projectRoot, item.rel);
+      written++;
+    }
 
-  // Refresh checksums for all managed paths we care about
-  const newChecksums = {
-    ...previousChecksums,
-    ...buildChecksums(projectRoot, managedSpecs)
-  };
-  // Drop checksums for framework files no longer present upstream? keep stale keys harmless
-  writeChecksums(projectRoot, newChecksums);
+    // Refresh checksums for all managed paths; stale keys remain harmless.
+    const newChecksums = {
+      ...previousChecksums,
+      ...buildChecksums(projectRoot, managedSpecs)
+    };
+    writeChecksums(projectRoot, newChecksums);
 
-  manifest.frameworkVersion = toVersion;
-  manifest.upgradedAt = new Date().toISOString();
-  manifest.policy = { ...manifest.policy, ...DEFAULT_POLICY };
-  if (!manifest.createdWith) manifest.createdWith = toVersion;
-  writeManifest(projectRoot, manifest);
+    manifest.frameworkVersion = toVersion;
+    manifest.upgradedAt = new Date().toISOString();
+    manifest.policy = { ...manifest.policy, ...DEFAULT_POLICY };
+    if (!manifest.createdWith) manifest.createdWith = toVersion;
+    writeManifest(projectRoot, manifest);
+  });
 
   log.success(`Upgraded framework ${fromVersion} → ${toVersion} (${written} files written)`);
   if (components) log.info('Stock components were included (--components).');

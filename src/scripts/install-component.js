@@ -1,434 +1,228 @@
-/**
- * b0nes Component Installer
- * Install community components from URLs or package registries
- * 
- * Usage:
- *   npm run install-component https://example.com/components/my-card
- *   npm run install-component @username/card-gallery
- */
-
+/** Install a community component from an HTTP(S) manifest or directory. */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { spawnSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { assertSafeSourcePath } from '../framework/build/pipeline/outputPath.js';
+import { componentIdentifier } from '../components/utils/componentIdentifier.js';
+import { updateCategoryIndex } from '../components/utils/componentRegistry.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/**
- * Component manifest structure
- * @typedef {Object} ComponentManifest
- * @property {string} name - Component name
- * @property {string} version - Semantic version
- * @property {string} type - Component type (atom/molecule/organism)
- * @property {string} description - Brief description
- * @property {string} author - Author name/email
- * @property {string} license - License type
- * @property {Object} files - File URLs
- * @property {string} files.component - Main component file URL
- * @property {string} files.test - Test file URL
- * @property {string} [files.client] - Client-side behavior URL (optional)
- * @property {string[]} [dependencies] - Other b0nes components needed
- * @property {string[]} [tags] - Search tags
- */
-
-/**
- * Fetches content from a URL
- */
-const fetchContent = async (url) => {
-  try {
-    const response = await fetch(url);
+const defaultRoot = fileURLToPath(new URL('../../', import.meta.url));
+const httpURL = (value, base) => {
+    const url = new URL(value, base);
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Component files must use HTTP(S) URLs');
+    return url;
+};
+const fetchContent = async url => {
+    const response = await fetch(httpURL(url), { signal: AbortSignal.timeout(30000) });
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const error = new Error(`Failed to fetch ${url}: HTTP ${response.status}`);
+        error.status = response.status;
+        throw error;
     }
-    return await response.text();
-  } catch (error) {
-    throw new Error(`Failed to fetch ${url}: ${error.message}`);
-  }
+    return { content: await response.text(), url: httpURL(response.url).href };
 };
-
-/**
- * Parses component manifest from index.js or manifest.json
- */
-const parseManifest = async (url) => {
-  let manifestUrl = url;
-  
-  // If URL points to a directory, try to find manifest
-  if (!url.endsWith('.json') && !url.endsWith('.js')) {
-    // Try manifest.json first
-    try {
-      const manifestContent = await fetchContent(`${url}/b0nes.manifest.json`);
-      return JSON.parse(manifestContent);
-    } catch {
-      // Try index.js with embedded manifest
-      manifestUrl = `${url}/index.js`;
-    }
-  }
-  
-  // Extract manifest from JavaScript file
-  if (manifestUrl.endsWith('.js')) {
-    const content = await fetchContent(manifestUrl);
-    
-    // Look for manifest comment block
-    const manifestMatch = content.match(/\/\*\*\s*@b0nes-manifest\s*([\s\S]*?)\*\//);
-    if (manifestMatch) {
-      const manifestText = manifestMatch[1]
-        .split('\n')
-        .map(line => line.replace(/^\s*\*\s?/, ''))
-        .join('\n')
-        .trim();
-      return JSON.parse(manifestText);
-    }
-    
-    throw new Error('No b0nes manifest found in component file');
-  }
-  
-  // Parse JSON manifest
-  const content = await fetchContent(manifestUrl);
-  return JSON.parse(content);
-};
-
-/**
- * Validates component manifest
- */
-const validateManifest = (manifest) => {
-  const required = ['name', 'version', 'type', 'files'];
-  const missing = required.filter(field => !manifest[field]);
-  
-  if (missing.length > 0) {
-    throw new Error(`Missing required fields: ${missing.join(', ')}`);
-  }
-  
-  const validTypes = ['atom', 'molecule', 'organism'];
-  if (!validTypes.includes(manifest.type)) {
-    throw new Error(`Invalid type: ${manifest.type}. Must be one of: ${validTypes.join(', ')}`);
-  }
-  
-  if (!manifest.files.component) {
-    throw new Error('Manifest must include files.component URL');
-  }
-  
-  return true;
-};
-
-/**
- * Resolves relative URLs to absolute
- */
-const resolveUrl = (baseUrl, relativeUrl) => {
-  if (relativeUrl.startsWith('http://') || relativeUrl.startsWith('https://')) {
-    return relativeUrl;
-  }
-  
-  const base = new URL(baseUrl);
-  return new URL(relativeUrl, base.origin + base.pathname + '/').href;
-};
-
-/**
- * Installs a component from a URL
- */
-export const installComponent = async (url, options = {}) => {
-  const {
-    force = false,           // Overwrite if exists
-    dryRun = false,         // Preview without installing
-  } = options;
-  
-  console.log(`\n📦 Installing component from: ${url}\n`);
-  
-  try {
-    // Step 1: Parse manifest
-    console.log('→ Parsing manifest...');
-    const manifest = await parseManifest(url);
-    validateManifest(manifest);
-    
-    console.log(`✓ Found: ${manifest.name} v${manifest.version} (${manifest.type})`);
-    if (manifest.description) {
-      console.log(`  ${manifest.description}`);
-    }
-    
-    // Step 2: Check if component already exists
-    if (!/^[a-z0-9-]+$/.test(manifest.name)) {
-      throw new Error(
-        `Invalid component name: "${manifest.name}". Only lowercase letters, numbers, and hyphens are allowed.`
-      );
-    }
-
-    const targetDir = path.join(
-      __dirname,
-      `../components/${manifest.type}s`,
-      manifest.name
-    );
-    
-    if (fs.existsSync(targetDir) && !force) {
-      throw new Error(
-        `Component "${manifest.name}" already exists at ${targetDir}\n` +
-        `Use --force to overwrite`
-      );
-    }
-    
-    // Step 3: Check dependencies
-    if (manifest.dependencies && manifest.dependencies.length > 0) {
-      console.log(`\n→ Checking dependencies:`);
-      for (const dep of manifest.dependencies) {
-        const depExists = checkDependency(dep);
-        console.log(`  ${depExists ? '✓' : '✗'} ${dep}`);
-        if (!depExists && !dryRun) {
-          console.log(`    ⚠️  Dependency not found. Install it first.`);
+const parseManifest = async input => {
+    const url = httpURL(input);
+    let source;
+    if (!/\.(json|js)$/.test(url.pathname)) {
+        const directory = new URL(url.href);
+        directory.pathname = directory.pathname.replace(/\/?$/, '/');
+        try { source = await fetchContent(new URL('b0nes.manifest.json', directory)); }
+        catch (error) {
+            if (error.status !== 404) throw error;
+            source = await fetchContent(new URL('index.js', directory));
         }
-      }
+    } else source = await fetchContent(url);
+    if (new URL(source.url).pathname.endsWith('.js')) {
+        const match = source.content.match(/\/\*\*\s*@b0nes-manifest\s*([\s\S]*?)\*\//);
+        if (!match) throw new Error('No b0nes manifest found in component file');
+        source.content = match[1].split('\n').map(line => line.replace(/^\s*\*\s?/, '')).join('\n').trim();
     }
-    
-    if (dryRun) {
-      console.log(`\n✓ Dry run complete. Component is valid and ready to install.`);
-      return { success: true, manifest, dryRun: true };
+    return { manifest: JSON.parse(source.content), manifestURL: source.url };
+};
+const validateManifest = manifest => {
+    if (!manifest || typeof manifest !== 'object' || !['atom', 'molecule', 'organism'].includes(manifest.type) ||
+        typeof manifest.version !== 'string' || !manifest.version || !manifest.files ||
+        typeof manifest.files.component !== 'string') throw new Error('Invalid component manifest: name, version, type and files.component are required');
+    componentIdentifier(manifest.name);
+    for (const field of ['component', 'test', 'client']) {
+        if (manifest.files[field] !== undefined && (typeof manifest.files[field] !== 'string' || !manifest.files[field])) {
+            throw new Error(`Invalid component file URL: ${field}`);
+        }
     }
-    
-    // Step 4: Install component
-    // Download and copy files
-    console.log(`\n→ Downloading files...`);
-    await installFiles(targetDir, url, manifest);
-    
-    // Step 5: Update component index
-    console.log(`→ Updating component registry...`);
-    await updateComponentIndex(manifest);
-    
-    console.log(`\n✅ Successfully installed ${manifest.name}!`);
-    console.log(`\nUsage:`);
-    console.log(`  {`);
-    console.log(`    type: '${manifest.type}',`);
-    console.log(`    name: '${manifest.name}',`);
-    console.log(`    props: { /* ... */ }`);
-    console.log(`  }`);
-    
-    return { success: true, manifest, path: targetDir };
-    
-  } catch (error) {
-    console.error(`\n❌ Installation failed: ${error.message}\n`);
-    return { success: false, error: error.message };
-  }
+    if (manifest.dependencies !== undefined && (!Array.isArray(manifest.dependencies) ||
+        manifest.dependencies.some(dependency => typeof dependency !== 'string'))) throw new Error('Invalid component dependencies');
 };
-
-/**
- * Downloads and saves component files
- */
-const installFiles = async (targetDir, baseUrl, manifest) => {
-  // Create directory
-  if (!fs.existsSync(targetDir)) {
-    fs.mkdirSync(targetDir, { recursive: true });
-  }
-  
-  // Download main component file
-  const componentUrl = resolveUrl(baseUrl, manifest.files.component);
-  const componentContent = await fetchContent(componentUrl);
-  const componentFileName = manifest.name + '.js';
-  fs.writeFileSync(
-    path.join(targetDir, componentFileName),
-    componentContent,
-    'utf8'
-  );
-  console.log(`  ✓ ${componentFileName}`);
-  
-  // Download test file
-  if (manifest.files.test) {
-    const testUrl = resolveUrl(baseUrl, manifest.files.test);
-    const testContent = await fetchContent(testUrl);
-    const testFileName = manifest.name + '.test.js';
-    fs.writeFileSync(
-      path.join(targetDir, testFileName),
-      testContent,
-      'utf8'
-    );
-    console.log(`  ✓ ${testFileName}`);
-  }
-  
-  // Download client file if exists
-  if (manifest.files.client) {
-    const clientUrl = resolveUrl(baseUrl, manifest.files.client);
-    const clientContent = await fetchContent(clientUrl);
-    const clientFileName = `${manifest.type}.${manifest.name}.client.js`;
-    fs.writeFileSync(
-      path.join(targetDir, clientFileName),
-      clientContent,
-      'utf8'
-    );
-    console.log(`  ✓ ${clientFileName}`);
-  }
-  
-  // Create index.js
-  const indexContent = generateIndexFile(manifest);
-  fs.writeFileSync(
-    path.join(targetDir, 'index.js'),
-    indexContent,
-    'utf8'
-  );
-  console.log(`  ✓ index.js`);
-  
-  // Save manifest
-  fs.writeFileSync(
-    path.join(targetDir, 'b0nes.manifest.json'),
-    JSON.stringify(manifest, null, 2),
-    'utf8'
-  );
-  console.log(`  ✓ b0nes.manifest.json`);
+const dependencyExists = (root, dependency) => {
+    const qualified = /^(atoms?|molecules?|organisms?)[/:]([a-z0-9-]+)$/.exec(dependency);
+    const categories = qualified ? [qualified[1].replace(/s$/, '') + 's'] : ['atoms', 'molecules', 'organisms'];
+    const name = qualified ? qualified[2] : dependency;
+    componentIdentifier(name);
+    return categories.some(category => {
+        const directory = assertSafeSourcePath(root, path.join(root, 'src/components', category, name));
+        return fs.existsSync(directory) && fs.statSync(directory).isDirectory();
+    });
 };
-
-/**
- * Generates index.js file
- */
-const generateIndexFile = (manifest) => {
-  const hasClient = !!manifest.files.client;
-  
-  return `import { ${manifest.name} as ${manifest.name}Render } from './${manifest.name}.js';
-${hasClient ? `import { client } from './${manifest.type}.${manifest.name}.client.js';\n` : ''}
-export const ${manifest.name} = {
-  render: ${manifest.name}Render${hasClient ? ',\n  client' : ''}
+const validateTree = (root, directory) => {
+    assertSafeSourcePath(root, directory);
+    if (!fs.existsSync(directory)) return;
+    if (!fs.lstatSync(directory).isDirectory()) throw new Error('Component target must be a directory');
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const filename = assertSafeSourcePath(root, path.join(directory, entry.name));
+        if (entry.isDirectory()) validateTree(root, filename);
+        else if (!entry.isFile()) throw new Error(`Component contains a non-regular file: ${filename}`);
+    }
 };
-
-export default ${manifest.name}.render;
+const checkJavaScript = filename => {
+    const result = spawnSync(process.execPath, ['--check', filename], { encoding: 'utf8', timeout: 30000 });
+    if (result.status !== 0) throw new Error(`Invalid component JavaScript: ${result.stderr || result.error?.message}`);
+};
+const generateIndexFile = (manifest, nonce) => {
+    const symbol = componentIdentifier(manifest.name);
+    // A fresh renderer URL also refreshes a forced install in an already-running
+    // process. Client behavior stays in client.js for the framework's loader.
+    return `import * as component from './${manifest.name}.js?install=${nonce}';
+const renderer = component.default || component[${JSON.stringify(symbol)}] || component[${JSON.stringify(manifest.name)}] || component.render;
+if (typeof renderer !== 'function' && typeof renderer?.render !== 'function') throw new TypeError('Installed component must export a renderer');
+export const ${symbol} = renderer;
+export default renderer;
 `;
 };
 
-/**
- * Checks if a dependency exists
- */
-const checkDependency = (depName) => {
-  const types = ['atoms', 'molecules', 'organisms'];
-  
-  for (const type of types) {
-    const depPath = path.join(
-      __dirname,
-      `../../components/${type}/${depName}`
-    );
-    if (fs.existsSync(depPath)) {
-      return true;
+/** Stage downloads and validate modules before replacing any installed files. */
+export const installComponent = async (input, { force = false, dryRun = false, projectRoot = defaultRoot } = {}) => {
+    let stage, registryStage, registryBackup, previous, lock, locked = false;
+    let installed = false, registryChanged = false, libraryModule, oldRenderer, root, category, target, indexPath;
+    const dispose = () => {
+        for (const filename of [stage, registryStage, registryBackup, previous]) {
+            if (filename && fs.existsSync(filename)) fs.rmSync(filename, { recursive: true, force: true });
+        }
+        if (locked) { fs.unlinkSync(lock); locked = false; }
+    };
+    let manifest;
+    try {
+        console.log(`Installing component from ${input}`);
+        const parsed = await parseManifest(input);
+        manifest = parsed.manifest;
+        validateManifest(manifest);
+        root = fs.realpathSync(projectRoot);
+        category = manifest.type + 's';
+        const categoryDirectory = assertSafeSourcePath(root, path.join(root, 'src/components', category));
+        target = assertSafeSourcePath(root, path.join(categoryDirectory, manifest.name));
+        indexPath = assertSafeSourcePath(root, path.join(categoryDirectory, 'index.js'));
+        validateTree(root, target);
+        if (fs.existsSync(target) && !force) throw new Error(`Component ${manifest.name} already exists; use --force to overwrite`);
+        for (const dependency of manifest.dependencies || []) {
+            if (!dependencyExists(root, dependency)) throw new Error(`Missing component dependency: ${dependency}`);
+        }
+        if (dryRun) {
+            updateCategoryIndex(fs.readFileSync(indexPath, 'utf8'), manifest.type, manifest.name);
+            return { success: true, manifest, dryRun: true };
+        }
+
+        // Fetch everything before creating the transaction or touching installed files.
+        const contents = {};
+        for (const field of ['component', 'test', 'client']) {
+            if (manifest.files[field]) contents[field] = (await fetchContent(httpURL(manifest.files[field], parsed.manifestURL))).content;
+        }
+        // All components in a category share the same registry. Read it only
+        // after acquiring its lock, including when downloads overlap installs.
+        lock = path.join(categoryDirectory, '.b0nes-component-registry.lock');
+        const lockFD = fs.openSync(lock, 'wx');
+        fs.closeSync(lockFD); locked = true;
+        assertSafeSourcePath(root, indexPath);
+        validateTree(root, target);
+        if (fs.existsSync(target) && !force) throw new Error(`Component ${manifest.name} already exists; use --force to overwrite`);
+        for (const dependency of manifest.dependencies || []) {
+            if (!dependencyExists(root, dependency)) throw new Error(`Missing component dependency: ${dependency}`);
+        }
+        const updatedIndex = updateCategoryIndex(fs.readFileSync(indexPath, 'utf8'), manifest.type, manifest.name);
+        stage = fs.mkdtempSync(path.join(categoryDirectory, `.b0nes-install-${manifest.name}-`));
+        const nonce = randomUUID();
+        const files = { [`${manifest.name}.js`]: contents.component, 'index.js': generateIndexFile(manifest, nonce),
+            'b0nes.manifest.json': JSON.stringify(manifest, null, 2) + '\n',
+            ...(contents.test !== undefined ? { [`${manifest.name}.test.js`]: contents.test } : {}),
+            ...(contents.client !== undefined ? { 'client.js': contents.client } : {}) };
+        for (const [filename, content] of Object.entries(files)) {
+            fs.writeFileSync(path.join(stage, filename), content, 'utf8');
+            if (filename.endsWith('.js')) checkJavaScript(path.join(stage, filename));
+        }
+        const validation = spawnSync(process.execPath, ['--input-type=module', '--eval',
+            'const component = await import(process.argv[1]); if (typeof component.default !== "function" && typeof component.default?.render !== "function") throw new Error("Missing renderer");',
+            pathToFileURL(path.join(stage, 'index.js')).href], { cwd: root, encoding: 'utf8', timeout: 30000 });
+        if (validation.status !== 0) throw new Error(`Component cannot be loaded: ${validation.stderr || validation.error?.message}`);
+        validateTree(root, stage);
+        // Capture the previous live renderer before promotion. A cold library
+        // import after promotion would auto-register the replacement instead.
+        libraryModule = await import(pathToFileURL(path.join(root, 'src/components/library.js')).href);
+        oldRenderer = libraryModule.default[category][manifest.name];
+        if (typeof libraryModule.registerComponent !== 'function') throw new Error('Component library must support registerComponent; upgrade the library before installing');
+        registryStage = path.join(categoryDirectory, `.b0nes-registry-${nonce}.mjs`);
+        fs.writeFileSync(registryStage, updatedIndex);
+        checkJavaScript(registryStage);
+        fs.chmodSync(registryStage, fs.statSync(indexPath).mode & 0o777);
+        registryBackup = path.join(categoryDirectory, `.b0nes-registry-backup-${nonce}.mjs`);
+        fs.copyFileSync(indexPath, registryBackup);
+        assertSafeSourcePath(root, indexPath);
+        validateTree(root, target);
+        if (fs.existsSync(target)) {
+            previous = fs.mkdtempSync(path.join(categoryDirectory, `.b0nes-previous-${manifest.name}-`));
+            fs.rmdirSync(previous);
+            fs.renameSync(target, previous);
+        }
+        fs.renameSync(stage, target); installed = true;
+        fs.renameSync(registryStage, indexPath); registryChanged = true;
+        await libraryModule.registerComponent(category, manifest.name);
+        const composer = await import(pathToFileURL(path.join(root, 'src/framework/core/compose.js')).href);
+        composer.clearCompositionCache();
+        console.log(`Installed ${manifest.name} (${manifest.type})`);
+        // Cleanup failure after promotion must not turn a complete install into
+        // an error. Any remaining transaction files can be removed later.
+        try { dispose(); }
+        catch (error) { console.warn(`Component installed; transaction cleanup failed: ${error.message}`); }
+        return { success: true, manifest, path: target };
+    } catch (error) {
+        let rollbackError;
+        try {
+            if (registryChanged) {
+                assertSafeSourcePath(root, indexPath);
+                fs.renameSync(registryBackup, indexPath);
+            }
+            if (installed) {
+                validateTree(root, target);
+                fs.rmSync(target, { recursive: true, force: true });
+            }
+            if (previous && fs.existsSync(previous)) fs.renameSync(previous, target);
+            if (libraryModule && manifest) {
+                if (oldRenderer) libraryModule.default[category][manifest.name] = oldRenderer;
+                else delete libraryModule.default[category][manifest.name];
+            }
+        } catch (recovery) { rollbackError = recovery; }
+        if (!rollbackError) {
+            try { dispose(); } catch (cleanup) { console.warn(`Install rollback cleanup failed: ${cleanup.message}`); }
+        }
+        const message = rollbackError
+            ? `${error.message}; recovery failed (${rollbackError.message}). Original files retained at ${previous || registryBackup || stage}`
+            : error.message;
+        console.error(`Installation failed: ${message}`);
+        return { success: false, error: message };
     }
-  }
-  
-  return false;
 };
 
-/**
- * Updates component index to register new component
- */
-const updateComponentIndex = async (manifest) => {
-  const indexPath = path.join(
-    __dirname,
-    `../../components/${manifest.type}s/index.js`
-  );
-  
-  if (!fs.existsSync(indexPath)) {
-    console.warn(`⚠️  Index file not found: ${indexPath}`);
-    return;
-  }
-  
-  let content = fs.readFileSync(indexPath, 'utf8');
-  
-  // Check if already imported
-  if (content.includes(`from './${manifest.name}/index.js'`)) {
-    console.log(`  Component already in index`);
-    return;
-  }
-  
-  // Add import
-  const importLine = `import ${manifest.name} from './${manifest.name}/index.js';`;
-  const importSection = content.match(/^import.*$/gm);
-  
-  if (importSection) {
-    const lastImport = importSection[importSection.length - 1];
-    content = content.replace(lastImport, `${lastImport}\n${importLine}`);
-  } else {
-    content = `${importLine}\n\n${content}`;
-  }
-  
-  // Add to exports object
-  const exportsMatch = content.match(/export const \w+ = \{([\s\S]*?)\};/);
-  if (exportsMatch) {
-    const exportsList = exportsMatch[1].trim();
-    const updatedExports = exportsList 
-      ? `${exportsList},\n    ${manifest.name}`
-      : `    ${manifest.name}`;
-    
-    content = content.replace(
-      /export const \w+ = \{[\s\S]*?\};/,
-      `export const ${manifest.type}s = {\n${updatedExports}\n};`
-    );
-  }
-  
-  // Add to named exports
-  const namedExportsMatch = content.match(/export \{([\s\S]*?)\};/);
-  if (namedExportsMatch) {
-    const exportsList = namedExportsMatch[1].trim();
-    const updatedExports = exportsList
-      ? `${exportsList},\n    ${manifest.name}`
-      : `    ${manifest.name}`;
-    
-    content = content.replace(
-      /export \{[\s\S]*?\};/,
-      `export {\n${updatedExports}\n};`
-    );
-  }
-  
-  fs.writeFileSync(indexPath, content, 'utf8');
-  console.log(`  ✓ Updated ${manifest.type}s/index.js`);
-};
-
-/**
- * CLI entry point
- */
 const main = async () => {
-  const args = process.argv.slice(2);
-  
-  if (args.length === 0) {
-    console.log(`
-b0nes Component Installer
-
-Usage:
-  npm run install-component <url> [options]
-
-Options:
-  --force         Overwrite existing component
-  --dry-run       Preview without installing
-  --reference     Use URL reference instead of copying files
-
-Examples:
-  # Install from URL
-  npm run install-component https://example.com/components/my-card
-
-  # Preview installation
-  npm run install-component https://example.com/card --dry-run
-
-Component Manifest Format:
-  Create a b0nes.manifest.json file:
-  {
-    "name": "my-card",
-    "version": "1.0.0",
-    "type": "molecule",
-    "description": "A custom card component",
-    "author": "Your Name <you@example.com>",
-    "license": "MIT",
-    "files": {
-      "component": "./my-card.js",
-      "test": "./my-card.test.js",
-      "client": "./molecule.my-card.client.js"
-    },
-    "dependencies": [],
-    "tags": ["card", "layout"]
-  }
-    `);
-    process.exit(0);
-  }
-  
-  const url = args[0];
-  const options = {
-    force: args.includes('--force'),
-    dryRun: args.includes('--dry-run'),
-  };
-  
-  const result = await installComponent(url, options);
-  process.exit(result.success ? 0 : 1);
+    const args = process.argv.slice(2);
+    if (!args.length || args.includes('--help') || args.includes('-h')) {
+        console.log('b0nes Component Installer\nUsage: npm run install-component -- <HTTP(S) manifest or directory URL> [--force] [--dry-run]');
+        return;
+    }
+    const unknown = args.slice(1).find(argument => !['--force', '--dry-run'].includes(argument));
+    if (unknown) throw new Error(`Unsupported installer option: ${unknown}`);
+    const result = await installComponent(args[0], { force: args.includes('--force'), dryRun: args.includes('--dry-run') });
+    process.exitCode = result.success ? 0 : 1;
 };
-
-// Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+    main().catch(error => { console.error(error.message); process.exitCode = 1; });
 }
-
 export default { installComponent };

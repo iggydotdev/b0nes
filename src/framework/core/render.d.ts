@@ -4,6 +4,7 @@
  */
 
 /** Stylesheet descriptor (string URL or object with options) */
+import type { TrustedHTML } from '../../components/utils/index.js';
 export type StylesheetInput = string | StylesheetDescriptor;
 
 export interface StylesheetDescriptor {
@@ -13,8 +14,10 @@ export interface StylesheetDescriptor {
   media?: string;
   /** Cross-origin setting */
   crossOrigin?: string;
+  /** Subresource integrity hash. */
+  integrity?: string;
   /** Additional attributes */
-  [key: string]: string | undefined;
+  attrs?: Record<string, string | number | boolean | null | undefined>;
 }
 
 /** Page metadata and configuration */
@@ -26,9 +29,11 @@ export interface PageMeta {
   /** HTML lang attribute */
   lang?: string;
   /** Additional stylesheets to include */
-  stylesheets?: StylesheetInput[];
+  stylesheets?: StylesheetInput | StylesheetInput[];
   /** Additional <script> sources to include */
   scripts?: string[];
+  /** Developer-authored module scripts (no closing script tags). */
+  inlineScripts?: string[];
   /** Whether to include the b0nes client runtime (default: true) */
   interactive?: boolean;
   /** Current page path for resolving relative assets */
@@ -51,7 +56,7 @@ export function document(): string;
  * @param meta - Page metadata and configuration
  * @returns Complete HTML document string
  */
-export function renderPage(content: string, meta?: PageMeta): string;
+export function renderPage(content: string | TrustedHTML, meta?: PageMeta): string;
 
 /**
  * Normalizes stylesheet configuration into a consistent array format.
@@ -60,5 +65,5 @@ export function renderPage(content: string, meta?: PageMeta): string;
  * @returns Normalized stylesheet descriptors
  */
 export function configureStylesheets(
-  sheets: StylesheetInput[]
+  sheets?: StylesheetInput | StylesheetInput[]
 ): StylesheetDescriptor[];

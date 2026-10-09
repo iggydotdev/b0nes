@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore, combineModules, createAsyncAction, persistenceMiddleware, loggerMiddleware, devToolsMiddleware, loadPersistedState } from './store.js';
+import { createStore, combineModules, createAsyncAction, persistenceMiddleware, loggerMiddleware, devToolsMiddleware, loadPersistedState, connectStoreToFSM } from './store.js';
+import { createFSM } from './fsm.js';
 
 test('path subscriptions compare previous and next snapshots, including getters', () => {
     const store = createStore({
@@ -266,4 +267,79 @@ test('a middleware error after next does not commit twice or roll back committed
     assert.deepEqual(store.dispatch('increment'), { count: 1 });
     assert.equal(store.getState().count, 1);
     assert.equal(store.getHistory().length, 1);
+});
+
+
+test('store FSM requests fire once without self-transition feedback or unrelated-update replay', () => {
+    const fsm = createFSM({ initial: 'idle', states: { idle: { on: { TICK: 'idle' } } } });
+    const store = createStore({
+        state: { fsmEvent: null, count: 0 },
+        actions: {
+            request: (_, fsmEvent) => ({ fsmEvent }),
+            unrelated: state => ({ count: state.count + 1 }),
+            'fsm/setState': (_, state) => ({ fsm: state })
+        }
+    });
+    const disconnect = connectStoreToFSM(store, fsm);
+    store.dispatch('request', 'TICK');
+    assert.equal(fsm.getHistory().length, 1);
+    assert.equal(store.getHistory().length, 2);
+    assert.equal(store.getState().fsm.currentState, 'idle');
+    store.dispatch('unrelated');
+    store.dispatch('request', 'TICK');
+    assert.equal(fsm.getHistory().length, 1, 'persistent string commands are not replayed');
+    store.dispatch('request', null);
+    store.dispatch('request', 'TICK');
+    assert.equal(fsm.getHistory().length, 2, 'clearing a string allows an explicit repeat');
+    disconnect(); disconnect();
+    store.dispatch('request', null);
+    store.dispatch('request', 'TICK');
+    assert.equal(fsm.getHistory().length, 2);
+    const changes = store.getHistory().length;
+    fsm.send('TICK');
+    assert.equal(store.getHistory().length, changes, 'disconnect removes both directions');
+});
+
+test('FSM request objects support repeated events with data and ignore generated feedback requests', () => {
+    const fsm = createFSM({ initial: 'idle', states: {
+        idle: { on: { TICK: 'idle' }, actions: { onEntry: (_, data) => ({ last: data }) } }
+    } });
+    const store = createStore({
+        state: { fsmEvent: null, unrelated: false },
+        actions: {
+            request: (_, fsmEvent) => ({ fsmEvent }),
+            unrelated: () => ({ unrelated: true }),
+            'fsm/setState': (_, state) => ({ fsm: state, fsmEvent: { event: 'TICK', data: 'feedback' } })
+        }
+    });
+    const disconnect = connectStoreToFSM(store, fsm);
+    store.dispatch('request', { event: 'TICK', data: 'first' });
+    assert.equal(fsm.getHistory().length, 1);
+    assert.equal(fsm.getContext().last, 'first');
+    store.dispatch('unrelated');
+    assert.equal(fsm.getHistory().length, 1);
+    store.dispatch('request', { event: 'TICK', data: 'second' });
+    assert.equal(fsm.getHistory().length, 2);
+    assert.equal(fsm.getContext().last, 'second');
+    store.dispatch('request', { event: 'UNKNOWN' });
+    store.dispatch('request', { event: 42 });
+    assert.equal(fsm.getHistory().length, 2);
+    disconnect();
+});
+
+test('connecting and restoring stored state do not replay old FSM requests', () => {
+    const fsm = createFSM({ initial: 'idle', states: { idle: { on: { TICK: 'idle' } } } });
+    const store = createStore({ state: { fsmEvent: 'TICK' }, actions: {
+        request: (_, fsmEvent) => ({ fsmEvent }), 'fsm/setState': () => ({ connected: true })
+    } });
+    const disconnect = connectStoreToFSM(store, fsm);
+    assert.equal(fsm.getHistory().length, 0);
+    store.dispatch('request', null);
+    store.reset();
+    assert.equal(fsm.getHistory().length, 0);
+    store.dispatch('request', { event: 'TICK' });
+    store.dispatch('request', null);
+    store.timeTravel(0);
+    assert.equal(fsm.getHistory().length, 1);
+    disconnect();
 });

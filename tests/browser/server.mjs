@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { compose } from '../../src/framework/core/compose.js';
 import { renderPage } from '../../src/framework/core/render.js';
+import { escapeHtml } from '../../src/components/utils/escapeHtml.js';
 import { createPageBundle } from '../../src/framework/build/pipeline/bundle.js';
 import { copyComponentBehaviors } from '../../src/framework/build/pipeline/copyComponentBehaviors.js';
 import { copyFrameworkRuntime } from '../../src/framework/build/pipeline/copyFrameworkRuntime.js';
@@ -30,7 +31,8 @@ const bundle = await createPageBundle('browser', new Set(['organism:multi-step-f
 await copyFrameworkRuntime(output);
 await copyComponentBehaviors(output);
 fs.writeFileSync(path.join(output, 'index.html'), renderPage(compose([
-    {type:'organism',name:'multi-step-form',props:{}}, tab
+    {type:'organism',name:'multi-step-form',props:{action:'/form-submit',method:'post'}},
+    {type:'organism',name:'multi-step-form',props:{action:'/form-submit',method:'post'}}, tab
 ]), { title:'Production module test', bundlePath: bundle }));
 
 const spaBundle = await createPageBundle('spa-browser', new Set(['organism:spa']), output);
@@ -69,6 +71,21 @@ const server = http.createServer((req, res) => {
             try { process.send?.({type:'results', ...JSON.parse(body)}); res.end('ok'); }
             catch { res.writeHead(400); res.end(); }
         });
+        return;
+    }
+    if (pathname === '/form-submit' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; if (body.length > 65536) req.destroy(); });
+        req.on('end', () => {
+            res.setHeader('content-type', 'text/html');
+            res.end(`<h1>Submitted</h1><pre id="submitted-form">${escapeHtml(body)}</pre>`);
+        });
+        return;
+    }
+    if (pathname === '/form-no-js') {
+        res.setHeader('content-type', 'text/html');
+        res.end(renderPage(compose([{ type:'organism', name:'multi-step-form',
+            props:{ action:'/form-submit', method:'post' } }]), { interactive:false, title:'Native form fallback' }));
         return;
     }
     if (pathname === '/') { res.setHeader('content-type', 'text/html'); res.end(html); return; }

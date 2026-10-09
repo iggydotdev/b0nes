@@ -2,6 +2,38 @@
  * b0nes Component Utilities
  */
 
+export interface SerializedHTML {
+  html: string;
+  dependencies?: readonly string[];
+  component?: {
+    type: 'atom' | 'molecule' | 'organism';
+    name: string;
+    props: Record<string, unknown>;
+  };
+}
+
+/** Explicitly trusted markup, returned by built-in component renderers. */
+export class TrustedHTML extends String {
+  constructor(value: string, dependencies?: Iterable<string>);
+  readonly dependencies: readonly string[];
+  toJSON(): SerializedHTML;
+}
+
+export type SlotContent = string | number | boolean | TrustedHTML | SerializedHTML
+  | null | undefined | readonly SlotContent[];
+
+/** Trust assertion, not a sanitizer. Accepts strings or rendered components. */
+export function html(value: string | TrustedHTML): TrustedHTML;
+export function isHTML(value: unknown): value is TrustedHTML;
+export function toHTMLString(value: unknown): string;
+/** Marks renderer output; the renderer must escape its own inputs. */
+export function defineComponent<P = Record<string, unknown>>(
+  render: (props: P) => string | TrustedHTML,
+  identifier?: string
+): (props?: P) => TrustedHTML;
+/** Serialize JSON for a script element; throws for values JSON cannot serialize. */
+export function scriptData(value: unknown): string;
+
 // -- processSlot --
 
 export interface ProcessSlotOptions {
@@ -13,18 +45,18 @@ export interface ProcessSlotOptions {
 
 /** Processes slot content safely (escapes user strings by default). */
 export function processSlot(
-  slot: string | Array<string | Record<string, unknown>> | number | boolean | null | undefined,
+  slot: SlotContent,
   options?: ProcessSlotOptions
 ): string;
 
-/** Processes slot content as trusted HTML (no escaping). */
+/** Legacy trust assertion: converts the input to a string without escaping. */
 export function processSlotTrusted(
-  slot: string | string[] | null | undefined
+  slot: unknown
 ): string;
 
-/** Processes user-provided content (always escaped). */
+/** Converts the input to a string and escapes it, including component results. */
 export function processSlotUser(
-  slot: string | string[] | null | undefined
+  slot: unknown
 ): string;
 
 // -- normalizeClasses --

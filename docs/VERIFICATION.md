@@ -10,6 +10,8 @@ transitive module changes, generated ESM entries, and failed data generation.
 Store tests cover ordinary, nested, computed, unchanged, and reentrant notifications,
 asynchronous actions, concurrent module updates, post-commit persistence, and action
 failures that leave state and history unchanged. Synchronous actions stay synchronous.
+FSM checks cover independent unsubscriptions in composed machines and store/FSM
+connections that synchronize without replaying persistent event requests.
 Composition tests cover dependency replay through cached ancestors and route context.
 HTTP tests start real servers and verify malformed requests return 400 without
 interrupting later requests. They check production source isolation, symlink
@@ -26,8 +28,11 @@ It also leaves working controls available for manual keyboard testing.
 - `/`: tab IDs, ARIA associations, arrows/Home/End, cleanup, modal focus wrap,
   outside focus containment, Escape, focus/scroll restoration, and empty dialogs.
 - `/no-js`: HTML rendered without behavior scripts; all tab panels remain visible.
-- `/production`: the shipped multi-step form and tabs loaded through a generated
-  ES-module entry. Enter a name and select Next to exercise the form's imports.
+- `/production`: two shipped multi-step forms and tabs loaded through a generated
+  ES-module entry. Form checks cover instance isolation, labels, validation/focus,
+  cleanup/reinitialization, reset, and a real enhanced POST submission.
+- `/form-no-js`: a native form without behavior scripts; the fixture verifies all
+  fields remain accessible and submits a real POST without enhancement.
 
 Stop the server with Ctrl+C. It binds to loopback and removes its temporary build.
 The Chromium CI job runs the same page with `npm run test:browser:ci`.
@@ -154,6 +159,26 @@ export const components = data => [{
 `npm run build` generates `/posts/hello/index.html` and `/posts/world/index.html`.
 A dynamic page without `externalData` remains an SSR route. An explicit
 `meta.render: 'ssr'` also stays SSR. Errors in data generation fail the build.
+An empty data array is valid and removes obsolete generated pages. Duplicate
+generated URLs fail safely, including static/dynamic collisions. Route discovery
+prefers static/literal segments and rejects equivalent parameter patterns.
+
+## Public API, MCP, installation, and upgrades
+
+Public export checks exercise direct/nested rendering, utility imports through
+`b0nes/utils`, error statistics, and generated components with hyphenated, digit,
+or reserved-word names. Every declared utility has a corresponding runtime export.
+These checks do not replace a TypeScript consumer's compiler or validate every
+component prop. README and recipe examples use paths present in the scaffold.
+
+MCP sessions reject any non-JSON stdout. Tests send malformed JSON, null,
+arrays/primitives, invalid IDs/parameters, and then a valid ping. Same-session
+generation must immediately appear in discovery, schema, and strict composition.
+Install tests use a local HTTP server and isolated projects to verify manifest URL
+resolution, actual import/render/registration, forced replacements, and failure
+recovery. Upgrade tests inject late file-copy and metadata-write failures and
+check managed files and metadata return to their original contents, with custom
+files and requested backups retained.
 
 ## Sample build measurement
 

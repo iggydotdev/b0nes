@@ -22,6 +22,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Production serving uses generated HTML for SSG routes, retaining fetched records and production scripts, while SSR routes continue rendering request parameters.
 - Dynamic SPA templates emit their imported browser modules with relative paths intact, including re-exports and literal lazy imports. Unsupported browser imports fail before output promotion.
 - Upgrade preflight and guarded file writes reject linked managed files, directories, metadata, and backups before changing the project, including when `--force` is used.
+- Static routes and literal segments take precedence; ambiguous routes and duplicate generated destinations fail safely. Empty dynamic SSG data removes obsolete generated URLs.
+- Composed FSM subscriptions disconnect independently, and store/FSM synchronization no longer replays persistent event requests.
+- Multi-step forms isolate state and dispose listeners, provide labelled native form fallbacks, validate/focus steps, and retain real submissions and resets.
+- Component URL installation resolves manifest-relative files, generates valid export names, registers usable components, and restores previous files when installation fails. Component generation registers category exports and preserves existing components.
+- Upgrade copy/metadata failures automatically restore the previous managed files and metadata, including when optional backups are disabled.
+- MCP stdout contains only protocol JSON, malformed request shapes no longer stop the server, generated/installed components refresh discovery, and composition failures return tool errors.
+- Utility runtime exports and declarations agree, HTML helper declarations and composition error types reflect the implementation, and the README uses supported paths/APIs.
+
+### Migration
+
+- The multi-step form now submits a native form instead of showing a simulated success screen. Configure `action` and `method` for an application handler; without JavaScript all fields remain available.
+- Store/FSM requests use a changed `fsmEvent` value. Repeat a string event by clearing it between requests, or send a fresh `{ event, data }` object; unrelated state changes do not resend it.
 
 
 ## [0.3.0] - 2026-10-08

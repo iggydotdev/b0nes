@@ -290,9 +290,6 @@ export const createFSM = ({ initial, states, context = {} }) => {
  * @returns {Object} Composed FSM
  */
 export const composeFSM = (machines) => {
-    const states = {};
-    const subscriptions = [];
-
     // Get all states
     const getAllStates = () => {
         const result = {};
@@ -313,6 +310,10 @@ export const composeFSM = (machines) => {
 
     // Subscribe to all machines
     const subscribe = (listener) => {
+        if (typeof listener !== 'function') throw new TypeError('[ComposedFSM] Listener must be a function');
+        // Each listener owns its subscriptions; disconnecting it must not detach
+        // other listeners or later subscriptions on this composed machine.
+        const subscriptions = [];
         Object.entries(machines).forEach(([name, fsm]) => {
             const unsub = fsm.subscribe((transition) => {
                 listener({ machine: name, ...transition });

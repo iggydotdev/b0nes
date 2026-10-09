@@ -138,8 +138,9 @@ npx b0nes upgrade --no-backup    # not recommended
 7. Print plan. Exit on `--dry-run`.
 8. Confirm (unless `--yes`).
 9. Backup planned paths → `.b0nes/backups/<timestamp>/`.
-10. Copy source → project for planned files.
-11. Refresh checksums + manifest (`frameworkVersion`, `upgradedAt`).
+10. Snapshot planned files and metadata, then copy source → project.
+11. Refresh checksums + manifest (`frameworkVersion`, `upgradedAt`), or restore
+    original files and metadata if any copy/write fails.
 12. Print pointer to `CHANGELOG.md` / `docs/UPGRADE.md` for breaking notes.
 
 ### Exit codes
@@ -188,8 +189,12 @@ inside `.b0nes` metadata or backup paths, including dangling links. `--force`
 allows replacing locally edited stock files; it does not allow following links.
 Unsafe paths fail before any upgrade writes. Ordinary file copies and metadata
 writes repeat containment checks and refuse final-file symlinks where the platform
-supports `O_NOFOLLOW`. These checks do not make upgrades fully transactional:
-unexpected I/O failures after copying begins can still require restoring a backup.
+supports `O_NOFOLLOW`. File and metadata writes share a recovery snapshot:
+unexpected I/O errors restore overwritten files, remove new managed files, and
+restore manifest/checksums. This also applies to `--no-backup`; requested user
+backups remain available. If recovery itself fails, the error reports the retained
+snapshot path. Process termination or power loss can still interrupt recovery;
+use the printed backup or git for those cases.
 
 - **Framework patch/minor**: `upgrade` should be routine.
 - **Breaking changes**: called out in `CHANGELOG.md` under `### Breaking`. Upgrade still replaces files; **your pages** may need manual edits (compose escape rules, FSM attrs, Node engine, etc.).

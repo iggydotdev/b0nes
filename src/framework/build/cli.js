@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// src/framework/cli.js
+// src/framework/build/cli.js
 
 /**
  * b0nes CLI - Because typing long commands is for chumps
  * 
  * Usage:
- *   node src/framework/cli.js build [options]
- *   node src/framework/cli.js dev [options]
- *   node src/framework/cli.js clean
+ *   node src/framework/build/cli.js build [options]
+ *   node src/framework/build/cli.js dev [options]
+ *   node src/framework/build/cli.js clean
  */
 
 import { build, clearBuildCache } from './pipeline/ssg.js';
@@ -27,7 +27,7 @@ const flags = {
     clean: args.includes('--clean'),
     parallel: args.includes('--parallel') || args.includes('-p'),
     noCache: args.includes('--no-cache'),
-    port: parseInt(args.find(arg => arg.startsWith('--port='))?.split('=')[1]) || 5000,
+    port: parseInt(args.find(arg => arg.startsWith('--port='))?.split('=')[1]) || 3000,
     host: args.find(arg => arg.startsWith('--host='))?.split('=')[1] || '0.0.0.0',
     outputDir: args.find(arg => arg.startsWith('--output='))?.split('=')[1] || 'public',
     production: args.includes('--production'),
@@ -43,7 +43,7 @@ const printHelp = () => {
 🦴 b0nes CLI
 
 USAGE:
-  node src/framework/cli.js <command> [options]
+  node src/framework/build/cli.js <command> [options]
 
 COMMANDS:
   build       Build static site (SSG)
@@ -59,24 +59,24 @@ BUILD OPTIONS:
   --allow-render-errors  Explicitly permit component error fallback HTML
 
 DEV OPTIONS:
-  --port=<port>       Server port (default: 5000)
+  --port=<port>       Server port (default: 3000)
   --host=<host>       Server host (default: 0.0.0.0)
   --verbose, -v       Verbose logging
 
 EXAMPLES:
-  node src/framework/cli.js build --verbose
-  node src/framework/cli.js build --clean --parallel
-  node src/framework/cli.js dev --port=3000
-  node src/framework/cli.js clean
+  node src/framework/build/cli.js build --verbose
+  node src/framework/build/cli.js build --clean --parallel
+  node src/framework/build/cli.js dev --port=3000
+  node src/framework/build/cli.js clean
 
 PACKAGE.JSON SCRIPTS:
   "scripts": {
-    "build": "node src/framework/cli.js build",
-    "build:verbose": "node src/framework/cli.js build --verbose",
-    "build:clean": "node src/framework/cli.js build --clean --parallel",
-    "dev": "node src/framework/cli.js dev",
-    "dev:verbose": "node src/framework/cli.js dev --verbose",
-    "clean": "node src/framework/cli.js clean"
+    "build": "node src/framework/build/cli.js build",
+    "build:verbose": "node src/framework/build/cli.js build --verbose",
+    "build:clean": "node src/framework/build/cli.js build --clean --parallel",
+    "dev": "node src/framework/build/cli.js dev",
+    "dev:verbose": "node src/framework/build/cli.js dev --verbose",
+    "clean": "node src/framework/build/cli.js clean"
   }
 `);
 };

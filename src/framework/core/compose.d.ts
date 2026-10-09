@@ -4,6 +4,10 @@
 
 /** Component type identifiers */
 export type ComponentType = 'atom' | 'molecule' | 'organism';
+import type { TrustedHTML, SerializedHTML } from '../../components/utils/index.js';
+
+export type CompositionContent = string | number | boolean | TrustedHTML | SerializedHTML
+  | ComponentDescriptor | null | undefined | readonly CompositionContent[];
 
 /** A single component descriptor used for composition */
 export interface ComponentDescriptor {
@@ -18,11 +22,11 @@ export interface ComponentDescriptor {
 /** Props that can be passed to any component */
 export interface ComponentProps {
   /** Slot content: a string, or nested component descriptors */
-  slot?: string | Array<string | ComponentDescriptor>;
+  slot?: CompositionContent;
   /** CSS class names */
   className?: string;
   /** Additional HTML attributes (string for legacy, object recommended) */
-  attrs?: string | Record<string, string | boolean | number>;
+  attrs?: string | Record<string, string | boolean | number | null | undefined>;
   /** Any other prop the component accepts */
   [key: string]: unknown;
 }
@@ -35,6 +39,8 @@ export interface ComposeContext {
   assetBasePath?: string;
   /** Fail instead of rendering error placeholders. */
   strict?: boolean;
+  /** Cache toggle retained for compatibility; composition uses the render cache. */
+  cache?: boolean;
   /** Route information for asset path rewriting */
   route?: {
     pattern?: {
@@ -56,7 +62,7 @@ export interface ComposeContext {
  * @returns Rendered HTML string
  */
 export function compose(
-  components?: ComponentDescriptor[],
+  components?: Array<ComponentDescriptor | TrustedHTML | SerializedHTML>,
   context?: ComposeContext
 ): string;
 
@@ -68,26 +74,30 @@ export function getCompositionCacheSize(): number;
 
 /** Sets a custom error fallback renderer. */
 export function setErrorFallback(
-  renderer: (error: Error, component: ComponentDescriptor) => string
+  renderer: (error: { message: string; details?: string; stack?: string }, component: ComponentDescriptor) => string
 ): void;
+export function resetErrorFallback(): void;
 
 /** Returns error statistics from the error tracker. */
 export function getErrorStats(): {
-  totalErrors: number;
-  errorsByComponent: Record<string, number>;
+  total: number;
+  byType: Record<string, number>;
 };
 
 /** Returns all tracked errors. */
-export function getErrors(): Array<{
-  error: Error;
+export interface CompositionError {
+  type: string;
   component: string;
+  message: string;
+  stack?: string;
   timestamp: number;
-}>;
+}
+export function getErrors(): CompositionError[];
 
 /** Returns errors for a specific component. */
 export function getComponentErrors(
   componentName: string
-): Array<{ error: Error; timestamp: number }>;
+): CompositionError[];
 
 /** Clears all tracked errors. */
 export function clearErrors(): void;
@@ -101,6 +111,7 @@ export function getCacheStats(): {
   misses: number;
   size: number;
   maxSize: number;
+  hitRate: string;
 };
 
 /** Convenience: compose a single component. */

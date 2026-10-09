@@ -52,17 +52,20 @@ const createPolyfill = () => {
       .map(segment => {
         if (!segment) return '';
         
-        // Named parameter: :param -> (?<param>[^/]+)
-        if (segment.startsWith(':')) {
-          const paramName = segment.slice(1);
-          return `(?<${paramName}>[^/]+)`;
-        }
-        
         // Wildcard: * -> .*
         if (segment === '*') return '.*';
-        
-        // Literal: escape special chars
-        return escapeRegex(segment);
+
+        // Parameters may have literal prefixes/suffixes (book-:id or
+        // :slug.json). Keep captures within their segment, without decoding
+        // encoded slashes, and escape all surrounding literal characters.
+        let expression = '';
+        let previous = 0;
+        for (const match of segment.matchAll(/:(\w+)/g)) {
+          expression += escapeRegex(segment.slice(previous, match.index));
+          expression += `(?<${match[1]}>[^/]+?)`;
+          previous = match.index + match[0].length;
+        }
+        return expression + escapeRegex(segment.slice(previous));
       })
       .join('/');
 
