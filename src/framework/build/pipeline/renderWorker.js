@@ -9,4 +9,6 @@ const result = await safeBuildRoute({
     load: () => import(pathToFileURL(route.filePath).href)
 }, outputDir, options);
 // Functions cannot cross the worker boundary.
-parentPort.postMessage({ ...result, route: result.success ? route : result.route });
+parentPort.postMessage({ ...result, route: result.success
+    ? { ...route, ...(result.ssr ? { meta: result.route.meta } : {}) }
+    : result.route });

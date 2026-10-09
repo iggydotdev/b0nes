@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-10
+
 ### Added
 
 - Optional npm trusted publishing through OIDC, with the working `NPM_TOKEN` path retained by default. See [release setup](docs/RELEASING.md).
@@ -20,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build and clean output paths reject source trees and project metadata; generated asset paths are validated before promotion to prevent corrupt build manifests.
 - Missing page sources fail the build and preserve existing output; an intentionally empty pages directory remains valid.
 - Production serving uses generated HTML for SSG routes, retaining fetched records and production scripts, while SSR routes continue rendering request parameters.
+- Generated SSR fallback pages retain the route's title and description, including when discovery has already loaded the page metadata.
 - Dynamic SPA templates emit their imported browser modules with relative paths intact, including re-exports and literal lazy imports. Unsupported browser imports fail before output promotion.
 - Upgrade preflight and guarded file writes reject linked managed files, directories, metadata, and backups before changing the project, including when `--force` is used.
 - Static routes and literal segments take precedence; ambiguous routes and duplicate generated destinations fail safely. Empty dynamic SSG data removes obsolete generated URLs.
@@ -30,11 +33,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MCP stdout contains only protocol JSON, malformed request shapes no longer stop the server, generated/installed components refresh discovery, and composition failures return tool errors.
 - Utility runtime exports and declarations agree, HTML helper declarations and composition error types reflect the implementation, and the README uses supported paths/APIs.
 
+### Changed
+
+- Runtime and development dependencies remain at zero; release versions continue on `0.x.x` with minor and patch releases only.
+
 ### Migration
+
+See the [0.4.0 upgrade checklist](docs/UPGRADE.md#upgrading-to-040) for vendored projects.
 
 - The multi-step form now submits a native form instead of showing a simulated success screen. Configure `action` and `method` for an application handler; without JavaScript all fields remain available.
 - Store/FSM requests use a changed `fsmEvent` value. Repeat a string event by clearing it between requests, or send a fresh `{ event, data }` object; unrelated state changes do not resend it.
-
 
 ## [0.3.0] - 2026-10-08
 

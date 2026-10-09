@@ -1,6 +1,10 @@
 // src/framework/utils/build/ssrFallback.js
 import path from 'node:path';
 import { routeOutputPath, writeOutputFile } from './outputPath.js';
+import { escapeHtml } from '../../../components/utils/escapeHtml.js';
+import { escapeAttr } from '../../../components/utils/escapeAttr.js';
+import { safeUrl } from '../../../components/utils/safeUrl.js';
+import { scriptData } from '../../../components/utils/html.js';
 
 /**
  * Generate a fallback HTML page for SSR routes
@@ -32,13 +36,16 @@ export const generateSSRFallback = async (route, outputDir, options = {}) => {
     // Ensure directory exists
     
     // Load page meta if available
-    let meta = { title: 'Loading...', description: '' };
-    try {
-        const page = await route.load();
-        meta = page.meta || meta;
-    } catch (error) {
-        // Ignore - use defaults
+    let meta = route.meta;
+    if (meta === undefined && typeof route.load === 'function') {
+        try {
+            const page = await route.load();
+            meta = page.meta;
+        } catch {
+            // Direct API callers can still generate a placeholder without a page.
+        }
     }
+    meta ??= {};
     
     // Generate HTML based on strategy
     const html = generateFallbackHTML(route, meta, { strategy, serverUrl });
@@ -63,13 +70,14 @@ export const generateSSRFallback = async (route, outputDir, options = {}) => {
 const generateFallbackHTML = (route, meta, options) => {
     const { strategy, serverUrl } = options;
     const pathname = route.pattern?.pathname || '/';
+    const lang = escapeAttr(String(meta.lang || 'en'));
     
     // Common HTML head
     const head = `
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${meta.title || 'Loading...'}</title>
-    ${meta.description ? `<meta name="description" content="${meta.description}">` : ''}
+    <title>${escapeHtml(String(meta.title || 'Loading...'))}</title>
+    ${meta.description ? `<meta name="description" content="${escapeAttr(String(meta.description))}">` : ''}
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -112,7 +120,7 @@ const generateFallbackHTML = (route, meta, options) => {
     switch (strategy) {
         case 'loading':
             return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
     ${head}
     <script>
@@ -141,15 +149,16 @@ const generateFallbackHTML = (route, meta, options) => {
 </body>
 </html>`;
         
-        case 'redirect':
+        case 'redirect': {
+            const target = safeUrl(`${serverUrl}${pathname}`);
             return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
     ${head}
-    <meta http-equiv="refresh" content="0; url=${serverUrl}${pathname}">
+    <meta http-equiv="refresh" content="0; url=${escapeAttr(target)}">
     <script>
         // Fallback redirect if meta refresh fails
-        window.location.href = '${serverUrl}${pathname}';
+        window.location.href = ${scriptData(target)};
     </script>
 </head>
 <body>
@@ -157,21 +166,22 @@ const generateFallbackHTML = (route, meta, options) => {
         <div class="spinner"></div>
         <h1>Redirecting...</h1>
         <p>This page needs to be served dynamically.</p>
-        <p>If you're not redirected, <a href="${serverUrl}${pathname}" style="color: white;">click here</a>.</p>
+        <p>If you're not redirected, <a href="${escapeAttr(target)}" style="color: white;">click here</a>.</p>
     </div>
 </body>
 </html>`;
+        }
         
         case '404':
             return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
     ${head}
 </head>
 <body class="error">
     <div class="container">
         <h1>⚡ Server-Side Route</h1>
-        <p>The page <code>${pathname}</code> is a server-side rendered route.</p>
+        <p>The page <code>${escapeHtml(String(pathname))}</code> is a server-side rendered route.</p>
         <p>It cannot be accessed as a static file.</p>
         <p>Please run <code>npm run dev</code> or deploy to a server that supports SSR.</p>
     </div>
@@ -181,7 +191,7 @@ const generateFallbackHTML = (route, meta, options) => {
         case 'empty':
         default:
             return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
     ${head}
 </head>

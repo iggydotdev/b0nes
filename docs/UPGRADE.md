@@ -153,6 +153,56 @@ npx b0nes upgrade --no-backup    # not recommended
 
 ---
 
+## Upgrading to 0.4.0
+
+This minor release includes native form submission and store/FSM behavior changes.
+b0nes remains dependency-free and uses only `0.x.x` minor and patch releases.
+Review [the 0.4.0 changelog](../CHANGELOG.md#040---2026-10-10) before upgrading.
+
+From the root of a vendored project, with your work committed:
+
+```sh
+npx b0nes@0.4.0 upgrade --components --dry-run
+npx b0nes@0.4.0 upgrade --components
+npm test
+node src/framework/build/cli.js build --clean --parallel --production
+```
+
+`--components` includes the native multi-step form renderer and behavior; a default
+framework-only upgrade leaves existing stock components in place. Review any local
+edit warnings before choosing `--force`, which keeps backups but replaces those
+managed edits. It never permits following symlinks. Projects using b0nes as a library
+can update their package version instead of running the vendored upgrade command.
+
+Before the clean build, move any hand-maintained output assets into source or keep
+and restore a copy. `--clean` removes unmanaged output after a successful build.
+One successful clean build removes pages and source files left by older releases
+without a build manifest; later normal builds remove only obsolete generated files.
+Check the build exit code before deploying.
+
+- **Native forms:** configure `action` and `method`, and verify the application or
+  hosting server actually handles that URL and HTTP method. Submit valid `name`,
+  `email`, and optional `age` values with enhancement enabled and with JavaScript
+  disabled. The component no longer simulates success or supplies a server endpoint.
+  Each form owns its state; destroying its behavior restores the native form.
+  See the [native form recipe](RECIPES.md#native-forms).
+- **FSM requests:** `connectStoreToFSM()` sends an event when `fsmEvent` changes.
+  Clear a string request before sending the same string again, or supply a fresh
+  `{ event, data }` object per request. Unrelated updates, reset/time travel, and
+  connecting an existing store do not replay stored requests. Keep the application's
+  `fsm/setState` action to receive transition feedback and call the returned
+  disconnect function when the owning view is destroyed.
+- **Production requests:** SSR pages need the Node server or another SSR integration;
+  static preview cannot execute them. With the build complete, run
+  `NODE_ENV=production node src/framework/server/index.js` and check your configured
+  host/port and application endpoints. Request each representative SSG/SSR URL twice,
+  then another dynamic parameter: SSG responses should contain the built record,
+  while SSR responses should reflect the requested parameter. Confirm title,
+  description, and assets as well as body content. Generated SSR fallback files
+  preserve page metadata but still require a running SSR service.
+
+---
+
 ## Recommended user workflow
 
 ```bash

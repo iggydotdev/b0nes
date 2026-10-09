@@ -64,7 +64,13 @@ export async function safeBuildRoute(route, outputDir, options) {
                 success: true,
                 skipped: true,
                 ssr: true,
-                route,
+                // Keep only fallback fields that can cross the worker boundary.
+                // The parent must not reload a stale module graph for metadata.
+                route: { ...route, meta: {
+                    title: String(page.meta?.title || 'Loading...'),
+                    description: String(page.meta?.description || ''),
+                    lang: String(page.meta?.lang || 'en')
+                } },
                 reason: route.params 
                     ? 'Dynamic route - SSR (no externalData)'
                     : 'SSR - components function'
