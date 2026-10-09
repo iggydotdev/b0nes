@@ -47,3 +47,4 @@ jobs:
           node-version: 24.x
       - run: google-chrome --version
       - run: npm run test:browser:ci
+      - run: npm run test:integration:ci

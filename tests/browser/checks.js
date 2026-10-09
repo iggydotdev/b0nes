@@ -1,5 +1,6 @@
 import { client as tabs } from '/src/components/molecules/tabs/client.js';
 import { client as modal } from '/src/components/molecules/modal/client.js';
+import { checkMultiStepForms } from './form-checks.js';
 const results = document.getElementById('results');
 const checks = [];
 const check = (name, condition) => { if (!condition) throw Error(name); checks.push('PASS ' + name); };
@@ -104,6 +105,7 @@ try {
     check('production client composition works on localhost with nested controls',
         host.querySelector('.modal-body button')?.textContent === '<img src=x> & save' && !host.querySelector('img'));
     check('client titles escape exactly once', host.querySelector('.modal-title')?.textContent === 'A & B');
+    await checkMultiStepForms(frame, check);
     frame.remove();
     const waitFor = async condition => {
         for (let attempt = 0; attempt < 100; attempt++) {

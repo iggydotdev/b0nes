@@ -36,6 +36,10 @@ export const components = post => [
 ```
 
 Each returned record supplies the dynamic path parameter. Text stays escaped.
+An empty array is valid: a successful rebuild removes the route's old generated
+pages. Duplicate records that generate the same URL, or URLs overlapping another
+static/dynamic page, fail the build and keep the previous output. Static routes
+take precedence when matching requests; equivalent parameter patterns are rejected.
 Keep shared navigation/layout descriptors in an imported module, and reuse them
 in page arrays. Put `style.css` alongside a page and include it through
 `meta.stylesheets: ['./style.css']`.
@@ -54,6 +58,24 @@ widgets require JavaScript; offer a normal link or visible content when users
 need an alternative. The framework does not guarantee WCAG conformance for an
 application: test its actual content, styles, keyboard flow, and assistive technology.
 See [HTML and migration](HTML.md) for nesting components and intentional scripts.
+
+## Native forms
+
+The built-in three-step form accepts a normal submission endpoint:
+
+```js
+export const components = [{ type: 'organism', name: 'multi-step-form', props: {
+  action: '/contact', method: 'post'
+} }];
+```
+
+Provide a server handler for `/contact` that processes the submitted `name`,
+`email`, and optional `age` fields. Without JavaScript every labelled field and
+the native submit/reset buttons remain available. Enhancement hides later steps,
+validates before advancing, moves focus, and announces the current step. Valid
+submissions remain native form submissions; this component does not create a
+server endpoint or display a simulated success response. Each instance owns its
+state, and destroying its behavior restores the readable native form.
 
 
 ## SPA navigation

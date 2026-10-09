@@ -6,7 +6,8 @@ escaped separately; object attributes reject inline event handlers and `srcdoc`.
 URL attributes reject executable schemes such as `javascript:` and `data:`.
 
 ```js
-import { text, button, html, toHTMLString } from './src/index.js';
+import { text, button } from './src/components/atoms/index.js';
+import { html, toHTMLString } from './src/components/utils/index.js';
 const label = text({ is: 'strong', slot: 'Save & continue' });
 const control = button({ slot: label }); // nested component, no double escaping
 const explicit = button({ slot: html('<strong>Save</strong>') });
@@ -50,8 +51,15 @@ place JavaScript CDN URLs in `meta.scripts`.
 
 Builds fail on missing or throwing components and broken SPA templates.
 `--allow-render-errors` explicitly permits diagnostic fallback markup for component
-render failures. A failed build may contain partial output; publish only after a
-successful exit. Use clean production builds to remove deleted routes.
+render failures. Builds render into a private staging directory and replace the
+output only after every step succeeds. A failed build preserves the last successful
+output, including when `--clean` is requested. Publish only after a successful exit.
+
+Successful rebuilds remove obsolete generated files using
+`.b0nes-build-manifest.json`. The normal CLI build preserves assets you placed in
+`public/`; `--clean` also removes unmanaged output, but only after a successful
+build. Output from older versions has no manifest: use one successful clean build
+to discard those legacy files.
 
 Custom runtime behaviors now register with qualified identifiers, for example
 `window.b0nes.register('molecules:tabs', behavior)`. A bare name is rejected so

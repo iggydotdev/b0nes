@@ -1,6 +1,6 @@
 {
   "name": "b0nes",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "Zero-dependency component library and SSR/SSG framework",
   "main": "src/index.js",
@@ -38,6 +38,7 @@
     "mcp": "node src/mcp/server.js",
     "prepublishOnly": "npm run test",
     "test:browser:ci": "node tests/browser/ci.mjs",
+    "test:integration:ci": "node --test tests/upgrade-integration.test.mjs",
     "benchmark:build": "node tests/build-benchmark.mjs"
   },
   "keywords": [

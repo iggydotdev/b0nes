@@ -4,6 +4,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { compose } from '../../core/compose.js';
 import { assertSafeSourcePath, ensureSafeOutputDirectory, writeOutputFile } from './outputPath.js';
+import { emitTemplateModules, relativeModuleURL } from './templateModules.js';
 
 /**
  * Generates pre-compiled templates for SPA components
@@ -69,6 +70,11 @@ export const generateCompiledTemplates = async (spaComponentPath, outputPath, op
         return null;
     }
 
+    const dynamicEntries = Array.from(dynamicTemplates);
+    const emittedModules = dynamicEntries.length
+        ? await emitTemplateModules(dynamicEntries.map(name => path.join(templatesDir, `${name}.js`)), spaComponentPath, outputDir, options)
+        : new Map();
+
     if (mode === 'individual') {
         // Output each template as an individual file in the outputPath directory
         ensureSafeOutputDirectory(outputDir, outputPath);
@@ -83,13 +89,9 @@ export const components = ${JSON.stringify(data.html)};
 export default components;
 `;
             } else {
-                // For dynamic templates, we preserve the function
-                // But we need to make sure the client knows it returns a config that needs composing
-                // OR we can try to wrap it if possible. 
-                // For now, let's just export the original function as 'components'
-                const originalSource = fs.readFileSync(path.join(templatesDir, `${name}.js`), 'utf8');
-                content = `// 🦴 b0nes Compiled Template: ${name} (Dynamic - Proxy)
-${originalSource}
+                const modulePath = emittedModules.get(path.resolve(templatesDir, `${name}.js`));
+                content = `// b0nes dynamic template: imports retain their source layout
+export { components, components as default } from ${JSON.stringify(relativeModuleURL(filePath, modulePath))};
 `;
             }
 
@@ -103,23 +105,22 @@ ${originalSource}
     const staticEntries = Object.entries(compiledTemplates)
         .filter(([_, data]) => data.type === 'static');
     
-    const dynamicEntries = Array.from(dynamicTemplates);
-    
     const outputCode = `// 🦴 b0nes Pre-compiled SPA Templates
 // ⚠️  DO NOT EDIT - Auto-generated at build time
 // Generated: ${new Date().toISOString()}
 
+${dynamicEntries.map((name, index) => `import { components as dynamic${index} } from ${JSON.stringify(relativeModuleURL(outputPath, emittedModules.get(path.resolve(templatesDir, `${name}.js`))))};`).join('\n')}
+
 // === STATIC TEMPLATES (Pre-rendered HTML) ===
 const staticTemplates = {
 ${staticEntries.map(([name, data]) => 
-    `  ${name}: ${JSON.stringify(data.html)}`
+    `  ${JSON.stringify(name)}: ${JSON.stringify(data.html)}`
 ).join(',\n')}
 };
 
 // === DYNAMIC TEMPLATES (Need runtime data) ===
-// These are currently markers or original functions
 const dynamicTemplates = {
-${dynamicEntries.map(name => `  ${name}: () => { console.warn('Dynamic template ${name} requires client-side loading or manual import'); return '<!-- Dynamic Template Placeholder -->'; }`).join(',\n')}
+${dynamicEntries.map((name, index) => `  ${JSON.stringify(name)}: dynamic${index}`).join(',\n')}
 };
 
 export const templates = {

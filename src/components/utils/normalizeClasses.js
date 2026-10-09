@@ -24,7 +24,7 @@ import { escapeAttr } from './escapeAttr.js';
  * normalizeClasses('btn" onclick="alert(1)')
  * // Returns: 'btn&quot; onclick=&quot;alert(1)'
  */
-export const normalizeClasses = (classes) => {
+const classNames = (classes) => {
     if (!classes) return '';
     
     let classArray = [];
@@ -44,16 +44,16 @@ export const normalizeClasses = (classes) => {
         return '';
     }
     
-    // Filter out empty strings, trim, remove duplicates, and escape
-    const normalized = classArray
+    return classArray
         .filter(c => c && typeof c === 'string')
-        .map(c => c.trim())
+        .flatMap(c => c.trim().split(/\s+/))
         .filter(c => c.length > 0)
-        .filter((c, index, self) => self.indexOf(c) === index) // Remove duplicates
-        .map(c => escapeAttr(c)) // Escape for safety
-        .join(' ');
-    
-    return normalized;
+        .filter((c, index, self) => self.indexOf(c) === index);
+};
+
+export const normalizeClasses = classes => {
+    const names = classNames(classes);
+    return Array.isArray(names) ? names.map(escapeAttr).join(' ') : '';
 };
 
 /**
@@ -72,13 +72,7 @@ export const normalizeClasses = (classes) => {
  * // Returns: 'box card custom-card'
  */
 export const mergeClasses = (...classInputs) => {
-    const allClasses = classInputs
-        .map(input => normalizeClasses(input))
-        .filter(c => c.length > 0)
-        .join(' ');
-    
-    // Normalize again to remove any duplicates from merging
-    return normalizeClasses(allClasses);
+    return normalizeClasses(classInputs.flatMap(input => classNames(input) || []));
 };
 
 /**

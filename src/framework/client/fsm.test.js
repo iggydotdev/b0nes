@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRouterFSM, connectFSMtoDOM } from './fsm.js';
+import { createFSM, composeFSM, createRouterFSM, connectFSMtoDOM } from './fsm.js';
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
 function environment(t, pathname = '/app') {
@@ -126,4 +126,29 @@ test('entry hook parameter defaults and normalization drive both URL and rendere
     assert.equal(browser.location.pathname, '/app/DEFAULT');
     assert.equal(pushes.length, 3);
     cleanup();
+});
+
+
+test('composed FSM listeners disconnect independently, including later subscriptions', () => {
+    const machine = () => createFSM({ initial: 'idle', states: { idle: { on: { TICK: 'idle' } } } });
+    const fsm = composeFSM({ first: machine(), second: machine() });
+    const a = [], b = [], c = [];
+    const stopA = fsm.subscribe(transition => a.push(transition.machine));
+    const stopB = fsm.subscribe(transition => b.push(transition.machine));
+    fsm.broadcast('TICK');
+    stopA();
+    const stopC = fsm.subscribe(transition => c.push(transition.machine));
+    stopA(); // An old disconnect must also leave later subscriptions intact.
+    fsm.send('first', 'TICK');
+    assert.deepEqual(a, ['first', 'second']);
+    assert.deepEqual(b, ['first', 'second', 'first']);
+    assert.deepEqual(c, ['first']);
+    stopB(); stopB();
+    fsm.send('second', 'TICK');
+    assert.deepEqual(b, ['first', 'second', 'first']);
+    assert.deepEqual(c, ['first', 'second']);
+    stopC();
+    fsm.broadcast('TICK');
+    assert.deepEqual(c, ['first', 'second']);
+    assert.throws(() => fsm.subscribe(null), /Listener must be a function/);
 });

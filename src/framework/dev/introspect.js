@@ -79,17 +79,25 @@ function parseJSDocParams(source) {
 function parseDestructuring(source, componentName) {
     const props = new Map();
 
+    // Component directories use kebab-case while renderers use JavaScript
+    // identifiers. Prefer that renderer over unrelated exported helpers.
+    const camelName = componentName.replace(/-([a-z0-9])/g, (_, letter) => letter.toUpperCase()).replace(/-/g, '_');
+    const names = [...new Set([componentName, camelName, '_' + camelName])]
+        .map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    const arrowSignature = '\\s*=\\s*(?:defineComponent\\s*\\(\\s*)?\\(\\s*\\{([^}]*)\\}\\s*(?:=\\s*\\{\\s*\\})?\\s*\\)\\s*=>';
+
     // Match the exported function's destructuring: export const name = ({ ... }) =>
     // Also handles: export const name = function({ ... }) and export default function({ ... })
     const patterns = [
         // Arrow function: export const name = ({ ... }) =>
-        new RegExp(`export\\s+const\\s+${componentName}\\s*=\\s*\\(\\{([^}]*)\\}\\)\\s*=>`, 's'),
+        new RegExp(`export\\s+const\\s+(?:${names})${arrowSignature}`, 's'),
         // Regular function: export const name = function({ ... })
-        new RegExp(`export\\s+const\\s+${componentName}\\s*=\\s*function\\s*\\(\\{([^}]*)\\}\\)`, 's'),
+        new RegExp(`export\\s+const\\s+(?:${names})\\s*=\\s*(?:defineComponent\\s*\\(\\s*)?function\\s*\\(\\{([^}]*)\\}\\)`, 's'),
         // Default export: export default function({ ... })
-        /export\s+default\s+function\s*\(\{([^}]*)\}\)/s,
+        /export\s+default\s+function(?:\s+\w+)?\s*\(\{([^}]*)\}\)/s,
+        /export\s+default\s+defineComponent\s*\(\s*\(\s*\{([^}]*)\}\s*\)\s*=>/s,
         // Fallback: any exported arrow with destructuring
-        /export\s+const\s+\w+\s*=\s*\(\{([^}]*)\}\)\s*=>/s
+        new RegExp(`export\\s+const\\s+\\w+${arrowSignature}`, 's')
     ];
 
     let destructuredBody = null;
@@ -119,7 +127,7 @@ function parseDestructuring(source, componentName) {
             defaultValue = rawDefault.trim().replace(/^['"`]|['"`]$/g, '');
         }
 
-        props.set(name, { default: defaultValue });
+        props.set(name, rawDefault === undefined ? {} : { default: defaultValue });
     }
 
     return props;
@@ -352,7 +360,7 @@ export function getRegistry(force = false) {
         _registryCache = buildRegistry();
         _cacheTimestamp = Date.now();
         const flat = flattenRegistry(_registryCache);
-        console.log(`[introspect] Built registry: ${flat.length} components indexed`);
+        console.error(`[introspect] Built registry: ${flat.length} components indexed`);
     }
     return _registryCache;
 }

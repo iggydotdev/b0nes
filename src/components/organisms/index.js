@@ -3,13 +3,19 @@ import header from './header/index.js';
 import hero from './hero/index.js';
 import footer from './footer/index.js';
 import spa from './spa/index.js';
+import multiStepForm from './multi-step-form/index.js';
+import slides from './slides/index.js';
+import timeline from './timeline/index.js';
 
 export const organisms = {
     cta,
     header,
     hero,
     footer,
-    spa
+    spa,
+    'multi-step-form': multiStepForm,
+    slides,
+    timeline
 };
 
 export {
@@ -17,5 +23,8 @@ export {
     header,
     hero,
     footer,
-    spa
+    spa,
+    multiStepForm,
+    slides,
+    timeline
 };

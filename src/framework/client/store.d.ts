@@ -155,7 +155,19 @@ export function createAsyncAction<S = Record<string, unknown>>(
   asyncFn: (state: S, payload?: unknown) => Promise<Partial<S>>
 ): ActionFunction<S>;
 
-/** Connects a store to an FSM for coordinated state management. Returns a disconnect function. */
+/** A new object can request the same event again, optionally with transition data. */
+export interface FSMEventRequest {
+  event: string;
+  data?: unknown;
+}
+
+/**
+ * Connects a store to an FSM; transitions dispatch the store's `fsm/setState` action.
+ * A changed `fsmEvent` string or FSMEventRequest requests one transition.
+ * Clear a string request before repeating it, or supply a new request object.
+ * Unchanged requests, FSM feedback, reset and time travel do not replay events.
+ * Existing requests are not replayed when connecting. Returns a disconnect function.
+ */
 export function connectStoreToFSM(
   store: Store,
   fsm: import('./fsm').FSM

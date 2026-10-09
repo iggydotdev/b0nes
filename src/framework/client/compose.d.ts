@@ -4,7 +4,8 @@
  * NOTE: This is for DYNAMIC templates only. Static templates should be pre-compiled.
  */
 
-import type { ComponentDescriptor } from '../core/compose';
+import type { ComponentDescriptor } from '../core/compose.js';
+import type { TrustedHTML, SerializedHTML } from '../../components/utils/index.js';
 
 /**
  * Composes component descriptors into HTML on the client (async).
@@ -14,7 +15,7 @@ import type { ComponentDescriptor } from '../core/compose';
  * @returns Rendered HTML string
  */
 export function compose(
-  components?: ComponentDescriptor[] | string
+  components?: Array<ComponentDescriptor | TrustedHTML | SerializedHTML> | string
 ): Promise<string>;
 
 /** Clears the client-side component module cache (useful for hot-reload in dev). */

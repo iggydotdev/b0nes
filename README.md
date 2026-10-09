@@ -1,1624 +1,421 @@
-# b0nes Framework
+# b0nes
 
 [![npm version](https://badge.fury.io/js/b0nes.svg)](https://www.npmjs.com/package/b0nes)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org/)
 
-**The framework that fits in your head and disappearing in your codebase.**
+b0nes is a JavaScript component library and Node.js framework for server rendering
+and static sites. The framework, CLI, tests, and browser runtime have **zero npm
+dependencies**. They use Node built-ins and native browser ES modules.
 
-b0nes is a complete web development toolkit with **zero dependencies**, built for humans and **AI Agents**. Build modern websites with components, routing, state management, progressive enhancement, and an MCP server—all in pure JavaScript.
+Scaffolding copies the framework into your project: you own and can edit the code.
+The npm package also exposes rendering helpers for library use. Components are
+organized as atoms, molecules, and organisms; pages compose them through ordinary
+JavaScript functions or descriptors.
 
-```javascript
-// Everything you need, nothing you don't
-✅ Components (atoms → molecules → organisms)
-✅ Server-Side Rendering (SSR) & Static Site Generation (SSG)
-✅ State Management (built-in Store)
-✅ State Machines (built-in FSM + SPA Router)
-✅ Client-side Interactivity
-✅ AI-Native MCP Server Built-in
-✅ HMR (Live Reload via SSE)
-✅ Zero npm dependencies
-```
+## Quick start
 
-## Why b0nes?
+Use Node.js 22 or newer:
 
-### The Problem with Modern Web Development
-
-```bash
-# Traditional setup:
-npx create-react-app my-app    # 847 packages, 412 MB
-npm install redux react-router # More dependencies...
-npm run build                   # 500KB+ JavaScript bundle
-
-# You: "I just wanted to build a website..." 😰
-```
-
-### The b0nes Solution
-
-```bash
-# b0nes setup:
-npx b0nes my-site   # 0 packages, <1 MB
+```sh
+npx b0nes my-site
 cd my-site
-npm run dev                    # Start building immediately
-
-# You: "Wait, where is the node_modules folder?" 🎉
+npm run dev
 ```
 
-**Because b0nes is a scaffolding tool, not a library, the framework code is copied directly into your `src/` folder. You own the code. It literally disappears into your codebase.**
+Open **http://localhost:3000**. No dependency installation step is required in the
+generated project. Add `--skip-git` to the create command to skip Git initialization.
 
-**Upgrades:** re-sync the vendored framework with:
-
-```bash
-cd my-app
-npx b0nes@latest upgrade --dry-run   # plan only
-npx b0nes@latest upgrade             # apply (backs up to .b0nes/backups/)
-```
-
-See [Upgrading](#upgrading) and [`docs/UPGRADE.md`](docs/UPGRADE.md).
-
-**Learn the entire framework in an afternoon. Use it for years.**
-
----
-
-## Features
-
-- 🧩 **Atomic Design System** - Well-organized component hierarchy (atoms → molecules → organisms)
-- 🎯 **Pure JavaScript** - No TypeScript, no frameworks, no build tools required
-- 📦 **Zero Dependencies** - Runs on Node.js built-ins only
-- 🚀 **SSR & SSG** - Built-in server-side rendering and static site generation
-- 🔄 **State Management** - Redux-style store without the complexity
-- 🤖 **State Machines** - XState-style FSM for flow control AND SPA routing
-- ✨ **Progressive Enhancement** - Works without JavaScript, better with it
-- 🧪 **Auto-Testing** - Built-in test discovery and runner
-- 🎨 **CSS-Agnostic** - Use Tailwind, vanilla CSS, or any framework you want
-- 🔌 **Interactive Components** - Tabs, modals, dropdowns with zero dependencies
-- 📦 **Component Installer** - Install community components from URLs
-- 🔒 **Escape-by-default** - Plain-text slots are XSS-safe via `compose`; structure stays real HTML
-
----
-
-## Quick Start in 5 Minutes ⚡
-
-### Prerequisites
-- Node.js v22+ (Active LTS; Node 20 is EOL)
-- A terminal
-- That's it!
-
-### Step 1: Create a minimal project
-
-```bash
-npx b0nes my-site --skip-git
-cd my-site
-```
-
-The CLI creates one working page without installing dependencies. Larger starter
-sites are documented in [page recipes](docs/RECIPES.md), rather than bundled.
-
-### Step 2: Start the development server
-
-```bash
-npm run dev:watch
-```
-
-Open http://localhost:5000. Your page lives in `src/pages/index.js`.
-
-### Step 3: Create Your First Component (2 minutes)
-
-```bash
-npm run generate atom notice
-```
-
-This creates:
-```
-src/components/atoms/notice/
-├── index.js
-├── notice.js
-└── notice.test.js
-```
-
-Edit `src/components/atoms/notice/notice.js`:
-
-```javascript
-import { processSlot } from '../../utils/processSlot.js';
-import { defineComponent } from '../../utils/html.js';
-import { attrsToString } from '../../utils/attrsToString.js';
-import { normalizeClasses } from '../../utils/normalizeClasses.js';
-
-export const notice = defineComponent(({ slot, variant = 'default', className = '', attrs = '' }) => {
-    attrs = attrsToString(attrs);
-    const classes = normalizeClasses(['notice', `notice-${variant}`, className]);
-    const slotContent = processSlot(slot);
-    
-    return `<span class="${classes}"${attrs}>${slotContent}</span>`;
-}, 'atom:notice');
-```
-
-### Step 4: Use Your Component (1 minute)
-
-Edit `src/pages/index.js`:
-
-```javascript
-export const components = [
-    {
-        type: 'organism',
-        name: 'hero',
-        props: {
-            slot: [
-                {
-                    type: 'atom',
-                    name: 'text',
-                    props: { is: 'h1', slot: 'Welcome to b0nes' }
-                },
-                {
-                    type: 'atom',
-                    name: 'badge',
-                    props: { slot: 'New!', variant: 'primary' }
-                }
-            ]
-        }
-    }
-];
-```
-
-Refresh http://localhost:5000 - See your changes live! ✨
-
-### Step 5: Build for Production (30 seconds)
-
-```bash
+```sh
+npm test
 npm run build
+npm run preview
 ```
 
-Builds render every route with a fresh module graph, including imported data and
-components. Persistent HTML skipping is disabled until dependency and data
-invalidation can be guaranteed; `--no-cache` remains accepted for compatibility.
-Production builds use native ES-module registration entries, preserving behavior
-imports without an external bundler.
+The build writes `public/`; preview serves it on port 3000 using Node alone.
+Stop the development server before starting preview on the same port.
+For a clean production build, use `npm run build:production`.
 
-Your static site is ready in `public/`:
-```
-public/
-├── index.html
-├── demo/
-│   └── index.html
-└── blog/
-    └── [postid]/
-        └── index.html
-```
+The scaffold is deliberately small. Larger starter templates have been replaced
+with [page recipes](docs/RECIPES.md).
 
-### Step 6: Deploy Anywhere (30 seconds)
-
-```bash
-# Serve locally
-npx serve public
-
-# Or deploy to:
-# - Netlify (drag & drop public/ folder)
-# - Vercel (vercel --prod)
-# - GitHub Pages
-# - Any static host!
-```
-
----
-
-## What You Just Did ✅
-
-- ✅ Built a component-based site
-- ✅ Zero npm dependencies installed
-- ✅ No build tools configured
-- ✅ Pure JavaScript + HTML
-- ✅ Production-ready output
-- ✅ Ready to deploy
-
----
-
-## Recipes and verification
-
-Bulky starter templates and demo pages are intentionally absent. The CLI writes a
-minimal home page. See [recipes](docs/RECIPES.md) for static pages, blogs, and tabs;
-see [verification](docs/VERIFICATION.md) for integration and browser checks.
-
-**Content API change:** built-in component results carry an HTML marker. Ordinary
-strings are escaped, nested components render normally, and `html()` explicitly
-trusts developer markup. At file/HTTP boundaries use `String(result)`. Read the
-[migration guide](docs/HTML.md) before upgrading custom renderers or raw slots.
-
----
-
-## Upgrading
-
-b0nes **copies** the framework into your project. Updates are not `npm update` of a runtime dependency — they are a deliberate re-sync.
-
-### Quick path
-
-```bash
-cd my-app
-git status                          # clean tree preferred
-npx b0nes@latest upgrade --dry-run  # see adds / updates / local edits
-npx b0nes@latest upgrade            # refresh framework and shared utilities, backup first
-npm test && npm run build
-```
-
-| Flag | Meaning |
-|------|---------|
-| `--dry-run` | Print plan only |
-| `--components` | Also refresh stock atoms/molecules/organisms/utils |
-| `--force` | Overwrite stock files you edited locally |
-| `--yes` | Skip confirmation (CI) |
-| `--no-backup` | Skip `.b0nes/backups/` (not recommended) |
-
-### What gets touched
-
-| Path | Default `upgrade` | With `--components` |
-|------|-------------------|---------------------|
-| `src/framework/**` + required shared rendering utilities | ✅ replaced | ✅ |
-| Stock components | ❌ left alone | ✅ replaced |
-| Your components (e.g. `generate atom foo`) | ❌ never | ❌ never |
-| `src/pages/**`, `public/**` | ❌ never | ❌ never |
-
-New projects get `.b0nes/manifest.json` (framework version) and checksums so later upgrades can detect **local-modified** stock files and refuse without `--force`.
-
-Legacy projects (no manifest) still work: the CLI detects `src/framework` and writes a manifest on first upgrade. Differing shared utilities without recorded checksums require `--force`; backups preserve the replaced files.
-
-Full contract: **[docs/UPGRADE.md](docs/UPGRADE.md)**.
-
----
-
-## Components
-
-### Available Components
-
-**Atoms (15 basic elements):**
-- `accordion` - Collapsible content
-- `badge` - Status indicators/labels
-- `box` - Flexible container (div, section, article, etc.)
-- `button` - Clickable button
-- `divider` - Horizontal rule
-- `image` - Image element
-- `input` - Form input
-- `link` - Anchor element
-- `picture` - Responsive images
-- `source` - Media source element
-- `text` - Any text element (p, h1-h6, span, etc.)
-- `textarea` - Multi-line input
-- `video` - Video element
-
-**Molecules (4 compound components):**
-- `card` - Content card with header/media/content slots
-- `tabs` - Interactive tabbed interface ⚡
-- `modal` - Overlay dialog ⚡
-- `dropdown` - Click-to-toggle menu ⚡
-
-**Organisms (4 page sections):**
-- `header` - Page/section header
-- `footer` - Page/section footer
-- `hero` - Hero section
-- `cta` - Call-to-action section
-
-⚡ = Requires b0nes.js for client-side interactivity
-
-### Component Usage
-
-#### Simple Button
-
-```javascript
-// Direct usage
-import { button } from './components/atoms/button/button.js';
-
-const html = button({ 
-    type: 'submit', 
-    slot: 'Click Me',
-    className: 'primary large'
-});
-```
-
-#### Nested Components
-
-```javascript
-// In page composition
-{
-    type: 'organism',
-    name: 'hero',
-    props: {
-        slot: [
-            {
-                type: 'atom',
-                name: 'text',
-                props: { is: 'h1', slot: 'Welcome' }
-            },
-            {
-                type: 'atom',
-                name: 'button',
-                props: { slot: 'Get Started' }
-            }
-        ]
-    }
-}
-```
-
-### Composition & Escape-by-Default
-
-Pages and nested UI go through **`compose`**, which is the **trust boundary**. Plain strings are escaped; component nodes render real HTML; raw HTML is opt-in only.
-
-| Slot kind | Example | What happens |
-|-----------|---------|--------------|
-| Plain text | `'Hello <world>'` | Escaped → `Hello &lt;world&gt;` |
-| Component node | `{ type: 'atom', name: 'button', props: {…} }` | Rendered HTML (not re-escaped) |
-| Raw HTML (opt-in) | `{ html: '<em>…</em>' }` | Inserted as-is — you own the risk |
-| Bind marker | `'Hi {{user.name}}'` | Text escaped; `<span data-b0nes-bind>` kept real |
-
-```javascript
-import { compose } from './framework/core/compose.js';
-
-// ✅ Safe — user/API text cannot inject tags
-compose([{
-    type: 'atom',
-    name: 'text',
-    props: { is: 'p', slot: userInput }  // escaped automatically
-}]);
-
-// ✅ Real markup via structure (preferred) — not raw HTML strings
-compose([{
-    type: 'atom',
-    name: 'text',
-    props: {
-        is: 'p',
-        slot: [
-            'Hello ',
-            { type: 'atom', name: 'text', props: { is: 'strong', slot: 'world' } }
-        ]
-    }
-}]);
-// → <p class="text">Hello <strong class="text">world</strong></p>
-
-// ⚠️ Explicit raw HTML only when you truly need it (markdown, CMS)
-compose([{
-    type: 'atom',
-    name: 'box',
-    props: {
-        slot: [{ html: renderMarkdown(post.body) }]
-    }
-}]);
-```
-
-**Do not** put markup in string slots and expect tags to render:
-
-```javascript
-// ❌ Wrong — becomes visible text: &lt;strong&gt;bold&lt;/strong&gt;
-{ type: 'atom', name: 'text', props: { is: 'p', slot: '<strong>bold</strong>' } }
-
-// ✅ Right — nested component node
-{ type: 'atom', name: 'text', props: {
-    is: 'p',
-    slot: [{ type: 'atom', name: 'text', props: { is: 'strong', slot: 'bold' } }]
-}}
-```
-
-**Mental model**
+## Project layout
 
 ```text
-Any input (pages, MCP, helpers)
-        │
-        ▼
-   JSON component tree (IR)
-        │
-        ▼
-   compose(tree)   ← escape strings · render nodes · allow { html }
-        │
-        ▼
-   HTML string
+src/
+  pages/          # Your routes and co-located assets
+  components/     # Component renderers, category registries, and utilities
+  framework/      # Server, build pipeline, browser runtime, and core rendering
+  scripts/        # Component installer
+  mcp/            # MCP server and tools
+docs/
+  HTML.md         # Text, explicit HTML, and migration notes
+  RECIPES.md      # Page and interaction examples
+public/           # Generated output and optional user-managed assets
+.b0nes/           # Upgrade manifest, checksums, and backups
 ```
 
-- **LLMs / MCP / APIs** speak the JSON tree directly.
-- **Humans** should prefer the same tree (or helpers that return trees). A future human-facing syntax can compile to this IR.
-- **Direct atom calls** (e.g. `button({ slot: '…' })`) bypass `compose`. Prefer `compose` for page content so escape-by-default applies. Component internals use `processSlotTrusted` because `compose` already made `slot` safe.
+Generated projects use imports from these directories. They do not have a
+`src/index.js` entry point.
 
-**Attributes:** prefer object form so values are escaped:
+## Pages and routing
 
-```javascript
-// ✅ Recommended
-attrs: { id: 'main', 'aria-label': userLabel, 'data-param-id': id }
+Create `src/pages/index.js`:
 
-// ⚠️ Legacy string form — passed through; only use with trusted values
-attrs: `id="main" aria-label="${userLabel}"`
-```
+```js
+import { text, button } from '../components/atoms/index.js';
+import { html } from '../components/utils/index.js';
 
-### Component Generator
+export const meta = { title: 'Home', description: 'My b0nes site' };
 
-Generate new components with proper structure:
-
-```bash
-# Create an atom
-npm run generate atom my-button
-
-# Create a molecule
-npm run generate molecule my-card
-
-# Create an organism
-npm run generate organism my-header
-```
-
-### Component Installer
-
-Install community components from URLs:
-
-```bash
-# Install from URL
-npm run install-component https://example.com/components/my-card
-
-# Preview without installing
-npm run install-component https://example.com/card --dry-run
-
-# Force overwrite existing
-npm run install-component https://example.com/card --force
-```
-
-**Component Manifest Format:**
-
-```json
-{
-  "name": "my-card",
-  "version": "1.0.0",
-  "type": "molecule",
-  "description": "A custom card component",
-  "author": "Your Name <you@example.com>",
-  "license": "MIT",
-  "files": {
-    "component": "./my-card.js",
-    "test": "./my-card.test.js",
-    "client": "./molecule.my-card.client.js"
-  },
-  "dependencies": [],
-  "tags": ["card", "layout"]
-}
-```
-
----
-
-## Interactive Components
-
-b0nes includes a **zero-dependency client-side runtime** for progressive enhancement.
-
-### Tabs
-
-Keyboard-accessible tabbed interface with arrow key navigation:
-
-```javascript
-{
-    type: 'molecule',
-    name: 'tabs',
-    props: {
-        tabs: [
-            { label: 'Overview', content: 'Overview content...' },
-            { label: 'Features', content: 'Feature 1' },
-            { label: 'Docs', content: 'Documentation...' }
-        ]
-    }
-}
-```
-
-**Features:**
-- Click to switch tabs
-- Arrow keys for navigation
-- ARIA-compliant markup
-- Works without JS (shows all content; tab controls enable after initialization)
-
-### Modal
-
-Accessible overlay dialog with focus management:
-
-```javascript
-// 1. Define the modal
-{
-    type: 'molecule',
-    name: 'modal',
-    props: {
-        id: 'welcome-modal',
-        title: 'Welcome!',
-        slot: 'Thanks for visiting our site!'
-    }
-}
-
-// 2. Add a trigger button
-{
-    type: 'atom',
-    name: 'button',
-    props: {
-        attrs: 'data-modal-open="welcome-modal"',
-        slot: 'Show Welcome Message'
-    }
-}
-```
-
-**Features:**
-- Click overlay or X to close
-- Escape key to close
-- Focus trap when open and focus restored to the opener on close
-- Body scroll lock
-- ARIA-compliant
-
-### Dropdown
-
-Click-to-toggle menu with outside-click detection:
-
-```javascript
-{
-    type: 'molecule',
-    name: 'dropdown',
-    props: {
-        trigger: 'Actions ▾',
-        slot: [
-            {
-                type: 'atom',
-                name: 'link',
-                props: { url: '#edit', slot: 'Edit' }
-            },
-            {
-                type: 'atom',
-                name: 'link',
-                props: { url: '#delete', slot: 'Delete' }
-            }
-        ]
-    }
-}
-```
-
-**Features:**
-- Click to toggle
-- Outside click to close
-- Escape key to close
-- ARIA-compliant
-
-### How It Works
-
-```
-Server renders HTML with data-b0nes attributes
-            ↓
-Client loads /b0nes.js runtime (optional)
-            ↓
-Runtime discovers components
-            ↓
-Attaches interactive behaviors
-            ↓
-Progressive enhancement complete!
-```
-
-**Disable interactivity for specific pages:**
-
-```javascript
-// In routes.js
-meta: { 
-    title: 'Static Page',
-    interactive: false  // Don't load b0nes.js
-}
-```
-
----
-
-## State Management
-
-b0nes includes a **Redux-style store** without the complexity:
-
-`dispatch()` returns committed state for synchronous actions, or a Promise for
-asynchronous actions. Use `await store.dispatch('load', payload)` when an action
-returns a promise. Middleware `next()` commits and returns that state; asynchronous
-middleware must return or await `next()`. Persistence runs after the commit.
-
-### Basic Store
-
-```javascript
-import { createStore } from './framework/client/store.js';
-
-const store = createStore({
-    state: { 
-        count: 0,
-        todos: []
-    },
-    actions: {
-        increment: (state) => ({ 
-            count: state.count + 1 
-        }),
-        addTodo: (state, todo) => ({ 
-            todos: [...state.todos, todo] 
-        })
-    },
-    getters: {
-        todoCount: (state) => state.todos.length
-    }
-});
-
-// Usage
-store.dispatch('increment');
-store.dispatch('addTodo', { id: 1, text: 'Learn b0nes' });
-
-console.log(store.getState());           // { count: 1, todos: [...] }
-console.log(store.computed('todoCount')); // 1
-
-// Subscribe to changes
-const unsubscribe = store.subscribe((change) => {
-    console.log('State changed:', change);
-    console.log('New state:', change.state);
-});
-```
-
-### Store Modules
-
-Organize large applications with modules:
-
-```javascript
-import { combineModules, createModule } from './framework/client/store.js';
-
-const userModule = createModule({
-    state: { name: '', email: '' },
-    actions: {
-        login: (state, userData) => ({ ...userData })
-    }
-});
-
-const cartModule = createModule({
-    state: { items: [] },
-    actions: {
-        addItem: (state, item) => ({ 
-            items: [...state.items, item] 
-        })
-    }
-});
-
-const store = createStore(
-    combineModules({ 
-        user: userModule, 
-        cart: cartModule 
-    })
-);
-
-// Namespaced access
-store.dispatch('user/login', { name: 'John', email: 'john@example.com' });
-store.dispatch('cart/addItem', { id: 1, name: 'Product' });
-```
-
-### Middleware
-
-Add cross-cutting concerns:
-
-```javascript
-import { 
-    loggerMiddleware, 
-    persistenceMiddleware 
-} from './framework/client/store.js';
-
-const store = createStore({
-    state: { cart: [] },
-    actions: { /* ... */ },
-    middleware: [
-        loggerMiddleware,              // Logs all state changes
-        persistenceMiddleware('cart')  // Auto-saves to localStorage
-    ]
-});
-```
-
----
-
-## State Machines (FSM)
-
-b0nes includes XState-style finite state machines for flow control AND SPA routing. It's functional, uses closures for private state, and is perfect for authentication, multi-step forms, UI flows, and single-page apps.
-
-### Basic FSM
-
-Perfect for authentication, multi-step forms, and UI flows:
-
-```javascript
-import { createFSM } from './framework/client/fsm.js';
-
-const authFSM = createFSM({
-    initial: 'logged-out',
-    states: {
-        'logged-out': {
-            on: { LOGIN: 'logging-in' }
-        },
-        'logging-in': {
-            actions: {
-                onEntry: (context, data) => {
-                    console.log('Starting login...');
-                    // Return context updates if needed
-                    return { loading: true };
-                },
-                onExit: (context, data) => {
-                    console.log('Exiting login...');
-                }
-            },
-            on: { 
-                SUCCESS: 'logged-in',
-                FAILURE: 'logged-out'
-            }
-        },
-        'logged-in': {
-            on: { LOGOUT: 'logged-out' }
-        }
-    },
-    context: { user: null } // Initial context
-});
-
-// Usage
-authFSM.send('LOGIN', { username: 'grok' }); // Transition with data
-authFSM.getState();                          // 'logging-in'
-authFSM.is('logged-in');                     // false
-authFSM.can('LOGOUT');                       // false
-authFSM.getContext();                        // { user: null, loading: true }
-authFSM.getHistory();                        // Array of transitions
-authFSM.updateContext({ user: 'grok' });     // Update without transition
-authFSM.reset();                             // Back to initial
-
-// Subscribe to changes
-const unsubscribe = authFSM.subscribe((transition) => {
-    console.log('Transition:', transition);  // { from, to, event, data, timestamp }
-});
-
-// Visualize
-console.log(authFSM.toMermaid());            // Mermaid diagram string
-```
-
-### FSM with Guards (Conditional Transitions)
-
-Transitions can be functions for dynamic targets:
-
-```javascript
-const checkoutFSM = createFSM({
-    initial: 'cart',
-    states: {
-        'cart': {
-            on: { 
-                CHECKOUT: (context, data) => context.items.length > 0 ? 'payment' : 'cart'
-            }
-        },
-        'payment': {
-            on: { SUCCESS: 'complete' }
-        },
-        'complete': {}
-    },
-    context: { items: [] }
-});
-```
-
-### Composed FSMs (Parallel Machines)
-
-Run multiple FSMs together:
-
-```javascript
-import { composeFSM } from './framework/client/fsm.js';
-
-const composed = composeFSM({
-    auth: authFSM,
-    checkout: checkoutFSM
-});
-
-composed.getAllStates();     // { auth: 'logged-out', checkout: 'cart' }
-composed.getAllContexts();   // Combined contexts
-composed.send('auth', 'LOGIN'); // Send to specific machine
-composed.broadcast('RESET'); // Send to all that can handle it
-
-// Subscribe to any transition
-composed.subscribe((change) => {
-    console.log(change);     // { machine: 'auth', from, to, ... }
-});
-```
-
-### FSM Router - SPAs Made Easy
-
-For routing, use createRouterFSM to generate an FSM from routes, then connectFSMtoDOM to wire it to the UI. This handles rendering templates, updating URLs, browser history, and event delegation.
-
-```javascript
-import { createRouterFSM, connectFSMtoDOM } from './framework/client/fsm.js';
-
-const routes = [
-    {
-        name: 'start',
-        url: '/demo/fsm/start',
-        template: "<h1>FSM Demo</h1><button data-fsm-event='GOTO_STEP2'>Next</button>",
-        onEnter: (context, data) => console.log('Entered start')
-    },
-    {
-        name: 'step2',
-        url: '/demo/fsm/step2',
-        template: "<h1>Step 2</h1><button data-fsm-event='GOTO_START'>Back</button>"
-    },
-    {
-        name: 'success',
-        url: '/demo/fsm/success',
-        template: "<h1>Success!</h1>"
-    }
-];
-
-const { fsm, routes: fsmRoutes } = createRouterFSM(routes); // Creates FSM with GOTO_ events
-
-// Connect to DOM (handles render, clicks, popstate)
-const rootEl = document.querySelector('[data-bones-fsm]');
-const cleanup = connectFSMtoDOM(fsm, rootEl, routes);
-
-// Navigate programmatically
-fsm.send('GOTO_STEP2');
-
-// Cleanup when done
-cleanup();
-```
-
-#### Key notes: 
-
-- Routes get auto-connected with GOTO_[NAME] events.
-- Use `data-fsm-event` on buttons/links for transitions.
-- Pass params with named data attributes (no special-case heuristics):
-
-```html
-<!-- Named params: data-param-id → { id: "1" } -->
-<button data-fsm-event="GOTO_TODO" data-param-id="1">Details</button>
-
-<!-- JSON blob -->
-<button data-fsm-event="GOTO_TODO" data-fsm-data='{"id":"1"}'>Details</button>
-
-<!-- Legacy bare param → { param: "value" } -->
-<button data-fsm-event="GOTO_ABOUT" data-param="value">About</button>
-```
-
-- `onEnter` / `onExit` become state actions.
-- Handles browser back/forward via popstate.
-- Initial state matches current URL if possible.
-- `connectFSMtoDOM` returns a cleanup function — call it when tearing down.
-
-### Multi-Step Form with FSM Router
-
-```javascript
-const routes = [
-    {
-        name: 'start',
-        url: '/form/start',
-        template: "<h1>Start</h1><button data-fsm-event='GOTO_STEP2'>Next</button>"
-    },
-    {
-        name: 'step2',
-        url: '/form/step2',
-        template: "<h1>Step 2</h1><button data-fsm-event='GOTO_START'>Back</button><button data-fsm-event='GOTO_SUCCESS'>Submit</button>"
-    },
-    {
-        name: 'success',
-        url: '/form/success',
-        template: "<h1>Success!</h1><button data-fsm-event='GOTO_START'>Reset</button>"
-    }
-];
-
-const { fsm } = createRouterFSM(routes);
-connectFSMtoDOM(fsm, document.getElementById('app'), routes);
-```
-
-```
-
-**Why FSM?**
-- ✅ Impossible states become impossible
-- ✅ All transitions are explicit
-- ✅ Easy to visualize and test
-- ✅ Self-documenting code
-- ✅ Prevents bugs from invalid state combinations
-- ✅ Built-in SPA routing with FSM Router
-
----
-
-## Routing & Pages
-
-### Static Routes (SSG/SSR)
-
-```javascript
-// src/framework/routes.js
-import { URLPattern } from './utils/urlPattern.js';
-import { components as homeComponents } from './pages/home.js';
-
-export const routes = [
-    {
-        name: 'Home',
-        pattern: new URLPattern({ pathname: '/' }),
-        meta: { title: 'Home' },
-        components: homeComponents
-    },
-    {
-        name: 'About',
-        pattern: new URLPattern({ pathname: '/about' }),
-        meta: { title: 'About Us' },
-        components: aboutComponents
-    }
-];
-```
-
-### Dynamic Routes (SSG/SSR)
-
-```javascript
-{
-    name: 'Blog Post',
-    pattern: new URLPattern({ pathname: '/blog/:slug' }),
-    meta: { title: 'Blog Post' },
-    components: (data) => [
-        {
-            type: 'organism',
-            name: 'hero',
-            props: {
-                slot: [
-                    {
-                        type: 'atom',
-                        name: 'text',
-                        props: { is: 'h1', slot: data.title }
-                    }
-                ]
-            }
-        }
-    ],
-    externalData: async () => {
-        // Fetch blog post data
-        const response = await fetch('https://api.example.com/posts');
-        return await response.json();
-    }
-}
-```
-
-### Creating Pages
-
-```javascript
-// src/pages/index.js
 export const components = [
-    {
-        type: 'organism',
-        name: 'header',
-        props: {
-            slot: [
-                { type: 'atom', name: 'link', props: { url: '/examples/home', slot: 'Home' } },
-                { type: 'atom', name: 'link', props: { url: '/about', slot: 'About' } }
-            ]
-        }
-    },
-    {
-        type: 'organism',
-        name: 'hero',
-        props: {
-            slot: [
-                { type: 'atom', name: 'text', props: { is: 'h1', slot: 'Welcome' } },
-                { type: 'atom', name: 'button', props: { slot: 'Get Started' } }
-            ]
-        }
-    },
-    {
-        type: 'organism',
-        name: 'footer',
-        props: {
-            slot: [
-                { type: 'atom', name: 'text', props: { is: 'p', slot: '© 2025' } }
-            ]
-        }
-    }
+  text({ is: 'h1', slot: 'Hello & welcome' }),
+  button({ slot: text({ is: 'strong', slot: 'Save & continue' }) }),
+  html('<aside>Developer-authored markup</aside>')
 ];
 ```
 
----
+Descriptors are an alternative to direct component calls:
 
-## Testing
+```js
+export const components = [
+  { type: 'atom', name: 'text', props: { is: 'h1', slot: 'Hello & welcome' } },
+  { type: 'molecule', name: 'card', props: { slot: 'Card content' } }
+];
+```
 
-### Component Tests
+| Page module | URL |
+| --- | --- |
+| `src/pages/index.js` | `/` |
+| `src/pages/about/index.js` | `/about` |
+| `src/pages/posts/[slug]/index.js` | `/posts/:slug` |
+| `src/pages/posts/[slug].js` | `/posts/:slug` |
 
-Tests use simple assertion pattern:
+Static routes take precedence over dynamic ones, and earlier literal path segments
+take precedence over parameters. Equivalent parameter patterns, such as
+`/posts/:id` and `/posts/:slug`, are rejected. Files such as `about.js` are
+helpers or assets; use `about/index.js` for a static page.
 
-```javascript
-// src/components/atoms/button/button.test.js
-import button from './index.js';
+### Static generation and server rendering
 
-export const test = () => {
-    const actual = button({ 
-        type: 'submit', 
-        slot: 'Click Me',
-        className: 'primary'
-    });
-    
-    const expected = '<button type="submit" class="btn primary">Click Me</button>';
-    
-    return actual === expected 
-        ? true 
-        : console.error({actual, expected}) || false;
+Arrays of components are static by default. A component function renders on the
+Node server by default; on a dynamic route, an `externalData()` function instead
+enumerates records for static generation. Set `meta.render: 'ssr'` to explicitly
+require server rendering.
+
+For example, create `src/pages/posts/[slug]/index.js`:
+
+```js
+export const meta = { title: 'Posts', render: 'ssg', interactive: false };
+
+export async function externalData() {
+  return [
+    { slug: 'hello', title: 'Hello' },
+    { slug: 'world', title: 'World' }
+  ];
+}
+
+export const components = post => [
+  { type: 'atom', name: 'text', props: { is: 'h1', slot: post.title } }
+];
+```
+
+This generates `public/posts/hello/index.html` and
+`public/posts/world/index.html`. Each record must supply the dynamic parameters.
+An empty array is valid and removes previously generated pages for that route
+after a successful rebuild. Duplicate generated destinations fail the build,
+including overlapping static/dynamic pages and repeated data records.
+
+For runtime pages, export a function without static data enumeration:
+
+```js
+// src/pages/users/[id]/index.js
+export const meta = { title: 'User', render: 'ssr' };
+
+export const components = ({ id }) => [
+  { type: 'atom', name: 'text', props: { is: 'h1', slot: `User ${id}` } }
+];
+```
+
+Static preview serves generated files; it cannot execute SSR pages. Build first,
+then run the Node production server for an application containing SSR routes:
+
+```sh
+npm run build:production
+NODE_ENV=production node src/framework/server/index.js
+```
+
+### Build behavior
+
+Builds render into a private staging directory. Route, template, runtime, or asset
+failures preserve the previous output, including with `--clean`. Publish only
+after a successful exit.
+
+Successful rebuilds use `.b0nes-build-manifest.json` to remove obsolete generated
+pages, assets, and runtime files. The normal CLI build preserves unmanaged files
+you placed in `public/`. `--clean` also removes unmanaged output, after the new
+build succeeds. Keep source assets elsewhere when using clean builds. An output
+from an older version without a manifest needs one successful clean build to
+discard its legacy files.
+
+Missing page directories fail the build; an existing empty page directory is
+valid. Concurrent builds targeting the same output are rejected. The output
+promotion uses directory renames; it does not promise uninterrupted serving while
+a build is promoted.
+
+```sh
+npm run build -- --verbose
+npm run build -- --parallel --production
+npm run build -- --output=dist
+```
+
+Production entries use native ES modules with imports preserved. They are not
+minified bundles. Every route rebuilds; `--no-cache` remains a compatibility flag.
+See [verification and build details](docs/VERIFICATION.md).
+
+### Styles and scripts
+
+Keep page assets beside the page module:
+
+```js
+export const meta = {
+  title: 'App',
+  stylesheets: ['./style.css'],
+  scripts: ['./app.js']
 };
 ```
 
-Run all tests:
+Stylesheet entries create CSS links. Script entries create module scripts. Assets
+can also live in `public/` and use absolute URLs such as `/styles/site.css`.
+Co-located page assets are public; keep secrets and server-only data outside those
+asset directories.
 
-```bash
-npm run test
-```
+Set `meta.interactive: false` to omit the b0nes behavior runtime on a static page.
+Your explicitly requested scripts still load.
 
-Output:
-```
-📦 Testing atoms:
-testing file: button.test.js
-  ✓ PASS
-testing file: link.test.js
-  ✓ PASS
+## Text, HTML, and custom components
 
-Test Summary: 23/23 passed
-```
+Plain strings in built-in component content are escaped. Rendered components can
+be nested directly, including in arrays. `html()` accepts a string or an
+already-rendered component and marks it as intentional HTML; **it is not a
+sanitizer**. Do not pass user input to it.
 
----
+Built-in direct calls return immutable `TrustedHTML` string objects. Use
+`String(result)` or `toHTMLString(result)` at HTTP and file boundaries.
+Concatenation and `.join()` lose the trust marker; preserve arrays of rendered
+components when nesting. `compose()` returns a primitive HTML string.
 
-## Styling
+Object attributes are escaped and reject executable URL schemes, inline event
+handlers, and `srcdoc`. Legacy string attributes are trusted raw markup.
 
-b0nes is **CSS-agnostic by design**. You choose how to style your components.
+For a custom `src/components/molecules/notice/notice.js` renderer:
 
-### Why No Built-in CSS?
+```js
+import { defineComponent, processSlot, attrsToString } from '../../utils/index.js';
 
-- ✅ No forced design opinions
-- ✅ No CSS specificity conflicts
-- ✅ No breaking changes on updates
-- ✅ Works with any CSS strategy
-- ✅ Smaller bundle size
-
-### Recommended Approaches
-
-#### Option 1: Tailwind CSS
-
-```bash
-npm install -D tailwindcss
-npx tailwindcss init
-```
-
-```javascript
-// Use Tailwind classes in components
-button({
-    slot: 'Click Me',
-    className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded'
-})
-```
-
-#### Option 2: Vanilla CSS
-
-```css
-/* public/styles.css */
-.btn {
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-primary {
-    background: #3b82f6;
-    color: white;
-}
-```
-
-#### Option 3: CSS Framework Presets
-
-```javascript
-import { stylesheetPresets } from './framework/renderPage.js';
-
-// Tailwind CSS
-meta: { stylesheets: stylesheetPresets.tailwind() }
-
-// Water.css (classless)
-meta: { stylesheets: stylesheetPresets.water('dark') }
-
-// Pico CSS
-meta: { stylesheets: stylesheetPresets.pico() }
-
-// Open Props
-meta: { stylesheets: stylesheetPresets.openProps() }
-
-// Combine multiple
-meta: { 
-    stylesheets: stylesheetPresets.combine(
-        stylesheetPresets.water('auto'),
-        '/styles/custom.css'
-    )
-}
-```
-
----
-
-## Real-World Examples
-
-### Complete Landing Page
-
-```javascript
-// src/framework/pages/landing.js
-export const components = [
-    {
-        type: 'organism',
-        name: 'header',
-        props: {
-            className: 'sticky-header',
-            slot: [
-                { type: 'atom', name: 'link', props: { url: '/examples/home', slot: 'Home' }},
-                { type: 'atom', name: 'link', props: { url: '/pricing', slot: 'Pricing' }},
-                { type: 'atom', name: 'link', props: { url: '/docs', slot: 'Docs' }}
-            ]
-        }
-    },
-    {
-        type: 'organism',
-        name: 'hero',
-        props: {
-            className: 'hero-gradient',
-            slot: [
-                { type: 'atom', name: 'text', props: { is: 'h1', slot: 'Ship Faster' }},
-                { type: 'atom', name: 'text', props: { is: 'p', slot: 'Zero deps. Pure JS. Simple.' }},
-                { type: 'atom', name: 'button', props: { slot: 'Get Started', className: 'cta-button' }}
-            ]
-        }
-    },
-    {
-        type: 'atom',
-        name: 'box',
-        props: {
-            is: 'section',
-            className: 'features',
-            slot: [
-                {
-                    type: 'molecule',
-                    name: 'card',
-                    props: {
-                        headerSlot: 'Zero Dependencies',
-                        contentSlot: 'Never breaks, always works'
-                    }
-                },
-                {
-                    type: 'molecule',
-                    name: 'card',
-                    props: {
-                        headerSlot: 'Complete Toolkit',
-                        contentSlot: 'Everything you need included'
-                    }
-                }
-            ]
-        }
-    },
-    {
-        type: 'organism',
-        name: 'cta',
-        props: {
-            slot: [
-                { type: 'atom', name: 'text', props: { is: 'h2', slot: 'Ready to build?' }},
-                { type: 'atom', name: 'button', props: { slot: 'Start Now' }}
-            ]
-        }
-    },
-    {
-        type: 'organism',
-        name: 'footer',
-        props: {
-            slot: { type: 'atom', name: 'text', props: { is: 'p', slot: '© 2025 Your Company' }}
-        }
-    }
-];
-```
-
----
-
-## Project Structure
-
-```
-b0nes/
-├── src/
-│   ├── components/              # Component Library
-│   │   ├── atoms/              # Basic elements (15 components)
-│   │   ├── molecules/          # Compound components (4 components)
-│   │   ├── organisms/          # Page sections (4 components)
-│   │   └── utils/              # Component utilities
-│   │       ├── generator/      # Component generator
-│   │       ├── tester.js       # Test runner
-│   │       ├── processSlot.js  # Slot processing
-│   │       ├── normalizeClasses.js
-│   │       └── componentError.js
-│   └── framework/              # Framework Core
-│       ├── client/             # Client-side runtime
-│       │   ├── b0nes.js       # Component initialization
-│       │   ├── store.js       # State management
-│       │   └── fsm.js         # State machines + SPA routing
-│       ├── pages/             # Page templates
-│       ├── utils/build/       # Build tools
-│       ├── compose.js         # Component composition
-│       ├── router.js          # URL routing
-│       ├── routes.js          # Route definitions
-│       ├── renderPage.js      # HTML generation
-│       └── server.js          # Dev server
-├── package.json
-├── README.md
-└── LICENSE
-```
-
----
-
-## API Reference
-
-### Core Functions
-
-#### compose(components, context?)
-Recursively composes a component tree into HTML. This is the **trust boundary**: plain-text slots are escaped; nested component nodes render as real HTML; `{ html: '…' }` is the raw-HTML opt-in. See [Composition & Escape-by-Default](#composition--escape-by-default).
-
-```javascript
-import {
-    compose,
-    clearCompositionCache,
-    setErrorFallback,
-    resetErrorFallback
-} from './framework/core/compose.js';
-
-const html = compose([
-    { type: 'atom', name: 'text', props: { is: 'p', slot: 'Hello' } }
-]);
-
-// Optional route context rewrites relative asset paths (./x.png → /route/x.png)
-compose(components, {
-    route: { pattern: { pathname: '/examples/talk/index.html' } }
-});
-
-// Custom error UI when a component is missing or throws
-setErrorFallback((error, component) =>
-    `<!-- failed: ${component.type}/${component.name}: ${error.message} -->`
+export const notice = defineComponent(({ slot, attrs = {} } = {}) =>
+  `<section${attrsToString(attrs)}>${processSlot(slot)}</section>`,
+  'molecule:notice'
 );
-resetErrorFallback(); // back to default visible error box
-
-clearCompositionCache(); // useful in tests / HMR
 ```
 
-| Export | Purpose |
-|--------|---------|
-| `compose(components, context?)` | Tree → HTML (escape-by-default) |
-| `composeOne(component, context?)` | Single-node convenience |
-| `setErrorFallback(fn)` | Override error fallback UI |
-| `resetErrorFallback()` | Restore default fallback |
-| `clearCompositionCache()` / `clearCache()` | Drop render cache |
-| `getCacheStats()` / `getErrorStats()` | Debug helpers |
+`defineComponent()` marks output and tracks dependencies; your renderer remains
+responsible for escaping its text and attributes. Generate the component first
+to register it in the category barrel.
 
-#### renderPage(content, meta)
-Wraps composed HTML in full page template.
+For intentional scripts, prefer `meta.scripts` or developer-authored
+`meta.inlineScripts`. Inline scripts reject closing script tags. Use
+`scriptData(value)` for JSON embedded in an HTML script element, then read it with
+`textContent` and `JSON.parse`:
 
-```javascript
-import { renderPage } from './framework/renderPage.js';
+```js
+import { html, scriptData } from '../components/utils/index.js';
 
-const html = renderPage(content, { 
-    title: 'My Page',
-    interactive: true,  // Include b0nes.js (default: true)
-    stylesheets: ['/styles/main.css']
+const data = { message: 'Hello <world>' };
+export const components = [
+  html(`<script type="application/json" id="initial-data">${scriptData(data)}</script>`)
+];
+```
+
+Raw HTML may contain intentional scripts; escaping does not sanitize trusted HTML,
+CSS, or JavaScript. See [the HTML contract and migration notes](docs/HTML.md).
+
+### Rendering as a library
+
+Inside a scaffold, import the actual core files from a module in the project root:
+
+```js
+import { text } from './src/components/atoms/index.js';
+import { compose } from './src/framework/core/compose.js';
+import { renderPage } from './src/framework/core/render.js';
+
+const body = compose([text({ is: 'h1', slot: 'Hello' })], { strict: true });
+const page = renderPage(body, { title: 'Example', interactive: false });
+```
+
+For an application using the npm package directly, `npm install b0nes` exposes:
+
+```js
+import { text, html, compose, renderPage } from 'b0nes';
+// Category exports are also available from b0nes/atoms,
+// b0nes/molecules, b0nes/organisms, and b0nes/utils.
+```
+
+Core utilities have selected TypeScript declarations. Component prop declarations
+are not a complete typed API.
+
+## Browser behavior and native forms
+
+The runtime initializes behaviors marked with `data-b0nes`. Custom behaviors use
+qualified identifiers, for example
+`window.b0nes.register('molecules:notice', behavior)`.
+Dispose initialized behaviors with `window.b0nes.destroy(root)`.
+
+Tabs remain readable without JavaScript. The multi-step form initially exposes
+all labelled fields and native submit/reset controls:
+
+```js
+export const components = [
+  { type: 'organism', name: 'multi-step-form', props: {
+    action: '/contact', method: 'post'
+  } }
+];
+```
+
+Provide your own `/contact` handler for `name`, `email`, and optional `age`.
+Enhancement adds steps, validation, focus movement, and status announcements;
+valid submissions remain native form submissions. Destroying enhancement restores
+the native form.
+
+Modal dialogs, SPA navigation, and other JavaScript interactions need appropriate
+fallback links or visible content. b0nes does not guarantee application-level
+accessibility conformance; verify your content, styles, keyboard navigation, and
+assistive technology behavior.
+
+SPA routes accept compiled HTML, component descriptors, or template functions.
+Set `window.spaConfig` in a page script before enhancement and provide real pages
+or a hosting fallback for directly opened URLs. See [SPA recipes](docs/RECIPES.md#spa-navigation).
+
+## Store and state machines
+
+The store supports immutable state, actions, computed getters, filtered
+subscriptions, middleware, and optional modules. From a module in the project root:
+
+```js
+import { createStore } from './src/framework/client/store.js';
+import { createFSM } from './src/framework/client/fsm.js';
+
+const store = createStore({
+  state: { count: 0 },
+  actions: {
+    increment: state => ({ count: state.count + 1 })
+  },
+  getters: {
+    doubled: state => state.count * 2
+  }
 });
+
+const unsubscribe = store.subscribe(({ state }) => {
+  console.log(state.count);
+}, { path: 'count' });
+
+await store.dispatch('increment');
+console.log(store.computed('doubled')); // 2
+unsubscribe();
+
+const flow = createFSM({
+  initial: 'editing',
+  states: {
+    editing: { on: { SUBMIT: 'submitted' } },
+    submitted: { on: { EDIT: 'editing' } }
+  }
+});
+flow.send('SUBMIT');
 ```
 
-#### router(url, routes)
-Matches URL to route and returns route info.
+Browser page scripts can import `/assets/js/client/store.js` and
+`/assets/js/client/fsm.js`. Synchronous actions return committed state immediately;
+asynchronous actions return a promise. Custom middleware must return or await
+`next()` before running effects that depend on committed state.
 
-```javascript
-import { router } from './framework/router.js';
+`connectStoreToFSM()` handles newly changed `fsmEvent` requests and synchronizes
+transitions through your `fsm/setState` action. Use a fresh `{ event, data }`
+request object to repeat an event. Unrelated updates, reset, time travel, and the
+connection's own state synchronization do not replay a persistent request.
 
-const route = router(new URL('http://localhost/'), routes);
-// Returns: { params, query, meta, components, ... }
+## Generate and install components
+
+```sh
+npm run generate -- atom notice
+npm run generate -- molecule feature-card
 ```
 
----
+The generator creates the renderer, index, and test, and updates the category
+registry so descriptors can use the new component. Names use lowercase letters,
+numbers, and hyphens.
 
-## Deployment
+Install a community component from an HTTP(S) manifest or directory URL:
 
-### Build for Production
-
-```bash
-npm run build
+```sh
+npm run install-component -- https://example.com/components/notice/b0nes.manifest.json
+npm run install-component -- https://example.com/components/notice/ --dry-run
 ```
 
-Outputs to `public/`:
-```
-public/
-├── index.html
-├── demo/
-│   └── index.html
-└── blog/
-    └── post-1/
-        └── index.html
-```
+Manifest file URLs resolve relative to the fetched manifest URL. Installations
+validate downloaded modules and register the component. Existing components
+require `--force` to replace. A dry run checks the manifest and local dependencies
+without installing files. Installing loads downloaded JavaScript; use sources
+you trust.
 
-### Deploy to Netlify
+## MCP
 
-1. Build your site: `npm run build`
-2. Drag & drop the `public/` folder to Netlify
-3. Done!
+The included MCP server exposes component discovery, rendering, generation, and
+installation over stdio. Configure clients to invoke **Node directly**:
 
-### Deploy to Vercel
-
-```bash
-npm run build
-vercel --prod
-```
-
-### Deploy to GitHub Pages
-
-```bash
-npm run build
-git subtree push --prefix public origin gh-pages
-```
-
----
-
-## Performance
-
-### Build Performance
-- ⚡ **Fresh builds** - isolated route workers; benchmark with `npm run benchmark:build`
-- ⚡ **No transpilation** - Pure JavaScript
-- ⚡ **Native modules** - production behavior registration uses ESM entries
-
-### Runtime Performance
-- ⚡ **Zero hydration** - Server-rendered HTML
-- ⚡ **Minimal JavaScript** - Only for interactive components
-- ⚡ **Progressive enhancement** - static content and tab panels remain readable without JS; interactive widgets may require it
-
-### Accessibility and performance verification
-
-Scores depend on the site's content, styling, assets, and hosting. No blanket
-Lighthouse or WCAG score is claimed. Browser regression tests cover tab keyboard
-navigation, ARIA relationships, modal focus, nested content, and production modules.
-Applications still need manual keyboard and assistive-technology testing.
-
----
-
-## Comparison
-
-| Feature | b0nes | Next.js | Astro | 11ty |
-|---------|-------|---------|-------|------|
-| **Dependencies** | 0 | 847+ | 320+ | 180+ |
-| **Learning Curve** | 1 day | 2 weeks | 1 week | 3 days |
-| **State Management** | ✅ Built-in | ❌ BYO | ❌ BYO | ❌ BYO |
-| **State Machines** | ✅ Built-in | ❌ BYO | ❌ BYO | ❌ BYO |
-| **SPA Router** | ✅ FSM-based | ✅ Built-in | ❌ BYO | ❌ BYO |
-| **Build Tool** | ❌ Not required | ✅ Required | ✅ Required | ⚠️ Optional |
-| **Client JS** | Progressive | Required | Optional | Optional |
-| **TypeScript** | Optional | Built-in | Built-in | Optional |
-
----
-
-## Roadmap
-
-### v0.3.0
-- [ ] TypeScript declaration files (.d.ts)
-- [ ] More interactive components (carousel, accordion with animation)
-- [ ] Improved documentation with maybe video tutorials
-- [ ] Component marketplace/registry
-
-### v0.4.0
-- [ ] Plugin system
-- [ ] Middleware support for routing
-- [ ] View Transitions API integration
-- [ ] Component playground (Storybook-like)
-- [ ] Hot module replacement (HMR)
-
-and more to come!
-
----
-
-## Philosophy
-
-### Why Zero Dependencies?
-
-**Stability.** Code that depends on nothing never breaks from dependency updates.
-
-**Simplicity.** No version conflicts, no security vulnerabilities from dependencies, no maintenance overhead.
-
-**Longevity.** This code will run 10 years from now without changes.
-
-### Why Pure JavaScript?
-
-**Accessibility.** Everyone can read and understand the code, from juniors to AI.
-
-**Portability.** No compilation step, no toolchain lock-in, runs anywhere Node.js runs.
-
-**Simplicity.** What you see is what runs. No hidden transformations.
-
-### Why HTML-First?
-
-**Standards.** HTML has been around for 30+ years and will be around for 30+ more.
-
-**Performance.** Server-rendered HTML is the fastest way to deliver content.
-
-**Accessibility.** Semantic HTML provides a foundation; behavior, focus, styling, and content still require testing.
-
-### Why FSM for Routing?
-
-**Predictability.** All possible states and transitions are explicit.
-
-**Debugging.** State machines are easy to visualize and test.
-
-**Safety.** We can infer valid states and events.
-
-**Flexibility.** FSM works for SPAs, multi-step forms, game states, and more.
-
----
-
-## Contributing
-
-Contributions are welcome! Please ensure:
-- All tests pass: `npm run test`
-- Check client behaviors in a browser: `npm run test:browser`, then open http://localhost:5068 (see [verification recipes](docs/VERIFICATION.md))
-- New components follow atomic design patterns
-- JSDoc comments are included
-- Zero dependencies maintained
-- Follow existing code style
-
-**Areas we'd love help with:**
-- More interactive components (carousel, date picker, etc.)
-- FSM visualization tools
-- Performance optimizations
-- Documentation improvements
-- Example projects and tutorials
-
----
-
-## Current limitations
-
-- Builds render every route afresh. There is no incremental HTML cache.
-- Use a clean production build when routes or dynamic URLs are removed.
-- Dynamic client templates must use browser-resolvable imports.
-- Raw HTML, raw attribute strings, and scripts remain explicit developer trust boundaries.
-- Modal/dropdown interactions require JavaScript; provide alternatives when needed.
-
----
-
-## Frequently Asked Questions
-
-### Why not just use React/Next.js?
-
-b0nes is for different use cases:
-- **Use React/Next.js** for: Complex SPAs, real-time apps, large teams
-- **Use b0nes** for: Content sites, landing pages, docs, blogs, simple SPAs
-
-### Can I use TypeScript?
-
-Yes! While b0nes is written in pure JS, you can:
-1. Use JSDoc for type hints (no compilation needed)
-2. Add your own TypeScript layer on top
-3. We're working on official .d.ts files for v0.3.0
-
-### How does FSM compare to React Router?
-
-FSM Router:
-- ✅ Explicit state transitions
-- ✅ Built-in state management
-- ✅ Works with or without URLs
-- ✅ Perfect for multi-step flows
-- ❌ More verbose for simple routing
-
-React Router:
-- ✅ Simpler for basic routing
-- ✅ Larger ecosystem
-- ❌ Implicit state transitions
-- ❌ Requires separate state management
-
-### Can I build a SPA with b0nes?
-
-**Absolutely!** Use the FSM Router:
-
-```javascript
-const routes = [
-    { name: 'home', url: '/examples/home', template: '<h1>Home</h1>' },
-    { name: 'about', url: '/about', template: '<h1>About</h1>' }
-];
-
-const { fsm } = createRouterFSM(routes);
-connectFSMtoDOM(fsm, document.getElementById('app'), routes);
-```
-
-### Is this production-ready?
-
-**For static sites: Yes!** (v0.2.0+)
-- Zero dependencies = rock solid
-- SSG output is just HTML/CSS/JS
-
-**For SPAs: Getting there!** (v0.2.0)
-- FSM Router is new but tested
-- Use for new projects, not mission-critical apps yet
-- We're working toward v1.0.0 for production SPAs
-
-### How does escaping / XSS work?
-
-**Built-in component calls and `compose` escape plain-text content by default.** Nested `{ type, name, props }` nodes render real HTML and are not double-escaped. For trusted markup (e.g. markdown output), use `{ html: '…' }` explicitly.
-
-```javascript
-// User text → safe
-compose([{ type: 'atom', name: 'text', props: { is: 'p', slot: '<script>…</script>' } }]);
-// → &lt;script&gt;…&lt;/script&gt; inside a real <p>
-
-// Structure → real tags
-compose([{ type: 'atom', name: 'button', props: {
-    slot: [{ type: 'atom', name: 'text', props: { is: 'span', slot: 'OK' } }]
-}}]);
-// → <button>…<span>OK</span>…</button>
-```
-
-Do not put HTML tags in string slots expecting them to render — use nested components or `{ html }`. Prefer `attrs: { … }` objects over raw attribute strings. Full details and migration: [Text, components, and explicit HTML](docs/HTML.md).
-
-### How do I handle forms?
-
-```javascript
-// Multi-step form with FSM
-const routes = [
-    { name: 'step1', url: '/step1', template: '<input id="name" /><button data-fsm-event="GOTO_STEP2">Next</button>' }
-];
-
-const { fsm } = createRouterFSM(routes);
-connectFSMtoDOM(fsm, app, routes);
-```
-
-### How do I fetch data?
-
-```javascript
-// In route definition
+```json
 {
-    name: 'Blog Post',
-    pattern: new URLPattern({ pathname: '/blog/:slug' }),
-    components: blogPostComponents,
-    externalData: async (params) => {
-        const res = await fetch(`https://api.example.com/posts/${params.slug}`);
-        return await res.json();
+  "mcpServers": {
+    "b0nes": {
+      "command": "node",
+      "args": ["/absolute/path/to/my-site/src/mcp/server.js"],
+      "cwd": "/absolute/path/to/my-site"
     }
+  }
 }
 ```
 
-### Can I use this with Tailwind?
+The working directory must be the project root. JSON-RPC responses use stdout;
+diagnostics use stderr. Avoid launching the transport through `npm run mcp`,
+because npm's script banners can contaminate stdout.
 
-**Yes!** b0nes is CSS-agnostic:
+## Upgrades, checks, and releases
 
-```bash
-npm install -D tailwindcss
-npx tailwindcss init
+```sh
+npx b0nes@latest upgrade --dry-run
+npx b0nes@latest upgrade
 ```
 
-Or use the built-in preset:
+Default upgrades update the framework and its required shared rendering utilities.
+Stock component updates require `--components`. Local changes are checked against
+recorded checksums; overwriting them requires `--force` and keeps the usual
+backups. Your pages, public assets, and custom component folders are preserved.
+See [the upgrade contract](docs/UPGRADE.md).
 
-```javascript
-import { stylesheetPresets } from './framework/renderPage.js';
+Run `npm test` in a generated project. From this repository, additional checks are:
 
-meta: {
-    stylesheets: stylesheetPresets.tailwind()
-}
+```sh
+npm test
+npm run test:browser
+npm run test:browser:ci
+npm run test:integration:ci
 ```
 
----
+Browser CI checks use an installed Chromium executable and Node built-ins, without
+adding npm dependencies. See [verification recipes](docs/VERIFICATION.md).
 
-## License
+b0nes stays in **0.x by design** as it evolves. Releases use minor or patch version
+increments; major releases are outside the project's release policy. Review
+[CHANGELOG.md](CHANGELOG.md) and the [release workflow](docs/RELEASING.md) when
+upgrading or publishing.
 
-MIT License - See [LICENSE](LICENSE) file
-
-Copyright (c) 2025 Ignacio Garcia Villanueva
-
----
-
-## Final Thoughts
-
-This is an attempt to do something different. Not to replace anything, but to propose another way.
-
-We've been overengineering solutions for too long. It's time to question our choices and ask: **"Is this really worth it?"**
-
-**b0nes is for developers who:**
-- Want to understand how their framework works
-- Value simplicity over complexity
-- Prefer explicit over implicit
-- Care about longevity and stability
-- Don't want to rewrite their app every 2 years
-
-If you think this is useful, let me know.  
-If you learn something from this, let me know.
-
-Let's build something useful together.
-
-**Many thanks!**  
-— Iggy
-
----
-
-## Links
-
-- 🌐 **GitHub**: https://github.com/iggydotdev/b0nes
-- 📦 **npm**: https://www.npmjs.com/package/b0nes
-- 🐛 **Issues**: https://github.com/iggydotdev/b0nes/issues
-- 💬 **Discussions**: https://github.com/iggydotdev/b0nes/discussions
-- 📧 **Email**: iggy.dev@pm.me
-- 🐦 **Twitter**: [@iggydotdev](https://twitter.com/iggydotdev)
-
----
-
-**⭐ Star this repo if you find it useful!**
-
-**🤝 Contributions welcome!** Check out our [Contributing Guide](CONTRIBUTING.md)
-
-**📢 Share your b0nes projects!** We'd love to see what you build.
+[MIT license](LICENSE).

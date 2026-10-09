@@ -7,6 +7,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { inspectPath, copyContainedFile } from './safePaths.js';
+import { withFileTransaction } from './fileTransaction.js';
 import {
   FRAMEWORK_PATHS,
   FRAMEWORK_UTILS_PATHS,
@@ -14,6 +16,7 @@ import {
   BACKUPS_DIR,
   DEFAULT_POLICY
 } from './paths.js';
+import { MANIFEST_FILE, CHECKSUMS_FILE } from './paths.js';
 import {
   readManifest,
   writeManifest,
@@ -52,7 +55,7 @@ const log = {
  */
 export const readPackageVersion = (packageRoot) => {
   const pkg = JSON.parse(
-    fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8')
+    fs.readFileSync(inspectPath(packageRoot, 'package.json', { type: 'file' }).absolutePath, 'utf8')
   );
   return pkg.version;
 };
@@ -84,8 +87,8 @@ export const buildUpgradePlan = ({
         continue;
       }
 
-      const srcAbs = path.join(packageRoot, rel);
-      const destAbs = path.join(projectRoot, rel);
+      const srcAbs = inspectPath(packageRoot, rel, { type: 'file' }).absolutePath;
+      const destAbs = inspectPath(projectRoot, rel, { type: 'file' }).absolutePath;
       const srcHash = hashFile(srcAbs);
       const destHash = hashFile(destAbs);
       const prevHash = previousChecksums[rel];
@@ -112,10 +115,7 @@ export const buildUpgradePlan = ({
  * Copy one file from package → project (creates dirs).
  */
 const copyFile = async (packageRoot, projectRoot, rel) => {
-  const src = path.join(packageRoot, rel);
-  const dest = path.join(projectRoot, rel);
-  await fs.promises.mkdir(path.dirname(dest), { recursive: true });
-  await fs.promises.copyFile(src, dest);
+  await copyContainedFile(packageRoot, projectRoot, rel);
 };
 
 /**
@@ -124,18 +124,19 @@ const copyFile = async (packageRoot, projectRoot, rel) => {
  */
 const backupFiles = async (projectRoot, relPaths) => {
   const existing = relPaths.filter((rel) =>
-    fs.existsSync(path.join(projectRoot, rel))
+    inspectPath(projectRoot, rel, { type: 'file' }).stat
   );
   if (existing.length === 0) return null;
 
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupRoot = path.join(projectRoot, BACKUPS_DIR, stamp);
+  let backups = inspectPath(projectRoot, BACKUPS_DIR, { type: 'directory' });
+  await fs.promises.mkdir(backups.absolutePath, { recursive: true });
+  backups = inspectPath(projectRoot, BACKUPS_DIR, { type: 'directory' });
+  // A fresh directory cannot collide with an old backup file or link.
+  const backupRoot = await fs.promises.mkdtemp(path.join(backups.absolutePath, `${stamp}-`));
 
   for (const rel of existing) {
-    const src = path.join(projectRoot, rel);
-    const dest = path.join(backupRoot, rel);
-    await fs.promises.mkdir(path.dirname(dest), { recursive: true });
-    await fs.promises.copyFile(src, dest);
+    await copyContainedFile(projectRoot, backupRoot, rel);
   }
 
   return backupRoot;
@@ -205,10 +206,21 @@ export const runUpgrade = async ({
     return 1;
   }
 
-  if (!fs.existsSync(path.join(packageRoot, 'src', 'framework'))) {
+  if (!inspectPath(packageRoot, 'src/framework', { type: 'directory' }).stat) {
     log.error(`b0nes package source not found at ${packageRoot}`);
     return 1;
   }
+
+  // Preflight the complete managed trees before any backup, copy, or metadata
+  // mutation. Also cover custom/removed files read by the final checksum pass.
+  const managedSpecs = components
+    ? [...FRAMEWORK_PATHS, ...COMPONENT_PATHS]
+    : [...FRAMEWORK_PATHS];
+  for (const spec of managedSpecs) {
+    listFiles(packageRoot, spec);
+    listFiles(projectRoot, spec);
+  }
+  if (backup) inspectPath(projectRoot, BACKUPS_DIR, { type: 'directory' });
 
   const toVersion = readPackageVersion(packageRoot);
   let manifest = readManifest(projectRoot);
@@ -270,11 +282,12 @@ export const runUpgrade = async ({
       manifest.frameworkVersion = toVersion;
       manifest.upgradedAt = new Date().toISOString();
       manifest.policy = policy;
-      writeManifest(projectRoot, manifest);
-      const specs = components ? [...FRAMEWORK_PATHS, ...COMPONENT_PATHS] : [...FRAMEWORK_PATHS];
-      writeChecksums(projectRoot, {
-        ...previousChecksums,
-        ...buildChecksums(projectRoot, specs)
+      await withFileTransaction(projectRoot, [MANIFEST_FILE, CHECKSUMS_FILE], async () => {
+        writeManifest(projectRoot, manifest);
+        writeChecksums(projectRoot, {
+          ...previousChecksums,
+          ...buildChecksums(projectRoot, managedSpecs)
+        });
       });
       log.info(`Manifest set to ${toVersion}`);
     }
@@ -327,27 +340,25 @@ export const runUpgrade = async ({
   }
 
   let written = 0;
-  for (const item of actionable) {
-    await copyFile(packageRoot, projectRoot, item.rel);
-    written++;
-  }
+  await withFileTransaction(projectRoot, [...actionable.map(item => item.rel), MANIFEST_FILE, CHECKSUMS_FILE], async () => {
+    for (const item of actionable) {
+      await copyFile(packageRoot, projectRoot, item.rel);
+      written++;
+    }
 
-  // Refresh checksums for all managed paths we care about
-  const managedSpecs = components
-    ? [...FRAMEWORK_PATHS, ...COMPONENT_PATHS]
-    : [...FRAMEWORK_PATHS];
-  const newChecksums = {
-    ...previousChecksums,
-    ...buildChecksums(projectRoot, managedSpecs)
-  };
-  // Drop checksums for framework files no longer present upstream? keep stale keys harmless
-  writeChecksums(projectRoot, newChecksums);
+    // Refresh checksums for all managed paths; stale keys remain harmless.
+    const newChecksums = {
+      ...previousChecksums,
+      ...buildChecksums(projectRoot, managedSpecs)
+    };
+    writeChecksums(projectRoot, newChecksums);
 
-  manifest.frameworkVersion = toVersion;
-  manifest.upgradedAt = new Date().toISOString();
-  manifest.policy = { ...manifest.policy, ...DEFAULT_POLICY };
-  if (!manifest.createdWith) manifest.createdWith = toVersion;
-  writeManifest(projectRoot, manifest);
+    manifest.frameworkVersion = toVersion;
+    manifest.upgradedAt = new Date().toISOString();
+    manifest.policy = { ...manifest.policy, ...DEFAULT_POLICY };
+    if (!manifest.createdWith) manifest.createdWith = toVersion;
+    writeManifest(projectRoot, manifest);
+  });
 
   log.success(`Upgraded framework ${fromVersion} → ${toVersion} (${written} files written)`);
   if (components) log.info('Stock components were included (--components).');

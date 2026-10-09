@@ -180,6 +180,7 @@ export async function handleToolCall(name, args = {}) {
 async function handleGenerateComponent({ componentType, componentName }) {
     try {
         const result = createComponent(componentType, componentName);
+        await refreshComponent(result.type, result.name);
         return ok(`Created ${result.type} component "${result.name}" at ${result.path}`);
     } catch (error) {
         return err(`Failed to generate component: ${error.message}`);
@@ -194,7 +195,7 @@ async function handleComposePage({ components }) {
     try {
         // Clear cache to ensure fresh renders in MCP context
         clearCompositionCache();
-        const html = compose(components);
+        const html = compose(components, { strict: true });
         return ok(html);
     } catch (error) {
         return err(`Composition failed: ${error.message}`);
@@ -250,6 +251,7 @@ async function handleInstallComponent({ url, force = false }) {
     try {
         const result = await installComponent(url, { force });
         if (result.success) {
+            await refreshComponent(result.manifest.type, result.manifest.name, false);
             return ok(`Installed component "${result.manifest.name}" (${result.manifest.type}) at ${result.path}`);
         } else {
             return err(`Installation failed: ${result.error}`);
@@ -257,4 +259,14 @@ async function handleInstallComponent({ url, force = false }) {
     } catch (error) {
         return err(`Installation error: ${error.message}`);
     }
+}
+
+async function refreshComponent(type, name, register = true) {
+    if (register) {
+        const { registerComponent } = await import('../components/library.js');
+        await registerComponent(`${type}s`, name);
+    }
+    const introspection = await getIntrospection();
+    introspection.invalidateRegistry();
+    clearCompositionCache();
 }

@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'b0nes-chrome-'));
+// Chromium children may finish profile writes after the main process exits.
+const removeProfile = () => fs.rmSync(profile, { recursive:true, force:true, maxRetries:10, retryDelay:100 });
 const fixture = fork(fileURLToPath(new URL('./server.mjs',import.meta.url)), [], {
     env:{...process.env,PORT:'0'}, stdio:['ignore','inherit','inherit','ipc']
 });
@@ -17,9 +19,9 @@ const finish = (code, message) => {
     console.log(message);
     fixture.kill();
     if (browser && browser.exitCode === null) {
-        browser.once('exit', () => fs.rmSync(profile,{recursive:true,force:true}));
+        browser.once('exit', () => removeProfile());
         browser.kill();
-    } else fs.rmSync(profile,{recursive:true,force:true});
+    } else removeProfile();
     process.exitCode = code;
 };
 const timer = setTimeout(() => finish(1,'Browser checks timed out'), 45000);

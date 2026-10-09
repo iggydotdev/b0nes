@@ -10,6 +10,8 @@ transitive module changes, generated ESM entries, and failed data generation.
 Store tests cover ordinary, nested, computed, unchanged, and reentrant notifications,
 asynchronous actions, concurrent module updates, post-commit persistence, and action
 failures that leave state and history unchanged. Synchronous actions stay synchronous.
+FSM checks cover independent unsubscriptions in composed machines and store/FSM
+connections that synchronize without replaying persistent event requests.
 Composition tests cover dependency replay through cached ancestors and route context.
 HTTP tests start real servers and verify malformed requests return 400 without
 interrupting later requests. They check production source isolation, symlink
@@ -26,8 +28,11 @@ It also leaves working controls available for manual keyboard testing.
 - `/`: tab IDs, ARIA associations, arrows/Home/End, cleanup, modal focus wrap,
   outside focus containment, Escape, focus/scroll restoration, and empty dialogs.
 - `/no-js`: HTML rendered without behavior scripts; all tab panels remain visible.
-- `/production`: the shipped multi-step form and tabs loaded through a generated
-  ES-module entry. Enter a name and select Next to exercise the form's imports.
+- `/production`: two shipped multi-step forms and tabs loaded through a generated
+  ES-module entry. Form checks cover instance isolation, labels, validation/focus,
+  cleanup/reinitialization, reset, and a real enhanced POST submission.
+- `/form-no-js`: a native form without behavior scripts; the fixture verifies all
+  fields remain accessible and submits a real POST without enhancement.
 
 Stop the server with Ctrl+C. It binds to loopback and removes its temporary build.
 The Chromium CI job runs the same page with `npm run test:browser:ci`.
@@ -45,6 +50,14 @@ behavior registration, cleanup without callbacks, and production client composit
 on localhost. Node tests pack the actual npm artifact and exercise scaffolding,
 tests, and a production build from that artifact.
 
+Run `npm run test:integration:ci` for the combined legacy-project upgrade check.
+It packs the npm artifact, upgrades a representative 0.2.1 vendored installation,
+preserves customized components/pages/public assets, builds dynamic SSG and compiled
+SPA templates, and starts the upgraded production SSR server. Chromium checks
+initial navigation, click/back/forward history, escaped content, asynchronous store
+updates, and SSG/SSR asset loading. It uses the same installed Chromium executable
+as the behavior runner and is also part of CI.
+
 ## Build behavior
 
 Every route is rendered afresh; persistent HTML cache skipping is disabled.
@@ -57,13 +70,45 @@ a fresh worker so repeated builds reload transitive imports.
 `npm run benchmark:build -- 10 100` measures clean sequential and parallel builds
 in temporary projects. Results depend on CPU and filesystem; no fixed speed is promised.
 
-Use `--clean` when removing routes or changing the set of dynamic URLs to remove
-old output files. Keep source assets outside the output directory when doing so.
+Builds render in a private sibling staging directory and promote it only after
+all routes, SPA templates, runtime modules, and assets succeed. Promotion failures
+restore the previous directory. Even `--clean` leaves the previous output intact
+if rendering fails. Concurrent builds for the same output are rejected by a lock.
+If a process is forcibly terminated, check that it is no longer running before
+removing the sibling `.public.b0nes-build-lock` file (the prefix follows the output
+name); private staging or recovery-backup directories may also remain.
+
+The reserved `.b0nes-build-manifest.json` tracks generated files and directories.
+Successful rebuilds remove obsolete generated pages, dynamic URLs, bundles, and
+assets. Normal CLI builds (`clean: false`) preserve unmanaged files and empty user
+directories. `--clean` (or the API default `clean: true`) removes unmanaged output
+only after a successful build; keep user assets outside the output for this mode.
+Old builds without a manifest require one successful clean build to remove legacy
+output. Do not delete or hand-edit the manifest between builds.
+
+The directory swap uses a same-filesystem backup and rename so it works without
+external dependencies. There is a brief interval between the two renames when the
+output path is absent; it is not a promise of uninterrupted serving during a build.
+A failed rollback reports and retains the recovery backup instead of deleting it.
 
 Production `.bundle.js` files are native ESM registration entries, not concatenated
 or minified JavaScript. They load copied behavior modules with their imports intact.
 No external bundler is needed. Shared runtime files retain both the `shared` and
 legacy `utils` URLs.
+
+Dynamic SPA templates also retain a native ESM module graph. Only imported modules
+are emitted under `assets/js/template-modules/`, preserving relative paths across
+components, helpers, re-exports, cycles, JSON imports, and literal `import()` calls.
+Dependencies must be browser-compatible relative modules within `src/`; server
+modules, source symlinks, bare/Node imports, and computed `import()` paths fail the
+build. Use static imports or literal lazy imports. The compiler's V8 parser runs
+in its own worker with the required Node flag; users need no extra flags or packages.
+Standalone `generateCompiledTemplates()` callers outside a `src/` tree can set
+`sourceRoot` explicitly. Imported browser dependencies become public assets.
+
+Removing or renaming the pages directory is a build error and keeps the previous
+output. An existing empty pages directory remains valid and removes old generated
+pages on a successful rebuild.
 
 ## Server assets
 
@@ -71,6 +116,14 @@ The production SSR server reads HTTP assets only from `public/`; it does not
 fall back to `src/pages`. Build before starting it. Runtime aliases such as
 `/client/compose.js` and `/utils/urlPattern.js` resolve inside the same public root.
 Symlinks that leave the asset root, or point to forbidden files, return 404.
+
+Production page requests use the same render-mode policy as builds: SSG routes
+serve their generated HTML, including `externalData()` fields and production
+scripts. Missing explicit SSG artifacts return 404; default dynamic routes retain
+their existing SSR fallback for URLs absent from the build. SSR routes render at request time even
+when an SSR fallback file exists. Development renders source modules and passes
+the matching complete fetched record to dynamic SSG factories.
+HTTP regressions cover encoded slugs, HEAD requests, and unsafe generated HTML links.
 
 Development reads co-located assets and browser modules from source, while page
 entry modules (`index.js`, `page.js`, `[slug].js`, and `:slug.js`) stay server-only.
@@ -106,6 +159,26 @@ export const components = data => [{
 `npm run build` generates `/posts/hello/index.html` and `/posts/world/index.html`.
 A dynamic page without `externalData` remains an SSR route. An explicit
 `meta.render: 'ssr'` also stays SSR. Errors in data generation fail the build.
+An empty data array is valid and removes obsolete generated pages. Duplicate
+generated URLs fail safely, including static/dynamic collisions. Route discovery
+prefers static/literal segments and rejects equivalent parameter patterns.
+
+## Public API, MCP, installation, and upgrades
+
+Public export checks exercise direct/nested rendering, utility imports through
+`b0nes/utils`, error statistics, and generated components with hyphenated, digit,
+or reserved-word names. Every declared utility has a corresponding runtime export.
+These checks do not replace a TypeScript consumer's compiler or validate every
+component prop. README and recipe examples use paths present in the scaffold.
+
+MCP sessions reject any non-JSON stdout. Tests send malformed JSON, null,
+arrays/primitives, invalid IDs/parameters, and then a valid ping. Same-session
+generation must immediately appear in discovery, schema, and strict composition.
+Install tests use a local HTTP server and isolated projects to verify manifest URL
+resolution, actual import/render/registration, forced replacements, and failure
+recovery. Upgrade tests inject late file-copy and metadata-write failures and
+check managed files and metadata return to their original contents, with custom
+files and requested backups retained.
 
 ## Sample build measurement
 

@@ -6,12 +6,45 @@ import { PAGES_BASE, ENV } from './getServerConfig.js';
 
 const pagesDir = PAGES_BASE;
 
+const routeSpecificity = route => route.pattern.pathname.split('/').filter(Boolean).map(segment => {
+  const literal = segment.replace(/:\w+(?:\([^)]*\))?[?+*]?/g, '');
+  return [literal === segment ? 2 : literal.length ? 1 : 0, literal.length];
+});
+
+function orderRoutes(routes) {
+  const shapes = new Map();
+  const specificity = new Map();
+  for (const route of routes) {
+    // Renaming a parameter does not create a distinct route: choosing between
+    // /posts/:id and /posts/:slug would otherwise depend on filesystem order.
+    const shape = route.pattern.pathname.replace(/:\w+/g, ':parameter');
+    const previous = shapes.get(shape);
+    if (previous) {
+      throw new Error(`[b0nes] Ambiguous page routes: ${previous.filePath} and ${route.filePath} match ${shape}`);
+    }
+    shapes.set(shape, route);
+    specificity.set(route, routeSpecificity(route));
+  }
+  return routes.sort((left, right) => {
+    const dynamic = Number(Boolean(left.params?.length)) - Number(Boolean(right.params?.length));
+    if (dynamic) return dynamic;
+    const a = specificity.get(left);
+    const b = specificity.get(right);
+    // At the first different segment, prefer literals over named parameters.
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+      const rank = b[i][0] - a[i][0] || b[i][1] - a[i][1];
+      if (rank) return rank;
+    }
+    if (a.length !== b.length) return b.length - a.length;
+    return left.pattern.pathname < right.pattern.pathname ? -1 : left.pattern.pathname > right.pattern.pathname ? 1 : 0;
+  });
+}
+
 function buildRoutes() {
   const routes = [];
   
   if (!fs.existsSync(pagesDir)) {
-    console.error(`[b0nes] ❌ Pages directory not found at: ${pagesDir}. Cannot discover routes.`);
-    return [];
+    throw new Error(`[b0nes] Pages directory not found at: ${pagesDir}. Cannot discover routes.`);
   }
   
   function walk(dir, basePath = '') {
@@ -61,7 +94,7 @@ function buildRoutes() {
   }
   
   walk(pagesDir);
-  return routes;
+  return orderRoutes(routes);
 }
 
 let ROUTES_CACHE = null;
