@@ -183,6 +183,14 @@ git checkout -- src/framework src/components/utils
 
 ## Versioning & breaking changes
 
+Upgrade preflight rejects symlinks inside managed source/destination trees and
+inside `.b0nes` metadata or backup paths, including dangling links. `--force`
+allows replacing locally edited stock files; it does not allow following links.
+Unsafe paths fail before any upgrade writes. Ordinary file copies and metadata
+writes repeat containment checks and refuse final-file symlinks where the platform
+supports `O_NOFOLLOW`. These checks do not make upgrades fully transactional:
+unexpected I/O failures after copying begins can still require restoring a backup.
+
 - **Framework patch/minor**: `upgrade` should be routine.
 - **Breaking changes**: called out in `CHANGELOG.md` under `### Breaking`. Upgrade still replaces files; **your pages** may need manual edits (compose escape rules, FSM attrs, Node engine, etc.).
 - Scaffolded `package.json` `engines` is **not** auto-bumped (user land). CLI may *warn* if project engines are below the package requirement.

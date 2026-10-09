@@ -10,10 +10,11 @@ on:
         type: string
     secrets:
       NPM_TOKEN:
-        required: true
+        required: false
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: npm-publish-${{ inputs.tag || github.event.release.tag_name }}
@@ -41,5 +42,6 @@ jobs:
       - run: npm test
       - name: Publish unless this version is already on npm
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_PUBLISH_AUTH: ${{ vars.NPM_PUBLISH_AUTH || 'token' }}
+          NODE_AUTH_TOKEN: ${{ vars.NPM_PUBLISH_AUTH != 'oidc' && secrets.NPM_TOKEN || '' }}
         run: node .github/scripts/publish.mjs

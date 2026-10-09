@@ -5,8 +5,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { inspectPath, writeContainedFileSync } from './safePaths.js';
 import {
-  B0NES_DIR,
   MANIFEST_FILE,
   CHECKSUMS_FILE,
   DEFAULT_POLICY
@@ -45,10 +45,8 @@ export const hashFile = (filePath) => {
  * @returns {string[]}
  */
 export const listFiles = (absoluteRoot, relPath) => {
-  const abs = path.join(absoluteRoot, relPath);
-  if (!fs.existsSync(abs)) return [];
-
-  const stat = fs.statSync(abs);
+  const { absolutePath: abs, stat } = inspectPath(absoluteRoot, relPath);
+  if (!stat) return [];
   if (stat.isFile()) return [relPath.replace(/\\/g, '/')];
 
   const out = [];
@@ -58,10 +56,11 @@ export const listFiles = (absoluteRoot, relPath) => {
       if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.certs') {
         continue;
       }
-      const childAbs = path.join(dir, entry.name);
       const childRel = path.join(rel, entry.name).replace(/\\/g, '/');
-      if (entry.isDirectory()) walk(childAbs, childRel);
-      else if (entry.isFile()) out.push(childRel);
+      const { absolutePath: childAbs, stat: childStat } = inspectPath(absoluteRoot, childRel);
+      if (!childStat) continue;
+      if (childStat.isDirectory()) walk(childAbs, childRel);
+      else if (childStat.isFile()) out.push(childRel);
     }
   };
   walk(abs, relPath.replace(/\\/g, '/'));
@@ -90,8 +89,8 @@ export const buildChecksums = (absoluteRoot, pathSpecs) => {
  * @returns {object|null}
  */
 export const readManifest = (projectRoot) => {
-  const p = manifestPath(projectRoot);
-  if (!fs.existsSync(p)) return null;
+  const { absolutePath: p, stat } = inspectPath(projectRoot, MANIFEST_FILE, { type: 'file' });
+  if (!stat) return null;
   try {
     return JSON.parse(fs.readFileSync(p, 'utf8'));
   } catch {
@@ -104,13 +103,7 @@ export const readManifest = (projectRoot) => {
  * @param {object} manifest
  */
 export const writeManifest = (projectRoot, manifest) => {
-  const dir = path.join(projectRoot, B0NES_DIR);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(
-    manifestPath(projectRoot),
-    JSON.stringify(manifest, null, 2) + '\n',
-    'utf8'
-  );
+  writeContainedFileSync(projectRoot, MANIFEST_FILE, JSON.stringify(manifest, null, 2) + '\n');
 };
 
 /**
@@ -118,8 +111,8 @@ export const writeManifest = (projectRoot, manifest) => {
  * @returns {Record<string, string>}
  */
 export const readChecksums = (projectRoot) => {
-  const p = checksumsPath(projectRoot);
-  if (!fs.existsSync(p)) return {};
+  const { absolutePath: p, stat } = inspectPath(projectRoot, CHECKSUMS_FILE, { type: 'file' });
+  if (!stat) return {};
   try {
     return JSON.parse(fs.readFileSync(p, 'utf8'));
   } catch {
@@ -132,13 +125,7 @@ export const readChecksums = (projectRoot) => {
  * @param {Record<string, string>} checksums
  */
 export const writeChecksums = (projectRoot, checksums) => {
-  const dir = path.join(projectRoot, B0NES_DIR);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(
-    checksumsPath(projectRoot),
-    JSON.stringify(checksums, null, 2) + '\n',
-    'utf8'
-  );
+  writeContainedFileSync(projectRoot, CHECKSUMS_FILE, JSON.stringify(checksums, null, 2) + '\n');
 };
 
 /**

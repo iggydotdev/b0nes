@@ -10,8 +10,7 @@ function buildRoutes() {
   const routes = [];
   
   if (!fs.existsSync(pagesDir)) {
-    console.error(`[b0nes] ❌ Pages directory not found at: ${pagesDir}. Cannot discover routes.`);
-    return [];
+    throw new Error(`[b0nes] Pages directory not found at: ${pagesDir}. Cannot discover routes.`);
   }
   
   function walk(dir, basePath = '') {

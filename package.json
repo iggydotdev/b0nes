@@ -38,6 +38,7 @@
     "mcp": "node src/mcp/server.js",
     "prepublishOnly": "npm run test",
     "test:browser:ci": "node tests/browser/ci.mjs",
+    "test:integration:ci": "node --test tests/upgrade-integration.test.mjs",
     "benchmark:build": "node tests/build-benchmark.mjs"
   },
   "keywords": [

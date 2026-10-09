@@ -21,46 +21,11 @@ import { createPageBundle } from './bundle.js';
 import { compose } from '../../core/compose.js';
 import { PAGES_BASE } from '../../server/handlers/getServerConfig.js';
 import { pageAssetBasePath } from '../../shared/pageAssetPath.js';
-import { assertSafeOutputPath, assertSafeSourcePath, ensureSafeOutputDirectory } from './outputPath.js';
+import { assertSafeSourcePath } from './outputPath.js';
+import { createBuildTransaction } from './buildTransaction.js';
+import { shouldBeStatic } from '../../shared/renderMode.js';
+export { shouldBeStatic } from '../../shared/renderMode.js';
 
-
-/**
- * Check if a route should be rendered as SSG or SSR
- * @param {Object} page - The loaded page module
- * @param {Object} route - The route object
- * @returns {boolean} - true if should be SSG, false if SSR
- */
-export const shouldBeStatic = (page, route) => {
-    // Check for explicit render mode in meta
-    if (page.meta?.render === 'ssr') {
-        return false; // Force SSR
-    }
-    
-    if (page.meta?.render === 'ssg') {
-        return true; // Force SSG
-    }
-    
-    // Dynamic routes (with params like [slug]) need special handling
-    if (route.params) {
-        // If it has externalData, it can be pre-rendered (SSG)
-        if (page.externalData && typeof page.externalData === 'function') {
-            return true; // SSG with pre-fetched data
-        }
-        
-        // No externalData? Must be SSR (needs runtime data)
-        return false; // SSR - will fetch data at runtime
-    }
-    
-    // Static routes: if components is a function, it's SSR (needs runtime data)
-    // If it's a static array, it's SSG
-    const components = page.components || page.default || [];
-    
-    if (typeof components === 'function') {
-        return false; // SSR - needs runtime data
-    }
-    
-    return true; // SSG - static components
-};
 
 /**
  * Safe route builder with error recovery and hybrid rendering support
@@ -221,7 +186,7 @@ export async function safeBuildRoute(route, outputDir, options) {
  * @param {string} outputDir - Output directory
  * @param {Object} options - Build options
  * @param {boolean} options.cache - Reserved for compatibility; routes always rebuild
- * @param {boolean} options.clean - Clean output before build (default: true)
+ * @param {boolean} options.clean - Remove unmanaged output only after success (default: true)
  * @param {boolean} options.parallel - Enable parallel builds (default: false)
  * @param {boolean} options.verbose - Verbose logging (default: false)
  * @param {boolean} options.continueOnError - Continue build on error (default: true)
@@ -229,9 +194,8 @@ export async function safeBuildRoute(route, outputDir, options) {
  * @param {Function} options.onError - Error callback (error, route) => void
  * @returns {Object} Build result with stats
  */
-export const build = async (outputDir = 'public', options = {}) => {
+const buildStaged = async (outputDir, options = {}) => {
     const {
-        clean = true,
         parallel = false,
         verbose = false,
         continueOnError = true,
@@ -252,21 +216,6 @@ export const build = async (outputDir = 'public', options = {}) => {
     console.log('🦴 b0nes SSG Build Starting...\n');
     
         
-    // ============================================
-    // STEP 1: Clean output directory
-    // ============================================
-    assertSafeOutputPath(outputDir, path.resolve(outputDir));
-    if (clean) {
-        if (fs.existsSync(outputDir)) {
-            fs.rmSync(outputDir, { recursive: true, force: true });
-        }
-    }
-    
-    // ============================================
-    // STEP 2: Ensure output directory exists
-    // ============================================
-    ensureSafeOutputDirectory(outputDir, outputDir);
-
     // ============================================
     // STEP 3: 🎯 COMPILE SPA TEMPLATES (RECURSIVE)
     // ============================================
@@ -400,7 +349,7 @@ export const build = async (outputDir = 'public', options = {}) => {
                     reported = true;
                     console.error(`❌ Worker error for ${route.pattern.pathname}:`, err);
                     errors.push({ success: false, route: route.pattern.pathname, error: err.message });
-                    resolve(); // Don't crash the whole build
+                    worker.terminate().then(resolve, reject);
                 });
 
                 worker.on('exit', (code) => {
@@ -423,7 +372,11 @@ export const build = async (outputDir = 'public', options = {}) => {
             }
         });
 
-        await Promise.all(workers);
+        // Fail-fast stops the queue, but all active workers must finish before
+        // the transaction removes its private output directory.
+        const settled = await Promise.allSettled(workers);
+        const failed = settled.find(result => result.status === 'rejected');
+        if (failed) throw failed.reason;
 
     }
 
@@ -487,7 +440,7 @@ export const build = async (outputDir = 'public', options = {}) => {
     if (errors.length > 0) {
         console.log(`\n⚠️  Build completed with ${errors.length} error(s)\n`);
     } else {
-        console.log('\n✅ Build completed successfully!\n');
+        console.log('\n✅ Rendering completed successfully; preparing output.\n');
     }
     
     return {
@@ -499,6 +452,31 @@ export const build = async (outputDir = 'public', options = {}) => {
         duration: parseFloat(duration),
         cacheStats: null
     };
+};
+
+/** Keep the last successful output intact until every build step succeeds. */
+export const build = async (outputDir = 'public', options = {}) => {
+    const finalOutput = path.resolve(outputDir);
+    const transaction = createBuildTransaction(outputDir, {
+        clean: options.clean ?? true,
+        sources: [path.resolve('src'), PAGES_BASE]
+    });
+    try {
+        const result = await buildStaged(transaction.outputDir, options);
+        if (result.success) {
+            transaction.commit();
+            console.log('\n✅ Build completed successfully!\n');
+        } else {
+            console.log('Output was not published; the previous build is retained.');
+        }
+        // Results refer to the public output, never a discarded staging path.
+        for (const generated of result.generated) {
+            if (generated?.file) generated.file = path.join(finalOutput, path.relative(transaction.outputDir, generated.file));
+        }
+        return result;
+    } finally {
+        transaction.dispose();
+    }
 };
 
 /** Remove caches written by older versions. Kept for CLI/API compatibility. */

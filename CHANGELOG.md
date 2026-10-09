@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional npm trusted publishing through OIDC, with the working `NPM_TOKEN` path retained by default. See [release setup](docs/RELEASING.md).
+- A packed-artifact legacy upgrade integration check covering production SSG, SSR, SPA navigation, escaping, and preserved user assets with Chromium.
+
+### Fixed
+
+- Failed builds preserve the last successful output, including `--clean` builds; output promotion rolls back when its directory swap fails.
+- Successful rebuilds remove obsolete generated files while normal CLI builds preserve unmanaged user assets. Existing output without a build manifest needs one successful clean build for legacy cleanup.
+- Fail-fast parallel builds wait for active route workers before removing temporary output.
+- Build and clean output paths reject source trees and project metadata; generated asset paths are validated before promotion to prevent corrupt build manifests.
+- Missing page sources fail the build and preserve existing output; an intentionally empty pages directory remains valid.
+- Production serving uses generated HTML for SSG routes, retaining fetched records and production scripts, while SSR routes continue rendering request parameters.
+- Dynamic SPA templates emit their imported browser modules with relative paths intact, including re-exports and literal lazy imports. Unsupported browser imports fail before output promotion.
+- Upgrade preflight and guarded file writes reject linked managed files, directories, metadata, and backups before changing the project, including when `--force` is used.
+
+
 ## [0.3.0] - 2026-10-08
 
 ### Added

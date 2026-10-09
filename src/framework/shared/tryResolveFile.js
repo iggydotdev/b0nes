@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { readFile, realpath, stat } from 'node:fs/promises';
+import { readFile, realpath, stat, lstat } from 'node:fs/promises';
 import { ENV } from '../config/envs.js';
 import { validateAndSanitizePath } from './sanitizePaths.js';
 import { PUBLIC_BASE, PAGES_BASE, COMPONENTS_BASE, CLIENT_BASE, UTILS_BASE } from '../server/handlers/getServerConfig.js';
@@ -50,6 +50,22 @@ async function resolvePublicFile(pathname) {
         if (result.found) return result;
     }
     return missing();
+}
+
+/** Generated route folders contain URL-encoded segments, never decoded slugs. */
+export async function resolvePublicPage(pathname) {
+    if (typeof pathname !== 'string' || !pathname.startsWith('/') ||
+        /[\\\x00-\x1f\x7f]/.test(pathname) || pathname.split('/').some(part => part === '.' || part === '..')) {
+        return missing();
+    }
+    try {
+        if ((await lstat(PUBLIC_BASE)).isSymbolicLink()) return missing();
+        const relative = pathname.replace(/^\/+/, '').replace(/\/$/, '');
+        const filename = relative.endsWith('.html') ? relative : path.join(relative, 'index.html');
+        return readWithinBase(path.join(PUBLIC_BASE, filename), PUBLIC_BASE);
+    } catch {
+        return missing();
+    }
 }
 
 /** Resolve HTTP assets without falling back to server-side pages in production. */

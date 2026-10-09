@@ -16,7 +16,8 @@ minor or patch. There is no automatic promotion to `1.0.0`. Manual releases also
 undergo the zero-major and package/lockfile checks before npm publishing.
 
 No dependencies are added. GitHub release creation uses the repository's built-in
-`GITHUB_TOKEN`; npm publishing uses the existing `NPM_TOKEN` repository secret.
+`GITHUB_TOKEN`. npm publishing defaults to the existing `NPM_TOKEN` repository
+secret. Trusted publishing is an optional path described below.
 Repository rules must permit the workflow to create release tags. No personal
 GitHub token is needed.
 
@@ -31,3 +32,37 @@ on npm are skipped. Registry errors other than a missing version fail the run.
 If the package version is already tagged on an earlier commit, merging without
 a version bump intentionally skips a new release. Configure branch protection
 to require CI before merging. This workflow does not change repository settings or secrets.
+
+## Optional npm trusted publishing
+
+The default remains `token`; leaving `NPM_PUBLISH_AUTH` unset keeps the refreshed
+`NPM_TOKEN` working. No package dependencies or version policy change.
+
+To prepare OIDC, open [b0nes package settings](https://www.npmjs.com/package/b0nes/access)
+and add GitHub Actions trusted publishers with:
+
+| Field | Automatic merged-PR release | Manual GitHub release |
+| --- | --- | --- |
+| Organization or user | `iggydotdev` | `iggydotdev` |
+| Repository | `b0nes` | `b0nes` |
+| Workflow filename | `release.yml` | `npm-publish.yml` |
+| Environment name | Leave empty | Leave empty |
+| Allowed actions | Enable direct `npm publish` | Enable direct `npm publish` |
+
+npm matches the calling workflow for reusable workflows, so automatic releases
+need `release.yml`. Both workflows grant `id-token: write`. Publishing runs on
+GitHub-hosted Ubuntu with Node 24; the helper requires npm >=11.5.1 (npm's minimum
+Node version for OIDC is 22.14). [npm trusted publishing documentation](https://docs.npmjs.com/trusted-publishers/)
+
+After the updated workflows are on `main` and trust is configured, set repository
+**Actions variable** `NPM_PUBLISH_AUTH` to `oidc` under Settings → Secrets and
+variables → Actions → Variables. Then make the next patch or minor release.
+OIDC mode supplies no stored publish token and fails clearly if its prerequisites
+are missing. A registry lookup still skips a version already published; rerunning
+an old release cannot validate OIDC. Newly configured trust must complete its
+first publish within two days, so configure it near the next release.
+
+Keep `NPM_TOKEN` until the first successful OIDC publish. To return to token mode,
+set `NPM_PUBLISH_AUTH` to `token` or delete the variable. After verifying both
+release paths, the token can be revoked and removed. The workflows do not create
+trusted publishers, change repository variables, or alter npm account settings.

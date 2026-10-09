@@ -11,6 +11,8 @@
  */
 
 import { build, clearBuildCache } from './pipeline/ssg.js';
+import { assertSafeBuildOutput } from './pipeline/buildTransaction.js';
+import { PAGES_BASE } from '../server/handlers/getServerConfig.js';
 import startServer from '../server/index.js';
 import fs from 'node:fs';
 
@@ -50,7 +52,7 @@ COMMANDS:
 
 BUILD OPTIONS:
   --verbose, -v       Verbose logging
-  --clean             Clean output directory before build
+  --clean             Remove unmanaged output after a successful build
   --parallel, -p      Build routes in parallel (faster)
   --no-cache          Compatibility flag (routes always rebuild)
   --production        Enable production ES-module entries
@@ -151,6 +153,7 @@ const runClean = () => {
     console.log('🦴 b0nes Clean\n');
     
     try {
+        assertSafeBuildOutput(flags.outputDir, [PAGES_BASE, 'src']);
         // Clear build cache
         clearBuildCache();
         console.log('✅ Cache cleared');
